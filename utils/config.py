@@ -1,0 +1,1 @@
+model_name = "gemini-2.0-flash-lite"

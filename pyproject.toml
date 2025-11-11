@@ -1,0 +1,19 @@
+[project]
+name = "langgraphagent"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Joao Lucas Flauzino Cassiano",email = "joaolucas.apoio@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "langgraph (>=1.0.1,<2.0.0)",
+    "langchain-google-genai (>=3.0.0,<4.0.0)",
+    "langchain (>=1.0.3,<2.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
