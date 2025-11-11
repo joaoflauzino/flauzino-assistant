@@ -1,7 +1,4 @@
-
-from langgraph.graph import StateGraph
 from typing import TypedDict
-
 class GraphState(TypedDict):
     next_node: str
     question: str
@@ -9,4 +6,4 @@ class GraphState(TypedDict):
     response: dict
     spent: dict
     budget: dict
-    stats: str
+    status: str

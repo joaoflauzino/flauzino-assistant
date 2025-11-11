@@ -5,10 +5,10 @@ def decision_node(state: GraphState) -> GraphState:
     """Define o próximo nó com base no tipo da conversa."""
     print(f"[decision] Tipo detectado: {state.get('type')}")
 
-    if state.get("type") == "REGISTRO":
+    if state.get("awaiting_user_for_spent"):
         state["next_node"] = "extract_spent"
-    elif state.get("type") == "LIMITE":
-        state["next_node"] = "extract_budget"
+    elif state.get("type") == "REGISTRO":
+        state["next_node"] = "extract_spent"
     elif state.get("type") == "OUTROS":
         state["next_node"] = "normal_conversation"
     else:

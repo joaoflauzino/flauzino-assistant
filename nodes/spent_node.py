@@ -2,20 +2,20 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.messages.ai import AIMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from schema import GraphState
+from utils.config import model_name
 
 def check_conversation_type(state: GraphState) -> dict:
     prompt_check = """
 
     ## Instruções
     Você é um especialista e assistente de finanças da Família Flauzino. A sua responsabilidade é identificar
-    se o usuário está falando sobre registros de gastos ou esta apenas falando sobre os limites de gastos.
+    se o usuário está falando sobre registros de gastos ou se esta falando sobre outros assuntos.
     - Registro de gastos: Registrar ou consultar gastos para determinadas categorias
-    - Limite de gastos: Registrar ou consultar limite de gastos para determinadas categorias
+    - Outros assuntos: Qualquer outro tópico que não seja registro de gastos.
 
     Você precisa retornar 2 possibilidades:
 
         Registro de gastos -> REGISTRO
-        Limite de gastos -> LIMITE
         Outros tópicos -> OUTROS
 
     ## Exemplos
@@ -26,16 +26,16 @@ def check_conversation_type(state: GraphState) -> dict:
     - Gastei 500 reais em compras no mercado com o cartao do c6 na categoria "mercado"
     - Gostaria de consultar meus gastos
 
-    ### Consulta de limite de gastos -> LIMITE
-    - Olá, gostaria de saber quanto posso gastar na categoria "comer fora"
-    - Quero saber meus limites de gastos
-    - Gostaria de criar um novo limite de gastos
+    ### Outros assuntos -> OUTROS
+    - Olá, o que você pode fazer?
+    - Me ajude a organizar minha vida financeira
+    - Quais são as melhores práticas para economizar dinheiro?
 
     Fala do usuário: \n{question}
 
     """
 
-    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash-lite")
+    llm = ChatGoogleGenerativeAI(model=model_name)
 
     prompt_template = PromptTemplate(
         input_variables=["question"],
