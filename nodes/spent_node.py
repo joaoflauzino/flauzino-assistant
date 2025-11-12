@@ -50,6 +50,8 @@ def check_conversation_type(state: GraphState) -> dict:
 
     operation_type = str(response.content).strip()
 
+    state["chat_history"] = [{"role": "user", "content": question}, {"role": "assistant", "content": response.content}]
+
     return {
         **state,
         "question": state["question"],

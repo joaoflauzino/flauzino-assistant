@@ -7,3 +7,7 @@ class GraphState(TypedDict):
     spent: dict
     budget: dict
     status: str
+    awaiting_user_for_spent: bool
+    last_node: str
+    entry_point: str
+    chat_history: list

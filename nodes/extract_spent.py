@@ -21,10 +21,17 @@ example_spent = {
 
 
 def extract_entity_from_spent(state: GraphState) -> dict:
+
+    question = state.get("question", "")
+    chat_history = state.get("chat_history", [])
+
     prompt_check = """
     ## Instruções (LEIA COM ATENÇÃO)
     Você é um assistente financeiro da Família Flauzino.
     O usuário fala sobre registros de gastos.
+
+    Considere o histórico da conversa para entender o contexto:
+    {chat_history}
 
     EXTRAIA somente as seguintes chaves (sempre presentes no JSON):
     - categoria
@@ -39,20 +46,36 @@ def extract_entity_from_spent(state: GraphState) -> dict:
     Exemplo de JSON válido:
     {example_spent}
 
-    Caso faltar alguma informacão, PERGUNTE para o usuário.
+    Caso faltar alguma informação, diga explicitamente:
+    'Preciso que você me diga [campo que falta].'
+
+    Exemplos de perguntas incompletas:
+    - 'Gastei 50 reais.' -> Preciso que você me diga metodo_pagamento, local_compra e categoria.
+    - 'Comprei no mercado com o cartão do itau.' -> Preciso que você me diga valor e categoria.
+    - 'Gastei 200 reais no shopping com o cartão do c6 na categoria roupas.' -> Preciso que você me diga local_compra.
+
+    Em hipótese alguma retorne uma resposta vazia ou nula.
 
     Fala do usuário: {question}
     """
     llm_plain = ChatGoogleGenerativeAI(model=model_name, temperature=0, max_output_tokens=1024)
 
-    question = state.get("question", "")
-    prompt = PromptTemplate.from_template(prompt_check).format(question=question, example_spent=json.dumps(example_spent))
+    prompt = PromptTemplate.from_template(prompt_check).format(
+        question=question,
+        example_spent=json.dumps(example_spent),
+        chat_history=json.dumps(chat_history),
+    )
 
     response = llm_plain.invoke(prompt, json_output=True)
+
+    if state.get("entry_point") != "check":
+        chat_history.append({"role": "user", "content": question})
 
     try:
         response_json = json.loads(response.content)
         spent_entity = SpentEntity(**response_json)
-        return {**state, "spent": spent_entity, "status": "ok", "awaiting_user_for_spent": False}
+        state["chat_history"].append({"role": "system", "content": spent_entity.model_dump_json()})
+        return {**state, "spent": spent_entity, "status": "ok", "awaiting_user_for_spent": False, "last_node": "extract_spent"}
     except (json.JSONDecodeError, ValidationError):
-        return {**state, "spent": response.content, "status": "incomplete", "awaiting_user_for_spent": True}
+        state["chat_history"].append({"role": "system", "content": response.content})
+        return {**state, "spent": response.content, "status": "incomplete", "awaiting_user_for_spent": True, "last_node": "extract_spent"}
