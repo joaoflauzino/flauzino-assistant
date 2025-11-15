@@ -62,9 +62,12 @@ while True:
         config={"configurable": {"thread_id": conversation_id}},
     )
 
-    print("Assistente:", response.get("spent", None))
+    if response["spent"].reasoning !=  "null":
+        print("Assistente:", response["spent"].reasoning)
+    else:
+        print("Assistente:", response.get("spent", None))
 
-    print("Conversa que o assistente teve acess:\n\n")
+    print("Conversa que o assistente teve acesso:\n\n")
 
     for msg in response.get("chat_history", []):
         print(msg)

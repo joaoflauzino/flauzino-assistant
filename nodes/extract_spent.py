@@ -5,11 +5,19 @@ from schema import GraphState
 from pydantic import BaseModel, ValidationError
 import json
 
+
+## TO DO:
+## - Tratar retorno de entry point quando for necessário entrar direto nesse nó
+## - Quando não á reasoning, a LLM retorna o response vazio
+## - Melhorar prompts para extrair as entidades corretamente
+## - Avaliar se não é melhor utilizar outro provider
+
 class SpentEntity(BaseModel):
     categoria: str
     valor: float
     metodo_pagamento: str
     local_compra: str
+    reasoning: str | None = None
 
 
 example_spent = {
@@ -26,39 +34,51 @@ def extract_entity_from_spent(state: GraphState) -> dict:
     chat_history = state.get("chat_history", [])
 
     prompt_check = """
-    ## Instruções (LEIA COM ATENÇÃO)
+
+    ---------------------------------------------------------------------------
+    # INSTRUCÕES
+    ---------------------------------------------------------------------------
+
     Você é um assistente financeiro da Família Flauzino.
     O usuário fala sobre registros de gastos.
+    Seu objetivo é extrair as informações relevantes sobre o gasto mencionado pelo usuário.
 
     Considere o histórico da conversa para entender o contexto:
     {chat_history}
 
-    EXTRAIA somente as seguintes chaves (sempre presentes no JSON):
-    - categoria
-    - valor
-    - metodo_pagamento
-    - local_compra
+    ---------------------------------------------------------------------------
+    1. EXTRACÃO DE ENTIDADES
+    ---------------------------------------------------------------------------
 
-    RETORNE APENAS UM JSON VÁLIDO contendo essas chaves e seus valores.
-    NÃO inclua texto explicativo, não inclua blocos de código (```), não inclua backticks,
-    não adicione comentários, não retorne múltiplos candidatos — apenas o JSON bruto.
+    > EXTRAIA somente as seguintes chaves (sempre presentes no JSON):
+        - categoria
+        - valor
+        - metodo_pagamento
+        - local_compra
 
-    Exemplo de JSON válido:
-    {example_spent}
+    > APENAS preencha o campo `reasoning` caso falte informacoes na fala do usuário. Caso isso aconteca, elabore uma pergunta para obter os dados faltantes.
+    > Se alguma informação estiver faltando na fala do usuário, coloque null no respectivo campo.
 
-    Caso faltar alguma informação, diga explicitamente:
-    'Preciso que você me diga [campo que falta].'
+    ---------------------------------------------------------------------------
+    2. RETORNO DO JSON
+    ---------------------------------------------------------------------------
 
-    Exemplos de perguntas incompletas:
-    - 'Gastei 50 reais.' -> Preciso que você me diga metodo_pagamento, local_compra e categoria.
-    - 'Comprei no mercado com o cartão do itau.' -> Preciso que você me diga valor e categoria.
-    - 'Gastei 200 reais no shopping com o cartão do c6 na categoria roupas.' -> Preciso que você me diga local_compra.
+    > RETORNE UM JSON VÁLIDO!
 
-    Em hipótese alguma retorne uma resposta vazia ou nula.
+    >> Exemplo de JSON válido:
+        {example_spent}
+
+    > IMPORTANTE: Se alguma informação estiver faltando na fala do usuário, peça educadamente para que ele forneça os dados faltantes.
+
+    >> Exemplos de perguntas incompletas:
+        - 'Gastei 50 reais.' -> Preciso que você me diga metodo_pagamento, local_compra e categoria.
+        - 'Comprei no mercado com o cartão do itau.' -> Preciso que você me diga valor e categoria.
+        - 'Gastei 200 reais no shopping com o cartão do c6 na categoria roupas.' -> Preciso que você me diga local_compra.
 
     Fala do usuário: {question}
     """
-    llm_plain = ChatGoogleGenerativeAI(model=model_name, temperature=0, max_output_tokens=1024)
+    llm_plain = ChatGoogleGenerativeAI(model=model_name, temperature=0) \
+                .with_structured_output(SpentEntity, include_raw=True)
 
     prompt = PromptTemplate.from_template(prompt_check).format(
         question=question,
@@ -66,16 +86,14 @@ def extract_entity_from_spent(state: GraphState) -> dict:
         chat_history=json.dumps(chat_history),
     )
 
-    response = llm_plain.invoke(prompt, json_output=True)
 
     if state.get("entry_point") != "check":
         chat_history.append({"role": "user", "content": question})
 
+
     try:
-        response_json = json.loads(response.content)
-        spent_entity = SpentEntity(**response_json)
-        state["chat_history"].append({"role": "system", "content": spent_entity.model_dump_json()})
-        return {**state, "spent": spent_entity, "status": "ok", "awaiting_user_for_spent": False, "last_node": "extract_spent"}
-    except (json.JSONDecodeError, ValidationError):
-        state["chat_history"].append({"role": "system", "content": response.content})
-        return {**state, "spent": response.content, "status": "incomplete", "awaiting_user_for_spent": True, "last_node": "extract_spent"}
+        response = llm_plain.invoke(prompt)
+        return {**state, "spent": response.get("parsed", None), "raw": response.get("raw", None), "status": "ok", "awaiting_user_for_spent": False, "last_node": "extract_spent"}
+    except Exception as e:
+        chat_history.append({"role": "system", "content": str(e)})
+        return {**state, "spent": None, "error": str(e), "status": "incomplete", "awaiting_user_for_spent": True, "last_node": "extract_spent"}

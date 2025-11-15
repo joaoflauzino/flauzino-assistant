@@ -4,6 +4,7 @@ class GraphState(TypedDict):
     question: str
     type: dict 
     response: dict
+    raw: dict 
     spent: dict
     budget: dict
     status: str
@@ -11,3 +12,4 @@ class GraphState(TypedDict):
     last_node: str
     entry_point: str
     chat_history: list
+    error: str
