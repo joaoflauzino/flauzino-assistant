@@ -2,6 +2,7 @@ import os
 
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
+import asyncio
 
 from schema import GraphState
 from nodes.spent_node import check_conversation_type
@@ -53,21 +54,31 @@ app = workflow.compile(checkpointer=memory)
 
 conversation_id = "user_234"
 
-while True:
-    user_input = input("Você: ")
-    if user_input.lower() in ["sair", "exit", "quit"]:
-        break
-    response = app.invoke(
-        {"question": user_input},
-        config={"configurable": {"thread_id": conversation_id}},
-    )
+async def main():
+    while True:
+        try:
+            user_input = input("Você: ")
+        except (EOFError, KeyboardInterrupt):
+            print("\nEncerrando.")
+            break
 
-    if response["spent"].reasoning !=  "null":
-        print("Assistente:", response["spent"].reasoning)
-    else:
+        if user_input.strip() == "" or None:
+            print("Entrada vazia. Digite algo ou 'sair' para encerrar.")
+            continue
+
+        if user_input.lower() in ["sair", "exit", "quit"]:
+            break
+
+        response = await app.ainvoke(
+            {"question": user_input},
+            config={"configurable": {"thread_id": conversation_id}},
+        )
+
         print("Assistente:", response.get("spent", None))
 
-    print("Conversa que o assistente teve acesso:\n\n")
+        print("Conversa que o assistente teve acesso:\n\n")
+        for msg in response.get("chat_history", []):
+            print(msg)
 
-    for msg in response.get("chat_history", []):
-        print(msg)
+if __name__ == "__main__":
+    asyncio.run(main())

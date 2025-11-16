@@ -4,7 +4,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from schema import GraphState
 from utils.config import model_name
 
-def check_conversation_type(state: GraphState) -> dict:
+async def check_conversation_type(state: GraphState) -> dict:
     prompt_check = """
 
     ## Instruções
@@ -46,7 +46,7 @@ def check_conversation_type(state: GraphState) -> dict:
 
     final_prompt = prompt_template.format(question=question)
 
-    response: AIMessage = llm.invoke(final_prompt)
+    response: AIMessage = await llm.ainvoke(final_prompt)
 
     operation_type = str(response.content).strip()
 
