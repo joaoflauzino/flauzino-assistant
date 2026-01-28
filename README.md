@@ -1,38 +1,131 @@
-# flauzino-assistant
+# Flauzino Assistant
 
-Esse projeto tem como objetivo criar um assistente virtual capaz de lidar com registros de gastos pessoais de forma inteligente e automatizada.
+Este projeto tem como objetivo criar um assistente virtual capaz de lidar com registros de gastos pessoais de forma inteligente e automatizada.
 
-## Roadmap
+## Arquitetura
 
-O desenvolvimento do projeto seguirá as seguintes etapas:
+O projeto é dividido em três módulos principais:
 
-1.  **API de Gestão Financeira**
-    -   Desenvolver uma API para registrar informações de gastos (*spents*) e limites de gastos (*spending limits*).
-    -   Implementar a camada de repositório utilizando PostgreSQL ou outro banco de dados simples para persistência dos dados.
+-   **`infra/`**: Contém a configuração da infraestrutura, incluindo o banco de dados PostgreSQL via Docker Compose e scripts de inicialização.
+-   **`finance_api/`**: Uma API FastAPI responsável por toda a lógica de negócio e persistência de dados. Ela gerencia os gastos e limites no banco de dados.
+-   **`agent_api/`**: Uma API FastAPI que serve como a interface de conversação. Ela recebe mensagens do usuário, utiliza um LLM para extrair informações e se comunica com a `finance_api` para registrar os dados.
 
-2.  **Ferramenta de Visualização e Gestão**
-    -   Criar uma ferramenta para visualizar as informações de gastos.
-    -   Permitir o cadastro manual de gastos e limites por categoria através desta interface.
+## Como Executar
 
-3.  **Agente Inteligente de Extração**
-    -   Desenvolver um agente capaz de interpretar frases em linguagem natural.
-    -   Extrair informações de gastos ou limites definidos pelo usuário.
-    -   Integrar com a API desenvolvida para registrar essas informações automaticamente.
+Este projeto utiliza `uv` para gerenciamento de dependências e `Docker` para o banco de dados.
 
-## Como Executar (MVP - Agente Inteligente)
+### 1. Configuração do Ambiente
 
-Atualmente, o projeto conta com uma implementação MVP do **Item 3 (Agente Inteligente de Extração)**. As demais funcionalidades (API e Visualização) estão em desenvolvimento.
-
-Este projeto utiliza `uv` para gerenciamento de dependências.
-
-1.  Instale as dependências:
+1.  **Instale as dependências:**
     ```bash
     uv sync
     ```
 
-2.  Configure a variável de ambiente `GEMINI_API_KEY`.
-
-3.  Execute o assistente:
-    ```bash
-    uv run main.py
+2.  **Crie as variáveis de ambiente:**
+    Crie um arquivo `.env` na raiz do projeto ou exporte as variáveis necessárias. No mínimo, você precisará da `GEMINI_API_KEY`.
+    ```env
+    GEMINI_API_KEY="sua_chave_api_aqui"
     ```
+
+### 2. Infraestrutura
+
+1.  **Inicie o banco de dados PostgreSQL:**
+    A partir da raiz do projeto, execute:
+    ```bash
+    docker-compose -f infra/docker-compose.yml up -d
+    ```
+
+### 3. Executando os Serviços
+
+Você precisará de dois terminais para rodar as duas APIs simultaneamente.
+
+1.  **Inicie a API Financeira (porta 8000):**
+    ```bash
+    uv run uvicorn finance_api.main:app --port 8000 --reload
+    ```
+    -   **Docs (Swagger):** `http://localhost:8000/docs`
+
+2.  **Inicie a API do Agente (porta 8001):**
+    ```bash
+    uv run uvicorn agent_api.main:app --port 8001 --reload
+    ```
+    -   **Docs (Swagger):** `http://localhost:8001/docs`
+
+## Testes
+
+O projeto utiliza `pytest` para testes unitários.
+
+1.  **Instale as dependências de desenvolvimento:**
+    ```bash
+    uv sync --group dev
+    ```
+
+2.  **Execute os testes:**
+    A partir da raiz do projeto, execute:
+    ```bash
+    pytest
+    ```
+
+## Documentação das APIs
+
+### Finance API
+
+Interação direta com o banco de dados.
+
+#### Registrar um Gasto (POST /spents)
+
+```bash
+curl -X 'POST' \
+  'http://localhost:8000/spents' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "category": "comer_fora",
+  "amount": 150.50,
+  "payment_method": "itau",
+  "payment_owner": "joao_lucas",
+  "location": "Restaurante X"
+}'
+```
+
+#### Listar Gastos (GET /spents)
+
+```bash
+curl -X 'GET' 'http://localhost:8000/spents' -H 'accept: application/json'
+```
+
+#### Criar/Atualizar Limite (POST /limits)
+
+```bash
+curl -X 'POST' \
+  'http://localhost:8000/limits' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "category": "comer_fora",
+  "amount": 2000.00
+}'
+```
+
+#### Listar Limites (GET /limits)
+
+```bash
+curl -X 'GET' 'http://localhost:8000/limits' -H 'accept: application/json'
+```
+
+### Agent API
+
+Interface de conversação para interagir com o sistema.
+
+#### Enviar Mensagem (POST /chat)
+
+```bash
+curl -X 'POST' \
+  'http://localhost:8001/chat' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "message": "gastei 50 reais no mercado com o cartão do itau do joao lucas",
+  "history": []
+}'
+```

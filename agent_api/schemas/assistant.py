@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 
-from schemas.limit import LimitDetails
-from schemas.spending import SpendingDetails
+from agent_api.schemas.limit import LimitDetails
+from agent_api.schemas.spending import SpendingDetails
 
 
 class AssistantResponse(BaseModel):
