@@ -1,22 +1,13 @@
 [project]
-name = "langgraphagent"
+name = "flauzino-assistant"
 version = "0.1.0"
-description = ""
-authors = [
-    {name = "Joao Lucas Flauzino Cassiano",email = "joaolucas.apoio@gmail.com"}
-]
+description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.13"
 dependencies = [
-    "langgraph (>=1.0.1,<2.0.0)",
-    "langchain-google-genai (>=3.0.0,<4.0.0)",
-    "langchain (>=1.0.3,<2.0.0)"
+    "langchain>=1.2.7",
+    "langchain-google-genai>=4.2.0",
+    "pydantic>=2.12.5",
+    "pydantic-settings>=2.12.0",
+    "python-dotenv>=1.2.1",
 ]
-
-
-[build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.poetry]
-package-mode = false
