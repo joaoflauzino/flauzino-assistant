@@ -32,15 +32,14 @@ def mock_get_llm_response(mocker):
 
 
 @pytest.fixture
-def mock_save_spent(mocker):
-    """Fixture for mocking the save_spent service."""
-    return mocker.patch("agent_api.routers.chat.save_spent", new_callable=AsyncMock)
-
-
-@pytest.fixture
-def mock_save_limit(mocker):
-    """Fixture for mocking the save_limit service."""
-    return mocker.patch("agent_api.routers.chat.save_limit", new_callable=AsyncMock)
+def mock_backend_service(mocker):
+    """Fixture for mocking the BackendService."""
+    # Patch the class where it is used
+    MockService = mocker.patch("agent_api.routers.chat.BackendService")
+    # The return value of the class (the instance) needs a register method that is async
+    instance = MockService.return_value
+    instance.register = AsyncMock()
+    return instance
 
 
 async def test_chat_simple_response(test_client, mock_get_llm_response):
@@ -68,7 +67,7 @@ async def test_chat_simple_response(test_client, mock_get_llm_response):
 
 
 async def test_chat_complete_spent_and_save(
-    test_client, mock_get_llm_response, mock_save_spent
+    test_client, mock_get_llm_response, mock_backend_service
 ):
     """
     Test a chat interaction that results in a complete spending record being saved.
@@ -96,11 +95,11 @@ async def test_chat_complete_spent_and_save(
     data = response.json()
     assert data["response"] == "Gasto de R$50.0 em mercado registrado."
     mock_get_llm_response.assert_awaited_once()
-    mock_save_spent.assert_awaited_once_with(spending_details)
+    mock_backend_service.register.assert_awaited_once()
 
 
 async def test_chat_save_spent_fails(
-    test_client, mock_get_llm_response, mock_save_spent
+    test_client, mock_get_llm_response, mock_backend_service
 ):
     """
     Test that an error during saving is appended to the response message.
@@ -119,7 +118,7 @@ async def test_chat_save_spent_fails(
         spending_details=spending_details,
         is_complete=True,
     )
-    mock_save_spent.side_effect = Exception("API connection error")
+    mock_backend_service.register.side_effect = Exception("API connection error")
 
     # Act
     response = await test_client.post("/chat", json=payload)
@@ -130,7 +129,7 @@ async def test_chat_save_spent_fails(
     expected_error_msg = "Gasto de R$50.0 em mercado registrado.\n\n[Sistema: Houve um erro ao salvar o registro no banco de dados: API connection error]"
     assert data["response"] == expected_error_msg
     mock_get_llm_response.assert_awaited_once()
-    mock_save_spent.assert_awaited_once()
+    mock_backend_service.register.assert_awaited_once()
 
 
 async def test_chat_llm_fails(test_client, mock_get_llm_response):

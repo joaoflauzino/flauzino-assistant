@@ -1,10 +1,9 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from agent_api.schemas.assistant import AssistantResponse
-from config.settings import settings
+from agent_api.settings import settings
 from finance_api.schemas.enums import CardEnum, CategoryEnum, NameEnum
 
-# List of valid categories for the prompt
 VALID_CATEGORIES = ", ".join([c.value for c in CategoryEnum])
 VALID_PAYMENT_METHODS = ", ".join([c.value for c in CardEnum])
 VALID_OWNERS = ", ".join([o.value for o in NameEnum])
