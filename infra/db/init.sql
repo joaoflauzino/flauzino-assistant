@@ -16,4 +16,22 @@ CREATE TABLE IF NOT EXISTS spending_limits (
     amount DOUBLE PRECISION NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS ix_spending_limits_category ON spending_limits (category);
+
+CREATE TABLE IF NOT EXISTS chat_sessions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id SERIAL PRIMARY KEY,
+    session_id UUID NOT NULL,
+    role VARCHAR(50) NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT now(),
+    CONSTRAINT fk_session
+        FOREIGN KEY(session_id) 
+        REFERENCES chat_sessions(id)
+        ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS ix_chat_messages_session_id ON chat_messages (session_id);

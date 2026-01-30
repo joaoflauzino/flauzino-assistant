@@ -18,7 +18,7 @@ class FinanceService:
 
     async def _post_to_finance_api(self, endpoint: str, payload: dict):
         """Helper method to POST data to the finance API."""
-        url = f"{settings.API_BASE_URL}/{endpoint}/"
+        url = f"{settings.FINANCE_SERVICE_URL}/{endpoint}/"
         response = await self.client.post(url, json=payload)
         response.raise_for_status()
         return response.json()

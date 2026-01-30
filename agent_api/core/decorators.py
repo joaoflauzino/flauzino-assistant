@@ -1,5 +1,11 @@
 import functools
 import httpx
+from langchain_core.exceptions import OutputParserException
+from google.api_core.exceptions import GoogleAPIError
+from sqlalchemy.exc import SQLAlchemyError
+from fastapi import HTTPException
+
+
 from agent_api.core.exceptions import (
     FinanceUnreachableError,
     FinanceServerError,
@@ -7,10 +13,8 @@ from agent_api.core.exceptions import (
     LLMProviderError,
     LLMParsingError,
     LLMUnknownError,
+    DatabaseError,
 )
-
-from langchain_core.exceptions import OutputParserException
-from google.api_core.exceptions import GoogleAPIError
 
 
 def handle_finance_errors(func):
@@ -46,5 +50,27 @@ def handle_llm_errors(func):
             raise LLMProviderError(f"Google Gemini Error: {str(e)}")
         except Exception as e:
             raise LLMUnknownError(f"Unexpected LLM Error: {str(e)}")
+
+    return wrapper
+
+
+def handle_chat_service_errors(func):
+    """Decorator to catch unexpected errors in ChatService."""
+
+    @functools.wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except SQLAlchemyError as e:
+            # You might want to log the specifics but hide details from user
+            # raise HTTPException(status_code=500, detail="Database error occurred")
+            # OR raise a custom exception that handlers.py catches
+            raise DatabaseError(f"Database operation failed: {str(e)}")
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Internal Server Error: {str(e)}"
+            )
 
     return wrapper

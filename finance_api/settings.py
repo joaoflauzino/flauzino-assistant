@@ -1,11 +1,11 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class FinanceApiSettings(BaseSettings):
-    DATABASE_URL: str = (
-        "postgresql+asyncpg://flauzino:password@localhost:5432/assistant"
-    )
-    API_BASE_URL: str = "http://localhost:8001"
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    DATABASE_URL: str
+    AGENT_SERVICE_URL: str = "http://localhost:8001"
 
 
 settings = FinanceApiSettings()

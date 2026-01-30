@@ -22,9 +22,25 @@ Este projeto utiliza `uv` para gerenciamento de dependências e `Docker` para o 
     ```
 
 2.  **Crie as variáveis de ambiente:**
-    Crie um arquivo `.env` na raiz do projeto ou exporte as variáveis necessárias. No mínimo, você precisará da `GEMINI_API_KEY`.
+    Crie um arquivo `.env` na raiz do projeto ou exporte as variáveis necessárias.
+    
+    | Variável | Descrição | Padrão | Obrigatório? |
+    | :--- | :--- | :--- | :--- |
+    | `GEMINI_API_KEY` | Chave de API do Google Gemini. | - | **Sim** |
+    | `DATABASE_URL` | URL de conexão com o banco de dados. | - | **Sim** (Local via Docker) |
+    | `MODEL_NAME` | Modelo do Gemini a ser utilizado. | `gemini-2.5-flash` | Não |
+    | `FINANCE_SERVICE_URL` | URL da API Financeira (usada pelo Agente). | `http://localhost:8000` | Não |
+    | `AGENT_SERVICE_URL` | URL da API do Agente (usada pela Finance API). | `http://localhost:8001` | Não |
+
+    Exemplo de arquivo `.env`:
     ```env
     GEMINI_API_KEY="sua_chave_api_aqui"
+    DATABASE_URL="postgresql+asyncpg://flauzino:password@localhost:5432/assistant"
+    
+    # Opcionais
+    MODEL_NAME="gemini-2.5-flash"
+    FINANCE_SERVICE_URL="http://localhost:8000"
+    AGENT_SERVICE_URL="http://localhost:8001"
     ```
 
 ### 2. Infraestrutura
@@ -126,6 +142,6 @@ curl -X 'POST' \
   -H 'Content-Type: application/json' \
   -d '{
   "message": "gastei 50 reais no mercado com o cartão do itau do joao lucas",
-  "history": []
+  "session_id": "optional-uuid"
 }'
 ```

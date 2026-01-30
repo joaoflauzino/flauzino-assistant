@@ -50,3 +50,9 @@ class LLMUnknownError(LLMError):
     def __init__(self, message="Unknown LLM Error"):
         self.message = message
         super().__init__(self.message)
+
+
+class DatabaseError(Exception):
+    def __init__(self, message="Database Error"):
+        self.message = message
+        super().__init__(self.message)
