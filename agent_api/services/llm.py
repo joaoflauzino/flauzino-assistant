@@ -3,6 +3,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from agent_api.schemas.assistant import AssistantResponse
 from agent_api.settings import settings
 from finance_api.schemas.enums import CardEnum, CategoryEnum, NameEnum
+from agent_api.core.decorators import handle_llm_errors
 
 VALID_CATEGORIES = ", ".join([c.value for c in CategoryEnum])
 VALID_PAYMENT_METHODS = ", ".join([c.value for c in CardEnum])
@@ -58,6 +59,7 @@ O campo `proprietario` DEVE ser estritamente um destes valores:
 """
 
 
+@handle_llm_errors
 async def get_llm_response(history: list) -> AssistantResponse:
     llm = ChatGoogleGenerativeAI(
         model=settings.MODEL_NAME, temperature=0

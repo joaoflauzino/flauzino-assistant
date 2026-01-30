@@ -1,9 +1,12 @@
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from langchain_core.exceptions import OutputParserException
+from google.api_core.exceptions import GoogleAPIError
 
 from agent_api.schemas.assistant import AssistantResponse
 from agent_api.services.llm import SYSTEM_PROMPT, get_llm_response
+from agent_api.core.exceptions import LLMParsingError, LLMProviderError, LLMUnknownError
 
 
 @pytest.mark.asyncio
@@ -55,3 +58,62 @@ async def test_get_llm_response_success(mocker):
 
     # Check that the result is what we mocked
     assert result == mock_assistant_response
+
+
+@pytest.mark.asyncio
+async def test_get_llm_response_parsing_error(mocker):
+    """Test that OutputParserException is caught and raised as LLMParsingError."""
+    # Arrange
+    mock_llm_instance = MagicMock()
+    mock_structured_output = MagicMock()
+    mock_structured_output.ainvoke = AsyncMock(
+        side_effect=OutputParserException("Parsing failed")
+    )
+    mock_llm_instance.with_structured_output.return_value = mock_structured_output
+
+    mocker.patch(
+        "agent_api.services.llm.ChatGoogleGenerativeAI", return_value=mock_llm_instance
+    )
+
+    # Act & Assert
+    with pytest.raises(LLMParsingError) as exc_info:
+        await get_llm_response([])
+    assert "Failed to parse LLM response" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_get_llm_response_google_api_error(mocker):
+    """Test that GoogleAPIError is caught and raised as LLMProviderError."""
+    # Arrange
+    mock_llm_instance = MagicMock()
+    mock_structured_output = MagicMock()
+    mock_structured_output.ainvoke = AsyncMock(side_effect=GoogleAPIError("API Error"))
+    mock_llm_instance.with_structured_output.return_value = mock_structured_output
+
+    mocker.patch(
+        "agent_api.services.llm.ChatGoogleGenerativeAI", return_value=mock_llm_instance
+    )
+
+    # Act & Assert
+    with pytest.raises(LLMProviderError) as exc_info:
+        await get_llm_response([])
+    assert "Google Gemini Error" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_get_llm_response_unknown_error(mocker):
+    """Test that generic Exception is caught and raised as LLMUnknownError."""
+    # Arrange
+    mock_llm_instance = MagicMock()
+    mock_structured_output = MagicMock()
+    mock_structured_output.ainvoke = AsyncMock(side_effect=Exception("Unexpected boom"))
+    mock_llm_instance.with_structured_output.return_value = mock_structured_output
+
+    mocker.patch(
+        "agent_api.services.llm.ChatGoogleGenerativeAI", return_value=mock_llm_instance
+    )
+
+    # Act & Assert
+    with pytest.raises(LLMUnknownError) as exc_info:
+        await get_llm_response([])
+    assert "Unexpected LLM Error" in str(exc_info.value)

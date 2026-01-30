@@ -1,13 +1,13 @@
 import httpx
 
-from agent_api.core.exceptions import InvalidAssistantResponseError
 from agent_api.schemas.assistant import AssistantResponse
 from agent_api.schemas.limit import LimitDetails
 from agent_api.schemas.spending import SpendingDetails
 from agent_api.settings import settings
+from agent_api.core.decorators import handle_finance_errors
 
 
-class BackendService:
+class FinanceService:
     def __init__(
         self,
         agent_response: AssistantResponse,
@@ -23,13 +23,12 @@ class BackendService:
         response.raise_for_status()
         return response.json()
 
+    @handle_finance_errors
     async def register(self):
         if self.agent_response.spending_details:
             return await self.save_spent(self.agent_response.spending_details)
         if self.agent_response.limit_details:
             return await self.save_limit(self.agent_response.limit_details)
-
-        raise InvalidAssistantResponseError()
 
     async def save_spent(self, details: SpendingDetails):
         payload = {

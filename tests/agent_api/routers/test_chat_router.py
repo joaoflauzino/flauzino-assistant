@@ -7,6 +7,7 @@ from httpx import ASGITransport, AsyncClient
 from agent_api.main import app
 from agent_api.schemas.assistant import AssistantResponse
 from agent_api.schemas.spending import SpendingDetails
+from agent_api.core.exceptions import FinanceUnreachableError, LLMProviderError
 from finance_api.schemas.enums import CardEnum, CategoryEnum, NameEnum
 
 # Mark all tests as async
@@ -32,10 +33,10 @@ def mock_get_llm_response(mocker):
 
 
 @pytest.fixture
-def mock_backend_service(mocker):
-    """Fixture for mocking the BackendService."""
+def mock_finance_service(mocker):
+    """Fixture for mocking the FinanceService."""
     # Patch the class where it is used
-    MockService = mocker.patch("agent_api.routers.chat.BackendService")
+    MockService = mocker.patch("agent_api.routers.chat.FinanceService")
     # The return value of the class (the instance) needs a register method that is async
     instance = MockService.return_value
     instance.register = AsyncMock()
@@ -67,7 +68,7 @@ async def test_chat_simple_response(test_client, mock_get_llm_response):
 
 
 async def test_chat_complete_spent_and_save(
-    test_client, mock_get_llm_response, mock_backend_service
+    test_client, mock_get_llm_response, mock_finance_service
 ):
     """
     Test a chat interaction that results in a complete spending record being saved.
@@ -77,8 +78,8 @@ async def test_chat_complete_spent_and_save(
     spending_details = SpendingDetails(
         categoria=CategoryEnum.MARKET,
         valor=50.0,
-        metodo_pagamento=CardEnum.ITAU,
-        proprietário=NameEnum.JOAO_LUCAS,
+        metodo_pagamento="itau",  # string explicitly
+        proprietário="joao_lucas",  # string explicitly
         local_compra="mercado",
     )
     mock_get_llm_response.return_value = AssistantResponse(
@@ -95,22 +96,22 @@ async def test_chat_complete_spent_and_save(
     data = response.json()
     assert data["response"] == "Gasto de R$50.0 em mercado registrado."
     mock_get_llm_response.assert_awaited_once()
-    mock_backend_service.register.assert_awaited_once()
+    mock_finance_service.register.assert_awaited_once()
 
 
 async def test_chat_save_spent_fails(
-    test_client, mock_get_llm_response, mock_backend_service
+    test_client, mock_get_llm_response, mock_finance_service
 ):
     """
-    Test that an error during saving is appended to the response message.
+    Test that an exception from FinanceService results in a 503 (or appropriate) error.
     """
     # Arrange
     payload = {"message": "gastei 50 no mercado", "history": []}
     spending_details = SpendingDetails(
         categoria=CategoryEnum.MARKET,
         valor=50.0,
-        metodo_pagamento=CardEnum.ITAU,
-        proprietário=NameEnum.JOAO_LUCAS,
+        metodo_pagamento="itau",
+        proprietário="joao_lucas",
         local_compra="mercado",
     )
     mock_get_llm_response.return_value = AssistantResponse(
@@ -118,31 +119,30 @@ async def test_chat_save_spent_fails(
         spending_details=spending_details,
         is_complete=True,
     )
-    mock_backend_service.register.side_effect = Exception("API connection error")
+    # Raising FinanceUnreachableError should trigger the handler to return 503
+    mock_finance_service.register.side_effect = FinanceUnreachableError("Offline")
 
     # Act
     response = await test_client.post("/chat", json=payload)
 
     # Assert
-    assert response.status_code == 200
-    data = response.json()
-    expected_error_msg = "Gasto de R$50.0 em mercado registrado.\n\n[Sistema: Houve um erro ao salvar o registro no banco de dados: API connection error]"
-    assert data["response"] == expected_error_msg
+    assert response.status_code == 503
+    assert response.json()["message"] == "Service unavailable"
     mock_get_llm_response.assert_awaited_once()
-    mock_backend_service.register.assert_awaited_once()
+    mock_finance_service.register.assert_awaited_once()
 
 
 async def test_chat_llm_fails(test_client, mock_get_llm_response):
     """
-    Test that a 500 error is returned if the LLM service fails.
+    Test that an LLMProviderError results in a 503 error.
     """
     # Arrange
     payload = {"message": "Olá", "history": []}
-    mock_get_llm_response.side_effect = Exception("LLM is down")
+    mock_get_llm_response.side_effect = LLMProviderError("Google is down")
 
     # Act
     response = await test_client.post("/chat", json=payload)
 
     # Assert
-    assert response.status_code == 500
-    assert response.json() == {"detail": "Erro no Agente LLM: LLM is down"}
+    assert response.status_code == 503
+    assert response.json()["message"] == "AI Service Temporarily Unavailable"
