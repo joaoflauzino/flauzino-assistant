@@ -153,7 +153,9 @@ async def test_create_spent_repository_error(
 
     # Assert
     assert response.status_code == 500
-    assert response.json() == {"detail": "Database connection failed"}
+    assert response.json() == {
+        "detail": "Internal Server Error: Database connection failed"
+    }
 
     # Cleanup
     app.dependency_overrides.clear()
