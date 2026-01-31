@@ -1,3 +1,4 @@
+from typing import Any, Callable
 import functools
 import httpx
 from langchain_core.exceptions import OutputParserException
@@ -17,11 +18,11 @@ from agent_api.core.exceptions import (
 )
 
 
-def handle_finance_errors(func):
+def handle_finance_errors(func: Callable[..., Any]) -> Callable[..., Any]:
     """Decorator to catch httpx errors and raise FinanceService implementation errors."""
 
     @functools.wraps(func)
-    async def wrapper(*args, **kwargs):
+    async def wrapper(*args: Any, **kwargs: Any) -> Any:
         try:
             return await func(*args, **kwargs)
         except httpx.ConnectError:
@@ -37,11 +38,11 @@ def handle_finance_errors(func):
     return wrapper
 
 
-def handle_llm_errors(func):
+def handle_llm_errors(func: Callable[..., Any]) -> Callable[..., Any]:
     """Decorator to catch LLM errors and raise LLMService implementation errors."""
 
     @functools.wraps(func)
-    async def wrapper(*args, **kwargs):
+    async def wrapper(*args: Any, **kwargs: Any) -> Any:
         try:
             return await func(*args, **kwargs)
         except OutputParserException as e:
@@ -54,11 +55,11 @@ def handle_llm_errors(func):
     return wrapper
 
 
-def handle_chat_service_errors(func):
+def handle_chat_service_errors(func: Callable[..., Any]) -> Callable[..., Any]:
     """Decorator to catch unexpected errors in ChatService."""
 
     @functools.wraps(func)
-    async def wrapper(*args, **kwargs):
+    async def wrapper(*args: Any, **kwargs: Any) -> Any:
         try:
             return await func(*args, **kwargs)
         except SQLAlchemyError as e:

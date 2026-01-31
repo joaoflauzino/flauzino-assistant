@@ -1,4 +1,8 @@
+from typing import TYPE_CHECKING, Optional
 from uuid import UUID
+
+if TYPE_CHECKING:
+    from finance_api.models.limits import SpendingLimit
 
 from finance_api.repositories.limits import SpendingLimitRepository
 from finance_api.schemas.limits import SpendingLimitCreate, SpendingLimitUpdate
@@ -12,35 +16,39 @@ class SpendingLimitService:
         self.repo = repo
 
     @handle_service_errors
-    async def create(self, limit_data: SpendingLimitCreate):
+    async def create(self, limit_data: SpendingLimitCreate) -> "SpendingLimit":
         return await self.repo.create(limit_data)
 
     @handle_service_errors
-    async def list(self, page: int = 1, size: int = 10):
+    async def list(
+        self, page: int = 1, size: int = 10
+    ) -> PaginatedResponse["SpendingLimit"]:
         skip = (page - 1) * size
         items, total = await self.repo.list(skip, size)
         return PaginatedResponse.create(items, total, page, size)
 
     @handle_service_errors
-    async def get_by_category(self, category: str):
+    async def get_by_category(self, category: str) -> Optional["SpendingLimit"]:
         return await self.repo.get_by_category(category)
 
     @handle_service_errors
-    async def get_by_id(self, limit_id: UUID):
+    async def get_by_id(self, limit_id: UUID) -> "SpendingLimit":
         limit = await self.repo.get_by_id(limit_id)
         if not limit:
             raise EntityNotFoundError(f"Spending limit with id {limit_id} not found")
         return limit
 
     @handle_service_errors
-    async def update(self, limit_id: UUID, update_data: SpendingLimitUpdate):
+    async def update(
+        self, limit_id: UUID, update_data: SpendingLimitUpdate
+    ) -> "SpendingLimit":
         updated_limit = await self.repo.update(limit_id, update_data)
         if not updated_limit:
             raise EntityNotFoundError(f"Spending limit with id {limit_id} not found")
         return updated_limit
 
     @handle_service_errors
-    async def delete(self, limit_id: UUID):
+    async def delete(self, limit_id: UUID) -> bool:
         deleted = await self.repo.delete(limit_id)
         if not deleted:
             raise EntityNotFoundError(f"Spending limit with id {limit_id} not found")

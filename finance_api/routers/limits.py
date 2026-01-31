@@ -21,7 +21,7 @@ router = APIRouter()
 )
 async def create_limit(
     limit_data: SpendingLimitCreate, db: AsyncSession = Depends(get_db)
-):
+) -> SpendingLimitResponse:
     repo = SpendingLimitRepository(db)
     service = SpendingLimitService(repo)
     return await service.create(limit_data)
@@ -30,14 +30,16 @@ async def create_limit(
 @router.get("/", response_model=PaginatedResponse[SpendingLimitResponse])
 async def list_limits(
     page: int = 1, size: int = 10, db: AsyncSession = Depends(get_db)
-):
+) -> PaginatedResponse[SpendingLimitResponse]:
     repo = SpendingLimitRepository(db)
     service = SpendingLimitService(repo)
     return await service.list(page, size)
 
 
 @router.get("/{limit_id}", response_model=SpendingLimitResponse)
-async def get_limit(limit_id: UUID, db: AsyncSession = Depends(get_db)):
+async def get_limit(
+    limit_id: UUID, db: AsyncSession = Depends(get_db)
+) -> SpendingLimitResponse:
     repo = SpendingLimitRepository(db)
     service = SpendingLimitService(repo)
     return await service.get_by_id(limit_id)
@@ -46,14 +48,14 @@ async def get_limit(limit_id: UUID, db: AsyncSession = Depends(get_db)):
 @router.patch("/{limit_id}", response_model=SpendingLimitResponse)
 async def update_limit(
     limit_id: UUID, update_data: SpendingLimitUpdate, db: AsyncSession = Depends(get_db)
-):
+) -> SpendingLimitResponse:
     repo = SpendingLimitRepository(db)
     service = SpendingLimitService(repo)
     return await service.update(limit_id, update_data)
 
 
 @router.delete("/{limit_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_limit(limit_id: UUID, db: AsyncSession = Depends(get_db)):
+async def delete_limit(limit_id: UUID, db: AsyncSession = Depends(get_db)) -> Response:
     repo = SpendingLimitRepository(db)
     service = SpendingLimitService(repo)
     await service.delete(limit_id)

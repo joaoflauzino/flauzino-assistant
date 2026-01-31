@@ -15,6 +15,6 @@ async def chat_endpoint(
     request: ChatRequest,
     client: httpx.AsyncClient = Depends(get_http_client),
     db: AsyncSession = Depends(get_db),
-):
+) -> ChatResponse:
     service = ChatService(db, client)
     return await service.process_message(request.message, request.session_id)

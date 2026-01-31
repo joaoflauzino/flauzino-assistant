@@ -3,6 +3,8 @@ import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 
+from typing import List, Dict, Any, Tuple
+
 from agent_api.core.decorators import handle_chat_service_errors
 from agent_api.repositories.chat_repository import ChatRepository
 from agent_api.schemas.assistant import AssistantResponse
@@ -49,17 +51,21 @@ class ChatService:
             session = await self.repository.create_session()
             return session.id
 
-    async def _save_message(self, session_id: uuid.UUID, role: str, content: str):
+    async def _save_message(
+        self, session_id: uuid.UUID, role: str, content: str
+    ) -> None:
         await self.repository.add_message(session_id, role, content)
 
-    async def _get_chat_history(self, session_id: uuid.UUID):
+    async def _get_chat_history(
+        self, session_id: uuid.UUID
+    ) -> Tuple[List[Dict[str, Any]], List[ChatMessage]]:
         messages = await self.repository.get_messages(session_id)
         history_dicts = [
             {"role": m.role, "content": m.content} for m in reversed(messages)
         ]
         return history_dicts, messages
 
-    async def _handle_finance_action(self, response: AssistantResponse):
+    async def _handle_finance_action(self, response: AssistantResponse) -> None:
         if response.is_complete:
             finance_service = FinanceService(response, self.http_client)
             await finance_service.register()

@@ -13,7 +13,9 @@ router = APIRouter()
 
 
 @router.post("/", response_model=SpentResponse)
-async def create_spent(spent: SpentCreate, db: AsyncSession = Depends(get_db)):
+async def create_spent(
+    spent: SpentCreate, db: AsyncSession = Depends(get_db)
+) -> SpentResponse:
     repo = SpentRepository(db)
     service = SpentService(repo)
     return await service.create(spent)
@@ -22,14 +24,16 @@ async def create_spent(spent: SpentCreate, db: AsyncSession = Depends(get_db)):
 @router.get("/", response_model=PaginatedResponse[SpentResponse])
 async def list_spents(
     page: int = 1, size: int = 10, db: AsyncSession = Depends(get_db)
-):
+) -> PaginatedResponse[SpentResponse]:
     repo = SpentRepository(db)
     service = SpentService(repo)
     return await service.list(page, size)
 
 
 @router.get("/{spent_id}", response_model=SpentResponse)
-async def get_spent(spent_id: UUID, db: AsyncSession = Depends(get_db)):
+async def get_spent(
+    spent_id: UUID, db: AsyncSession = Depends(get_db)
+) -> SpentResponse:
     repo = SpentRepository(db)
     service = SpentService(repo)
     return await service.get_by_id(spent_id)
@@ -38,14 +42,14 @@ async def get_spent(spent_id: UUID, db: AsyncSession = Depends(get_db)):
 @router.patch("/{spent_id}", response_model=SpentResponse)
 async def update_spent(
     spent_id: UUID, update_data: SpentUpdate, db: AsyncSession = Depends(get_db)
-):
+) -> SpentResponse:
     repo = SpentRepository(db)
     service = SpentService(repo)
     return await service.update(spent_id, update_data)
 
 
 @router.delete("/{spent_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_spent(spent_id: UUID, db: AsyncSession = Depends(get_db)):
+async def delete_spent(spent_id: UUID, db: AsyncSession = Depends(get_db)) -> Response:
     repo = SpentRepository(db)
     service = SpentService(repo)
     await service.delete(spent_id)
