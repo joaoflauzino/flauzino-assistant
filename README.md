@@ -35,7 +35,7 @@ Este projeto utiliza `uv` para gerenciamento de dependências e `Docker` para o 
     Exemplo de arquivo `.env`:
     ```env
     GEMINI_API_KEY="sua_chave_api_aqui"
-    DATABASE_URL="postgresql+asyncpg://flauzino:password@localhost:5432/assistant"
+    DATABASE_URL="postgresql+asyncpg://seu_usuario:sua_senha@localhost:5432/assistant"
     
     # Opcionais
     MODEL_NAME="gemini-2.5-flash"
