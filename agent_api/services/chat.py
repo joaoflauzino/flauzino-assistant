@@ -66,7 +66,7 @@ class ChatService:
         return history_dicts, messages
 
     async def _handle_finance_action(self, response: AssistantResponse) -> None:
-        if response.is_complete:
+        if response.is_complete and response.is_confirmed:
             finance_service = FinanceService(response, self.http_client)
             await finance_service.register()
 

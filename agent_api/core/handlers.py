@@ -8,6 +8,7 @@ from agent_api.core.exceptions import (
     LLMProviderError,
     LLMParsingError,
     LLMUnknownError,
+    DatabaseError,
 )
 
 
@@ -50,4 +51,11 @@ async def llm_unknown_handler(request: Request, exc: LLMUnknownError):
     return JSONResponse(
         status_code=500,
         content={"message": "Internal Server Error", "detail": str(exc)},
+    )
+
+
+async def database_error_handler(request: Request, exc: DatabaseError):
+    return JSONResponse(
+        status_code=500,
+        content={"message": "Database Error", "detail": str(exc)},
     )

@@ -4,7 +4,6 @@ import httpx
 from langchain_core.exceptions import OutputParserException
 from google.api_core.exceptions import GoogleAPIError
 from sqlalchemy.exc import SQLAlchemyError
-from fastapi import HTTPException
 
 
 from agent_api.core.exceptions import (
@@ -25,8 +24,8 @@ def handle_finance_errors(func: Callable[..., Any]) -> Callable[..., Any]:
     async def wrapper(*args: Any, **kwargs: Any) -> Any:
         try:
             return await func(*args, **kwargs)
-        except httpx.ConnectError:
-            raise FinanceUnreachableError("Finance API is offline")
+        except httpx.RequestError:
+            raise FinanceUnreachableError("Finance API is offline or unreachable")
         except httpx.HTTPStatusError as e:
             status = e.response.status_code
             if status == 422 or status == 400:
@@ -63,15 +62,6 @@ def handle_chat_service_errors(func: Callable[..., Any]) -> Callable[..., Any]:
         try:
             return await func(*args, **kwargs)
         except SQLAlchemyError as e:
-            # You might want to log the specifics but hide details from user
-            # raise HTTPException(status_code=500, detail="Database error occurred")
-            # OR raise a custom exception that handlers.py catches
             raise DatabaseError(f"Database operation failed: {str(e)}")
-        except HTTPException:
-            raise
-        except Exception as e:
-            raise HTTPException(
-                status_code=500, detail=f"Internal Server Error: {str(e)}"
-            )
 
     return wrapper

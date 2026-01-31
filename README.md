@@ -184,8 +184,8 @@ curl -X 'POST' \
 
 ## Próximos Passos
 
-- [ ] Fazer o agente responder bem em cenários que existem erros ao interagir com a `finance_api`
-- [ ] Fazer o agente confirmar os dados antes de enviar para a `finance_api`
+- [x] Fazer o agente responder bem em cenários que existem erros ao interagir com a `finance_api`
+- [x] Fazer o agente confirmar os dados antes de enviar para a `finance_api`
 - [ ] Implementar extração de dados de comprovantes (OCR) no agente
 - [ ] Suportar comandos de voz no agente
 - [ ] Criar bot no Telegram integrado à `agent_api`

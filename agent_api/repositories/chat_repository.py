@@ -38,7 +38,7 @@ class ChatRepository:
         return message
 
     async def get_messages(
-        self, session_id: uuid.UUID, limit: int = 5
+        self, session_id: uuid.UUID, limit: int = 10
     ) -> List[ChatMessage]:
         query = (
             select(ChatMessage)

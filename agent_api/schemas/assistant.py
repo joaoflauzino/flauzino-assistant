@@ -21,3 +21,7 @@ class AssistantResponse(BaseModel):
         False,
         description="True apenas se TODAS as informações (categoria, valor, metodo_pagamento, local_compra) estiverem preenchidas.",
     )
+    is_confirmed: bool = Field(
+        False,
+        description="True apenas se o usuário confirmar que os dados estão corretos.",
+    )
