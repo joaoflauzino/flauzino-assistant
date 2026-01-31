@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 import uuid
 import pytest
 from asgi_lifespan import LifespanManager
@@ -6,7 +6,6 @@ from httpx import ASGITransport, AsyncClient
 
 from agent_api.main import app
 from agent_api.schemas.dtos import ChatResponse, ChatMessage
-from finance_api.schemas.enums import CategoryEnum
 
 # Mark all tests as async
 pytestmark = pytest.mark.asyncio

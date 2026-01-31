@@ -34,7 +34,7 @@ async def test_create_spent(mock_db_session):
     )
 
     # Act
-    result = await repo.create(spent_data)
+    await repo.create(spent_data)
 
     # Assert
     mock_db_session.add.assert_called_once()
