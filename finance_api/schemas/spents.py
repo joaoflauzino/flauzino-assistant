@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
@@ -11,14 +12,22 @@ class SpentBase(BaseModel):
     amount: float
     payment_method: CardEnum
     payment_owner: NameEnum
-    location: Optional[str] = None
+    location: str
 
 
 class SpentCreate(SpentBase): ...
 
 
+class SpentUpdate(BaseModel):
+    category: Optional[CategoryEnum] = None
+    amount: Optional[float] = None
+    payment_method: Optional[CardEnum] = None
+    payment_owner: Optional[NameEnum] = None
+    location: Optional[str] = None
+
+
 class SpentResponse(SpentBase):
-    id: int
+    id: UUID
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

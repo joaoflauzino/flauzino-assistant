@@ -7,7 +7,7 @@ Este projeto tem como objetivo criar um assistente virtual capaz de lidar com re
 O projeto é dividido em três módulos principais:
 
 -   **`infra/`**: Contém a configuração da infraestrutura, incluindo o banco de dados PostgreSQL via Docker Compose e scripts de inicialização.
--   **`finance_api/`**: Uma API FastAPI responsável por toda a lógica de negócio e persistência de dados. Ela gerencia os gastos e limites no banco de dados.
+-   **`finance_api/`**: Uma API FastAPI responsável por toda a lógica de negócio e persistência de dados. Implementa uma **Camada de Serviço** para isolar regras de negócio e **Tratamento Global de Exceções**.
 -   **`agent_api/`**: Uma API FastAPI que serve como a interface de conversação. Ela recebe mensagens do usuário, utiliza um LLM para extrair informações e se comunica com a `finance_api` para registrar os dados.
 
 ## Como Executar
@@ -71,63 +71,100 @@ Você precisará de dois terminais para rodar as duas APIs simultaneamente.
 
 O projeto utiliza `pytest` para testes unitários.
 
-1.  **Instale as dependências de desenvolvimento:**
-    ```bash
-    uv sync --group dev
-    ```
-
-2.  **Execute os testes:**
+1.  **Execute os testes:**
     A partir da raiz do projeto, execute:
     ```bash
-    pytest
+    uv run pytest
     ```
 
 ## Documentação das APIs
 
 ### Finance API
 
-Interação direta com o banco de dados.
+Interação direta com o banco de dados. A API suporta operações CRUD completas para gastos.
 
-#### Registrar um Gasto (POST /spents)
+#### Paginação e Estrutura de Resposta
 
-```bash
-curl -X 'POST' \
-  'http://localhost:8000/spents' \
-  -H 'accept: application/json' \
-  -H 'Content-Type: application/json' \
-  -d '{
-  "category": "comer_fora",
-  "amount": 150.50,
-  "payment_method": "itau",
-  "payment_owner": "joao_lucas",
-  "location": "Restaurante X"
-}'
-```
+Os endpoints de listagem (`GET`) utilizam paginação baseada em página.
 
-#### Listar Gastos (GET /spents)
+-   **Parâmetros de Consulta:**
+    -   `page`: Número da página (padrão: `1`).
+    -   `size`: Quantidade de itens por página (padrão: `10`).
 
-```bash
-curl -X 'GET' 'http://localhost:8000/spents' -H 'accept: application/json'
-```
+-   **Estrutura da Resposta:**
+    ```json
+    {
+      "items": [ ... ],
+      "total": 50,
+      "page": 1,
+      "size": 10,
+      "pages": 5
+    }
+    ```
 
-#### Criar/Atualizar Limite (POST /limits)
 
-```bash
-curl -X 'POST' \
-  'http://localhost:8000/limits' \
-  -H 'accept: application/json' \
-  -H 'Content-Type: application/json' \
-  -d '{
-  "category": "comer_fora",
-  "amount": 2000.00
-}'
-```
 
-#### Listar Limites (GET /limits)
+#### Spents (Gastos)
 
-```bash
-curl -X 'GET' 'http://localhost:8000/limits' -H 'accept: application/json'
-```
+- **Criar (POST /spents)**
+  ```bash
+  curl -X 'POST' 'http://localhost:8000/spents' \
+    -H 'Content-Type: application/json' \
+    -d '{ "category": "comer_fora", "amount": 150.50, "payment_method": "itau", "payment_owner": "joao_lucas", "location": "restaurante_xyz" }'
+  ```
+
+- **Listar (GET /spents)**
+  ```bash
+  curl -X 'GET' 'http://localhost:8000/spents?page=1&size=10'
+  ```
+
+- **Obter por ID (GET /spents/{id})**
+  ```bash
+  curl -X 'GET' 'http://localhost:8000/spents/56c694c0-1c3b-4163-8d6f-76140d5e3e87'
+  ```
+
+- **Atualizar (PATCH /spents/{id})**
+  ```bash
+  curl -X 'PATCH' 'http://localhost:8000/spents/56c694c0-1c3b-4163-8d6f-76140d5e3e87' \
+    -H 'Content-Type: application/json' \
+    -d '{ "amount": 200.00 }'
+  ```
+
+- **Deletar (DELETE /spents/{id})**
+  ```bash
+  curl -X 'DELETE' 'http://localhost:8000/spents/56c694c0-1c3b-4163-8d6f-76140d5e3e87'
+  ```
+
+#### Limits (Limites de Gastos)
+
+- **Criar Limite (POST /limits)**
+  ```bash
+  curl -X 'POST' 'http://localhost:8000/limits' \
+    -H 'Content-Type: application/json' \
+    -d '{ "category": "comer_fora", "amount": 2000.00 }'
+  ```
+
+- **Listar Limites (GET /limits)**
+  ```bash
+  curl -X 'GET' 'http://localhost:8000/limits?page=1&size=10'
+  ```
+
+- **Obter por ID (GET /limits/{id})**
+  ```bash
+  curl -X 'GET' 'http://localhost:8000/limits/85889a09-85dc-4969-9dea-4abc6ac4dbb8'
+  ```
+
+- **Atualizar (PATCH /limits/{id})**
+  ```bash
+  curl -X 'PATCH' 'http://localhost:8000/limits/85889a09-85dc-4969-9dea-4abc6ac4dbb8' \
+    -H 'Content-Type: application/json' \
+    -d '{ "amount": 3000.00 }'
+  ```
+
+- **Deletar (DELETE /limits/{id})**
+  ```bash
+  curl -X 'DELETE' 'http://localhost:8000/limits/85889a09-85dc-4969-9dea-4abc6ac4dbb8'
+  ```
 
 ### Agent API
 
@@ -138,7 +175,6 @@ Interface de conversação para interagir com o sistema.
 ```bash
 curl -X 'POST' \
   'http://localhost:8001/chat' \
-  -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
   "message": "gastei 50 reais no mercado com o cartão do itau do joao lucas",

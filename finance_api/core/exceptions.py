@@ -14,3 +14,9 @@ class EntityNotFoundError(FinanceError):
     def __init__(self, message="Entity not found"):
         self.message = message
         super().__init__(self.message)
+
+
+class EntityConflictError(FinanceError):
+    def __init__(self, message="Entity conflict"):
+        self.message = message
+        super().__init__(self.message)

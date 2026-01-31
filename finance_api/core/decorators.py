@@ -1,8 +1,12 @@
 import functools
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from fastapi import HTTPException
 
-from finance_api.core.exceptions import DatabaseError, EntityNotFoundError
+from finance_api.core.exceptions import (
+    DatabaseError,
+    EntityConflictError,
+    EntityNotFoundError,
+)
 
 
 def handle_service_errors(func):
@@ -12,6 +16,8 @@ def handle_service_errors(func):
     async def wrapper(*args, **kwargs):
         try:
             return await func(*args, **kwargs)
+        except IntegrityError:
+            raise EntityConflictError("Resource already exists.")
         except SQLAlchemyError as e:
             raise DatabaseError(f"Database operation failed: {str(e)}")
         except EntityNotFoundError:

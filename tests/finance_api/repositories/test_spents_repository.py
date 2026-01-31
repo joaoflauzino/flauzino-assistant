@@ -55,14 +55,23 @@ async def test_list_spents(mock_db_session):
     # Arrange
     repo = SpentRepository(mock_db_session)
     mock_spent_list = [MagicMock(), MagicMock()]  # Mock two Spent objects
-    mock_result = MagicMock()
-    mock_result.scalars.return_value.all.return_value = mock_spent_list
-    mock_db_session.execute.return_value = mock_result
+
+    # First call: count
+    mock_count_result = MagicMock()
+    mock_count_result.scalar.return_value = 10
+
+    # Second call: list
+    mock_items_result = MagicMock()
+    mock_items_result.scalars.return_value.all.return_value = mock_spent_list
+
+    mock_db_session.execute.side_effect = [mock_count_result, mock_items_result]
 
     # Act
     result = await repo.list(skip=0, limit=10)
 
     # Assert
-    mock_db_session.execute.assert_awaited_once()
-    assert result == mock_spent_list
-    assert len(result) == 2
+    assert mock_db_session.execute.await_count == 2
+    items, total = result
+    assert items == mock_spent_list
+    assert total == 10
+    assert len(items) == 2

@@ -1,17 +1,17 @@
 CREATE TABLE IF NOT EXISTS spents (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     category VARCHAR NOT NULL,
     amount DOUBLE PRECISION NOT NULL,
-    payment_method VARCHAR,
-    payment_owner VARCHAR,
-    location VARCHAR,
+    payment_method VARCHAR NOT NULL,
+    payment_owner VARCHAR NOT NULL,
+    location VARCHAR NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS ix_spents_category ON spents (category);
 
 CREATE TABLE IF NOT EXISTS spending_limits (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     category VARCHAR NOT NULL UNIQUE,
     amount DOUBLE PRECISION NOT NULL
 );
