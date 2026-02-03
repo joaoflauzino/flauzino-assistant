@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from finance_api.routers import limits, spents
 from finance_api.core.exceptions import (
@@ -19,6 +20,14 @@ from finance_api.core.handlers import (
 )
 
 app = FastAPI(title="Flauzino Assistant API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.add_exception_handler(DatabaseError, database_error_handler)
 app.add_exception_handler(EntityNotFoundError, entity_not_found_handler)

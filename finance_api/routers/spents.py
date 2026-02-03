@@ -1,3 +1,5 @@
+from datetime import date
+from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, status, Response
@@ -23,11 +25,15 @@ async def create_spent(
 
 @router.get("/", response_model=PaginatedResponse[SpentResponse])
 async def list_spents(
-    page: int = 1, size: int = 10, db: AsyncSession = Depends(get_db)
+    page: int = 1,
+    size: int = 10,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    db: AsyncSession = Depends(get_db),
 ) -> PaginatedResponse[SpentResponse]:
     repo = SpentRepository(db)
     service = SpentService(repo)
-    return await service.list(page, size)
+    return await service.list(page, size, start_date, end_date)
 
 
 @router.get("/{spent_id}", response_model=SpentResponse)

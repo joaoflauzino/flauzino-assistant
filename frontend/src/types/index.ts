@@ -1,0 +1,24 @@
+export interface Spent {
+    id: string;
+    category: string;
+    amount: number;
+    payment_method: string;
+    payment_owner: string;
+    location: string;
+    created_at: string;
+}
+
+export interface SpendingLimit {
+    id: string;
+    category: string;
+    amount: number;
+    created_at: string;
+}
+
+export interface PaginatedResponse<T> {
+    items: T[];
+    total: number;
+    page: number;
+    size: number;
+    pages: number;
+}

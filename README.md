@@ -9,6 +9,7 @@ O projeto é dividido em três módulos principais:
 -   **`infra/`**: Contém a configuração da infraestrutura, incluindo o banco de dados PostgreSQL via Docker Compose e scripts de inicialização.
 -   **`finance_api/`**: Uma API FastAPI responsável por toda a lógica de negócio e persistência de dados. Implementa uma **Camada de Serviço** para isolar regras de negócio e **Tratamento Global de Exceções**.
 -   **`agent_api/`**: Uma API FastAPI que serve como a interface de conversação. Ela recebe mensagens do usuário, utiliza um LLM para extrair informações e se comunica com a `finance_api` para registrar os dados.
+-   **`frontend/`**: Interface Web moderna construída com React e Vite para gerenciamento visual de gastos e limites.
 
 ## Como Executar
 
@@ -66,6 +67,14 @@ Você precisará de dois terminais para rodar as duas APIs simultaneamente.
     uv run uvicorn agent_api.main:app --port 8001 --reload
     ```
     -   **Docs (Swagger):** `http://localhost:8001/docs`
+
+3.  **Inicie o Frontend (porta 5173):**
+    ```bash
+    cd frontend
+    npm install
+    npm run dev
+    ```
+    -   **Acesse:** `http://localhost:5173`
 
 ## Testes
 
@@ -190,5 +199,5 @@ curl -X 'POST' \
 - [ ] Suportar comandos de voz no agente
 - [ ] Criar bot no Telegram integrado à `agent_api`
 - [ ] Planejar estratégia de backup do banco de dados
-- [ ] Desenvolver interface web para visualizar, criar, atualizar e excluir gastos e limites
+- [x] Desenvolver interface web para visualizar, criar, atualizar e excluir gastos e limites
 

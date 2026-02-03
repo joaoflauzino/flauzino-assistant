@@ -1,3 +1,4 @@
+from datetime import date
 from typing import List, Optional
 from uuid import UUID
 
@@ -23,12 +24,27 @@ class SpentRepository:
         logger.info(f"Created spent: {new_spent.id}")
         return new_spent
 
-    async def list(self, skip: int = 0, limit: int = 100) -> tuple[List[Spent], int]:
-        count_query = select(func.count()).select_from(Spent)
+    async def list(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None,
+    ) -> tuple[List[Spent], int]:
+        query = select(Spent)
+        
+        if start_date:
+            query = query.where(func.date(Spent.created_at) >= start_date)
+        if end_date:
+            query = query.where(func.date(Spent.created_at) <= end_date)
+
+        # Count query
+        count_query = select(func.count()).select_from(query.subquery())
         count_result = await self.db.execute(count_query)
         total = count_result.scalar() or 0
 
-        query = select(Spent).offset(skip).limit(limit)
+        # Pagination
+        query = query.offset(skip).limit(limit)
         result = await self.db.execute(query)
         items = list(result.scalars().all())
         logger.info(f"Listed {len(items)} spents")

@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING
+from datetime import date
+from typing import TYPE_CHECKING, Optional
 from uuid import UUID
 
 if TYPE_CHECKING:
@@ -24,10 +25,16 @@ class SpentService:
         return await self.repo.create(spent)
 
     @handle_spents_errors
-    async def list(self, page: int = 1, size: int = 10) -> PaginatedResponse["Spent"]:
-        logger.info(f"Listing spents page {page} size {size}")
+    async def list(
+        self,
+        page: int = 1,
+        size: int = 10,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None,
+    ) -> PaginatedResponse["Spent"]:
+        logger.info(f"Listing spents page {page} size {size} start {start_date} end {end_date}")
         skip = (page - 1) * size
-        items, total = await self.repo.list(skip, size)
+        items, total = await self.repo.list(skip, size, start_date, end_date)
         return PaginatedResponse.create(items, total, page, size)
 
     @handle_spents_errors

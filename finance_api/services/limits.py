@@ -1,3 +1,4 @@
+from datetime import date
 from typing import TYPE_CHECKING, Optional
 from uuid import UUID
 
@@ -25,11 +26,15 @@ class SpendingLimitService:
 
     @handle_limits_errors
     async def list(
-        self, page: int = 1, size: int = 10
+        self,
+        page: int = 1,
+        size: int = 10,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None,
     ) -> PaginatedResponse["SpendingLimit"]:
-        logger.info(f"Listing spending limits page {page} size {size}")
+        logger.info(f"Listing spending limits page {page} size {size} start {start_date} end {end_date}")
         skip = (page - 1) * size
-        items, total = await self.repo.list(skip, size)
+        items, total = await self.repo.list(skip, size, start_date, end_date)
         return PaginatedResponse.create(items, total, page, size)
 
     @handle_limits_errors

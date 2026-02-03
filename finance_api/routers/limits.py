@@ -1,3 +1,5 @@
+from datetime import date
+from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Response, status
@@ -29,11 +31,15 @@ async def create_limit(
 
 @router.get("/", response_model=PaginatedResponse[SpendingLimitResponse])
 async def list_limits(
-    page: int = 1, size: int = 10, db: AsyncSession = Depends(get_db)
+    page: int = 1,
+    size: int = 10,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    db: AsyncSession = Depends(get_db),
 ) -> PaginatedResponse[SpendingLimitResponse]:
     repo = SpendingLimitRepository(db)
     service = SpendingLimitService(repo)
-    return await service.list(page, size)
+    return await service.list(page, size, start_date, end_date)
 
 
 @router.get("/{limit_id}", response_model=SpendingLimitResponse)

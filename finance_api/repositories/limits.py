@@ -1,3 +1,4 @@
+from datetime import date
 from typing import List, Optional
 
 from uuid import UUID
@@ -25,13 +26,24 @@ class SpendingLimitRepository:
         return new_limit
 
     async def list(
-        self, skip: int = 0, limit: int = 100
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None,
     ) -> tuple[List[SpendingLimit], int]:
-        count_query = select(func.count()).select_from(SpendingLimit)
+        query = select(SpendingLimit)
+        
+        if start_date:
+            query = query.where(func.date(SpendingLimit.created_at) >= start_date)
+        if end_date:
+            query = query.where(func.date(SpendingLimit.created_at) <= end_date)
+
+        count_query = select(func.count()).select_from(query.subquery())
         count_result = await self.db.execute(count_query)
         total = count_result.scalar() or 0
 
-        query = select(SpendingLimit).offset(skip).limit(limit)
+        query = query.offset(skip).limit(limit)
         result = await self.db.execute(query)
         items = list(result.scalars().all())
         logger.info(f"Listed {len(items)} spending limits")
