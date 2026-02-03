@@ -4,17 +4,23 @@ import httpx
 from langchain_core.exceptions import OutputParserException
 from google.api_core.exceptions import GoogleAPIError
 from sqlalchemy.exc import SQLAlchemyError
+from fastapi import HTTPException
 
 
 from agent_api.core.exceptions import (
     FinanceUnreachableError,
     FinanceServerError,
+    FinanceServiceError,
     InvalidSpentError,
     LLMProviderError,
     LLMParsingError,
-    LLMUnknownError,
     DatabaseError,
+    ChatServiceError,
+    LLMServiceError,
 )
+from agent_api.core.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def handle_finance_errors(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -33,6 +39,11 @@ def handle_finance_errors(func: Callable[..., Any]) -> Callable[..., Any]:
             if status >= 500:
                 raise FinanceServerError("Finance API internal error")
             raise
+        except Exception as e:
+            if isinstance(e, FinanceServiceError) or isinstance(e, HTTPException):
+                raise
+            logger.error(f"Unexpected finance error: {e}", exc_info=True)
+            raise FinanceServiceError(f"Unexpected finance error: {str(e)}")
 
     return wrapper
 
@@ -49,7 +60,8 @@ def handle_llm_errors(func: Callable[..., Any]) -> Callable[..., Any]:
         except GoogleAPIError as e:
             raise LLMProviderError(f"Google Gemini Error: {str(e)}")
         except Exception as e:
-            raise LLMUnknownError(f"Unexpected LLM Error: {str(e)}")
+            logger.error(f"Unexpected LLM error: {e}", exc_info=True)
+            raise LLMServiceError(f"Unexpected LLM Error: {str(e)}")
 
     return wrapper
 
@@ -63,5 +75,10 @@ def handle_chat_service_errors(func: Callable[..., Any]) -> Callable[..., Any]:
             return await func(*args, **kwargs)
         except SQLAlchemyError as e:
             raise DatabaseError(f"Database operation failed: {str(e)}")
+        except Exception as e:
+            if isinstance(e, DatabaseError) or isinstance(e, HTTPException):
+                raise
+            logger.error(f"Unexpected chat service error: {e}", exc_info=True)
+            raise ChatServiceError(f"Unexpected error in chat service: {str(e)}")
 
     return wrapper

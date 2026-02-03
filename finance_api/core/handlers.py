@@ -5,6 +5,9 @@ from finance_api.core.exceptions import (
     DatabaseError,
     EntityConflictError,
     EntityNotFoundError,
+    ServiceError,
+    LimitServiceError,
+    SpentServiceError,
 )
 
 
@@ -26,4 +29,24 @@ async def entity_conflict_handler(request: Request, exc: EntityConflictError):
     return JSONResponse(
         status_code=409,
         content={"message": "Conflict", "detail": str(exc)},
+    )
+
+async def service_error_handler(request: Request, exc: ServiceError):
+    return JSONResponse(
+        status_code=500,
+        content={"message": "Internal Server Error", "detail": str(exc)},
+    )
+
+
+async def limit_service_error_handler(request: Request, exc: LimitServiceError):
+    return JSONResponse(
+        status_code=500,
+        content={"message": "Internal Server Error", "detail": str(exc)},
+    )
+
+
+async def spent_service_error_handler(request: Request, exc: SpentServiceError):
+    return JSONResponse(
+        status_code=500,
+        content={"message": "Internal Server Error", "detail": str(exc)},
     )

@@ -7,6 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from finance_api.models.limits import SpendingLimit
 from finance_api.schemas.limits import SpendingLimitCreate, SpendingLimitUpdate
+from finance_api.core.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class SpendingLimitRepository:
@@ -18,6 +21,7 @@ class SpendingLimitRepository:
         self.db.add(new_limit)
         await self.db.commit()
         await self.db.refresh(new_limit)
+        logger.info(f"Created spending limit: {new_limit.id}")
         return new_limit
 
     async def list(
@@ -30,20 +34,26 @@ class SpendingLimitRepository:
         query = select(SpendingLimit).offset(skip).limit(limit)
         result = await self.db.execute(query)
         items = list(result.scalars().all())
-
+        logger.info(f"Listed {len(items)} spending limits")
         return items, total
 
     async def get_by_category(self, category: str) -> Optional[SpendingLimit]:
         result = await self.db.execute(
             select(SpendingLimit).where(SpendingLimit.category == category)
         )
-        return result.scalar_one_or_none()
+        limit = result.scalar_one_or_none()
+        if limit:
+            logger.info(f"Retrieved limit for category: {category}")
+        return limit
 
     async def get_by_id(self, limit_id: UUID) -> Optional[SpendingLimit]:
         result = await self.db.execute(
             select(SpendingLimit).where(SpendingLimit.id == limit_id)
         )
-        return result.scalar_one_or_none()
+        limit = result.scalar_one_or_none()
+        if limit:
+            logger.info(f"Retrieved limit: {limit_id}")
+        return limit
 
     async def update(
         self, limit_id: UUID, update_data: SpendingLimitUpdate
@@ -56,10 +66,13 @@ class SpendingLimitRepository:
         )
         result = await self.db.execute(stmt)
         await self.db.commit()
+        logger.info(f"Updated spending limit: {limit_id}")
         return result.scalar_one_or_none()
 
     async def delete(self, limit_id: UUID) -> bool:
         stmt = delete(SpendingLimit).where(SpendingLimit.id == limit_id)
         result = await self.db.execute(stmt)
         await self.db.commit()
+        if result.rowcount > 0:
+            logger.info(f"Deleted spending limit: {limit_id}")
         return result.rowcount > 0

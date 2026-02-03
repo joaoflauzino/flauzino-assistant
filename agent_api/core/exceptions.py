@@ -2,9 +2,14 @@ class InvalidAssistantResponseError(ValueError):
     def __init__(self, message="Invalid response: missing spending or limit details"):
         self.message = message
         super().__init__(self.message)
+        
+class ServiceError(Exception):
+    def __init__(self, message="Service Error"):
+        self.message = message
+        super().__init__(self.message)
 
 
-class FinanceServiceError(Exception):
+class FinanceServiceError(ServiceError):
     def __init__(self, message="Error in finance service"):
         self.message = message
         super().__init__(self.message)
@@ -46,13 +51,20 @@ class LLMParsingError(LLMError):
         super().__init__(self.message)
 
 
-class LLMUnknownError(LLMError):
-    def __init__(self, message="Unknown LLM Error"):
-        self.message = message
-        super().__init__(self.message)
-
-
 class DatabaseError(Exception):
     def __init__(self, message="Database Error"):
         self.message = message
         super().__init__(self.message)
+
+
+class ChatServiceError(ServiceError):
+    def __init__(self, message="Chat Service Error"):
+        self.message = message
+        super().__init__(self.message)
+
+
+class LLMServiceError(ServiceError):
+    def __init__(self, message="LLM Service Error"):
+        self.message = message
+        super().__init__(self.message)
+

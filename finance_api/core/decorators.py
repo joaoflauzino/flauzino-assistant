@@ -8,7 +8,13 @@ from finance_api.core.exceptions import (
     DatabaseError,
     EntityConflictError,
     EntityNotFoundError,
+    ServiceError,
+    LimitServiceError,
+    SpentServiceError,
 )
+from finance_api.core.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def handle_service_errors(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -25,11 +31,53 @@ def handle_service_errors(func: Callable[..., Any]) -> Callable[..., Any]:
         except EntityNotFoundError:
             raise
         except Exception as e:
-            # Re-raise HTTPException as is
             if isinstance(e, HTTPException):
                 raise
-            raise HTTPException(
-                status_code=500, detail=f"Internal Server Error: {str(e)}"
-            )
+            logger.error(f"Internal service error: {e}", exc_info=True)
+            raise ServiceError(f"Internal Server Error: {str(e)}")
+
+    return wrapper
+
+
+def handle_limits_errors(func: Callable[..., Any]) -> Callable[..., Any]:
+    """Decorator to catch unexpected errors in Limits Service."""
+
+    @functools.wraps(func)
+    async def wrapper(*args: Any, **kwargs: Any) -> Any:
+        try:
+            return await func(*args, **kwargs)
+        except IntegrityError:
+            raise EntityConflictError("Resource already exists.")
+        except SQLAlchemyError as e:
+            raise DatabaseError(f"Database operation failed: {str(e)}")
+        except EntityNotFoundError:
+            raise
+        except Exception as e:
+            if isinstance(e, HTTPException):
+                raise
+            logger.error(f"Limit service error: {e}", exc_info=True)
+            raise LimitServiceError(f"Internal Server Error: {str(e)}")
+
+    return wrapper
+
+
+def handle_spents_errors(func: Callable[..., Any]) -> Callable[..., Any]:
+    """Decorator to catch unexpected errors in Spents Service."""
+
+    @functools.wraps(func)
+    async def wrapper(*args: Any, **kwargs: Any) -> Any:
+        try:
+            return await func(*args, **kwargs)
+        except IntegrityError:
+            raise EntityConflictError("Resource already exists.")
+        except SQLAlchemyError as e:
+            raise DatabaseError(f"Database operation failed: {str(e)}")
+        except EntityNotFoundError:
+            raise
+        except Exception as e:
+            if isinstance(e, HTTPException):
+                raise
+            logger.error(f"Spent service error: {e}", exc_info=True)
+            raise SpentServiceError(f"Internal Server Error: {str(e)}")
 
     return wrapper

@@ -20,3 +20,22 @@ class EntityConflictError(FinanceError):
     def __init__(self, message="Entity conflict"):
         self.message = message
         super().__init__(self.message)
+
+
+class ServiceError(FinanceError):
+    def __init__(self, message="Service Error"):
+        self.message = message
+        super().__init__(self.message)
+
+
+class LimitServiceError(ServiceError):
+    def __init__(self, message="Limit Service Error"):
+        self.message = message
+        super().__init__(self.message)
+
+
+class SpentServiceError(ServiceError):
+    def __init__(self, message="Spent Service Error"):
+        self.message = message
+        super().__init__(self.message)
+

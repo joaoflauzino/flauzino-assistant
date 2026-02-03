@@ -5,6 +5,9 @@ from agent_api.schemas.limit import LimitDetails
 from agent_api.schemas.spending import SpendingDetails
 from agent_api.settings import settings
 from agent_api.core.decorators import handle_finance_errors
+from agent_api.core.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class FinanceService:
@@ -19,8 +22,10 @@ class FinanceService:
     async def _post_to_finance_api(self, endpoint: str, payload: dict):
         """Helper method to POST data to the finance API."""
         url = f"{settings.FINANCE_SERVICE_URL}/{endpoint}/"
+        logger.info(f"Sending POST request to {url}")
         response = await self.client.post(url, json=payload)
         response.raise_for_status()
+        logger.info("Finance API request successful")
         return response.json()
 
     @handle_finance_errors

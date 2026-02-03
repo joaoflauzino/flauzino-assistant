@@ -11,6 +11,9 @@ from agent_api.schemas.assistant import AssistantResponse
 from agent_api.schemas.dtos import ChatMessage, ChatResponse
 from agent_api.services.finance import FinanceService
 from agent_api.services.llm import get_llm_response
+from agent_api.core.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class ChatService:
@@ -22,6 +25,7 @@ class ChatService:
     async def process_message(
         self, message: str, session_id_str: str | None
     ) -> ChatResponse:
+        logger.info(f"Processing message for session: {session_id_str}")
         session_id = await self._get_or_create_session(session_id_str)
 
         await self._save_message(session_id, "user", message)
@@ -49,6 +53,7 @@ class ChatService:
             return session.id
         else:
             session = await self.repository.create_session()
+            logger.info(f"Created new session: {session.id}")
             return session.id
 
     async def _save_message(

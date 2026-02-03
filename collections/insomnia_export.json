@@ -1,0 +1,376 @@
+{
+    "_type": "export",
+    "__export_format": 4,
+    "__export_date": "2026-02-02T22:45:00.000Z",
+    "__export_source": "insomnia.desktop.app:v2023.5.8",
+    "resources": [
+        {
+            "_id": "wrk_flauzino_assistant",
+            "parentId": null,
+            "modified": 1700000000000,
+            "created": 1700000000000,
+            "name": "Flauzino Assistant",
+            "description": "",
+            "scope": "collection",
+            "_type": "workspace"
+        },
+        {
+            "_id": "env_base",
+            "parentId": "wrk_flauzino_assistant",
+            "modified": 1700000000000,
+            "created": 1700000000000,
+            "name": "Base Environment",
+            "data": {
+                "finance_url": "http://localhost:8000",
+                "agent_url": "http://localhost:8001"
+            },
+            "dataPropertyOrder": {
+                "&finance_url": null,
+                "&agent_url": null
+            },
+            "color": null,
+            "isPrivate": false,
+            "metaSortKey": 1700000000000,
+            "_type": "environment"
+        },
+        {
+            "_id": "fld_finance_api",
+            "parentId": "wrk_flauzino_assistant",
+            "modified": 1700000000000,
+            "created": 1700000000000,
+            "name": "Finance API",
+            "description": "",
+            "environment": {},
+            "environmentPropertyOrder": null,
+            "metaSortKey": -1700000000000,
+            "_type": "request_group"
+        },
+        {
+            "_id": "fld_agent_api",
+            "parentId": "wrk_flauzino_assistant",
+            "modified": 1700000000000,
+            "created": 1700000000000,
+            "name": "Agent API",
+            "description": "",
+            "environment": {},
+            "environmentPropertyOrder": null,
+            "metaSortKey": -1600000000000,
+            "_type": "request_group"
+        },
+        {
+            "_id": "req_create_spent",
+            "parentId": "fld_finance_api",
+            "modified": 1700000000000,
+            "created": 1700000000000,
+            "url": "{{ _.finance_url }}/spents",
+            "name": "Create Spent",
+            "description": "",
+            "method": "POST",
+            "body": {
+                "mimeType": "application/json",
+                "text": "{\n\t\"category\": \"comer_fora\",\n\t\"amount\": 150.50,\n\t\"payment_method\": \"itau\",\n\t\"payment_owner\": \"joao_lucas\",\n\t\"location\": \"restaurante_xyz\"\n}"
+            },
+            "parameters": [],
+            "headers": [
+                {
+                    "name": "Content-Type",
+                    "value": "application/json"
+                }
+            ],
+            "authentication": {},
+            "metaSortKey": -100,
+            "isPrivate": false,
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "req_list_spents",
+            "parentId": "fld_finance_api",
+            "modified": 1700000000000,
+            "created": 1700000000000,
+            "url": "{{ _.finance_url }}/spents",
+            "name": "List Spents",
+            "description": "",
+            "method": "GET",
+            "body": {},
+            "parameters": [
+                {
+                    "name": "page",
+                    "value": "1",
+                    "disabled": false
+                },
+                {
+                    "name": "size",
+                    "value": "10",
+                    "disabled": false
+                }
+            ],
+            "headers": [],
+            "authentication": {},
+            "metaSortKey": -90,
+            "isPrivate": false,
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "req_get_spent",
+            "parentId": "fld_finance_api",
+            "modified": 1700000000000,
+            "created": 1700000000000,
+            "url": "{{ _.finance_url }}/spents/56c694c0-1c3b-4163-8d6f-76140d5e3e87",
+            "name": "Get Spent by ID",
+            "description": "",
+            "method": "GET",
+            "body": {},
+            "parameters": [],
+            "headers": [],
+            "authentication": {},
+            "metaSortKey": -80,
+            "isPrivate": false,
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "req_update_spent",
+            "parentId": "fld_finance_api",
+            "modified": 1700000000000,
+            "created": 1700000000000,
+            "url": "{{ _.finance_url }}/spents/56c694c0-1c3b-4163-8d6f-76140d5e3e87",
+            "name": "Update Spent",
+            "description": "",
+            "method": "PATCH",
+            "body": {
+                "mimeType": "application/json",
+                "text": "{\n\t\"amount\": 200.00\n}"
+            },
+            "parameters": [],
+            "headers": [
+                {
+                    "name": "Content-Type",
+                    "value": "application/json"
+                }
+            ],
+            "authentication": {},
+            "metaSortKey": -70,
+            "isPrivate": false,
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "req_delete_spent",
+            "parentId": "fld_finance_api",
+            "modified": 1700000000000,
+            "created": 1700000000000,
+            "url": "{{ _.finance_url }}/spents/56c694c0-1c3b-4163-8d6f-76140d5e3e87",
+            "name": "Delete Spent",
+            "description": "",
+            "method": "DELETE",
+            "body": {},
+            "parameters": [],
+            "headers": [],
+            "authentication": {},
+            "metaSortKey": -60,
+            "isPrivate": false,
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "req_create_limit",
+            "parentId": "fld_finance_api",
+            "modified": 1700000000000,
+            "created": 1700000000000,
+            "url": "{{ _.finance_url }}/limits",
+            "name": "Create Limit",
+            "description": "",
+            "method": "POST",
+            "body": {
+                "mimeType": "application/json",
+                "text": "{\n\t\"category\": \"comer_fora\",\n\t\"amount\": 2000.00\n}"
+            },
+            "parameters": [],
+            "headers": [
+                {
+                    "name": "Content-Type",
+                    "value": "application/json"
+                }
+            ],
+            "authentication": {},
+            "metaSortKey": -50,
+            "isPrivate": false,
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "req_list_limits",
+            "parentId": "fld_finance_api",
+            "modified": 1700000000000,
+            "created": 1700000000000,
+            "url": "{{ _.finance_url }}/limits",
+            "name": "List Limits",
+            "description": "",
+            "method": "GET",
+            "body": {},
+            "parameters": [
+                {
+                    "name": "page",
+                    "value": "1",
+                    "disabled": false
+                },
+                {
+                    "name": "size",
+                    "value": "10",
+                    "disabled": false
+                }
+            ],
+            "headers": [],
+            "authentication": {},
+            "metaSortKey": -40,
+            "isPrivate": false,
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "req_get_limit",
+            "parentId": "fld_finance_api",
+            "modified": 1700000000000,
+            "created": 1700000000000,
+            "url": "{{ _.finance_url }}/limits/85889a09-85dc-4969-9dea-4abc6ac4dbb8",
+            "name": "Get Limit by ID",
+            "description": "",
+            "method": "GET",
+            "body": {},
+            "parameters": [],
+            "headers": [],
+            "authentication": {},
+            "metaSortKey": -30,
+            "isPrivate": false,
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "req_update_limit",
+            "parentId": "fld_finance_api",
+            "modified": 1700000000000,
+            "created": 1700000000000,
+            "url": "{{ _.finance_url }}/limits/85889a09-85dc-4969-9dea-4abc6ac4dbb8",
+            "name": "Update Limit",
+            "description": "",
+            "method": "PATCH",
+            "body": {
+                "mimeType": "application/json",
+                "text": "{\n\t\"amount\": 3000.00\n}"
+            },
+            "parameters": [],
+            "headers": [
+                {
+                    "name": "Content-Type",
+                    "value": "application/json"
+                }
+            ],
+            "authentication": {},
+            "metaSortKey": -20,
+            "isPrivate": false,
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "req_delete_limit",
+            "parentId": "fld_finance_api",
+            "modified": 1700000000000,
+            "created": 1700000000000,
+            "url": "{{ _.finance_url }}/limits/85889a09-85dc-4969-9dea-4abc6ac4dbb8",
+            "name": "Delete Limit",
+            "description": "",
+            "method": "DELETE",
+            "body": {},
+            "parameters": [],
+            "headers": [],
+            "authentication": {},
+            "metaSortKey": -10,
+            "isPrivate": false,
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "req_agent_chat",
+            "parentId": "fld_agent_api",
+            "modified": 1700000000000,
+            "created": 1700000000000,
+            "url": "{{ _.agent_url }}/chat",
+            "name": "Send Message",
+            "description": "",
+            "method": "POST",
+            "body": {
+                "mimeType": "application/json",
+                "text": "{\n\t\"message\": \"gastei 50 reais no mercado com o cartão do itau do joao lucas\",\n\t\"session_id\": \"optional-uuid\"\n}"
+            },
+            "parameters": [],
+            "headers": [
+                {
+                    "name": "Content-Type",
+                    "value": "application/json"
+                }
+            ],
+            "authentication": {},
+            "metaSortKey": -100,
+            "isPrivate": false,
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        }
+    ]
+}

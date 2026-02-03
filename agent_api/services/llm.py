@@ -4,6 +4,9 @@ from agent_api.schemas.assistant import AssistantResponse
 from agent_api.settings import settings
 from finance_api.schemas.enums import CardEnum, CategoryEnum, NameEnum
 from agent_api.core.decorators import handle_llm_errors
+from agent_api.core.logger import get_logger
+
+logger = get_logger(__name__)
 
 VALID_CATEGORIES = ", ".join([c.value for c in CategoryEnum])
 VALID_PAYMENT_METHODS = ", ".join([c.value for c in CardEnum])
@@ -66,6 +69,8 @@ async def get_llm_response(history: list) -> AssistantResponse:
     llm = ChatGoogleGenerativeAI(
         model=settings.MODEL_NAME, temperature=0
     ).with_structured_output(AssistantResponse)
+
+    logger.info("Calling LLM service")
 
     messages = [("system", SYSTEM_PROMPT)]
     for msg in history:
