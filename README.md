@@ -199,5 +199,5 @@ curl -X 'POST' \
 - [ ] Suportar comandos de voz no agente
 - [ ] Criar bot no Telegram integrado à `agent_api`
 - [ ] Planejar estratégia de backup do banco de dados
-- [x] Desenvolver interface web para visualizar, criar, atualizar e excluir gastos e limites
+- [ ] Desenvolver interface web para visualizar, criar, atualizar e excluir gastos e limites
 
