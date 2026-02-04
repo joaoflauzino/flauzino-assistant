@@ -11,6 +11,7 @@ from finance_api.core.exceptions import (
     ServiceError,
     LimitServiceError,
     SpentServiceError,
+    ValidationError,
 )
 from finance_api.core.logger import get_logger
 
@@ -29,6 +30,8 @@ def handle_service_errors(func: Callable[..., Any]) -> Callable[..., Any]:
         except SQLAlchemyError as e:
             raise DatabaseError(f"Database operation failed: {str(e)}")
         except EntityNotFoundError:
+            raise
+        except ValidationError:
             raise
         except Exception as e:
             if isinstance(e, HTTPException):
@@ -52,6 +55,8 @@ def handle_limits_errors(func: Callable[..., Any]) -> Callable[..., Any]:
             raise DatabaseError(f"Database operation failed: {str(e)}")
         except EntityNotFoundError:
             raise
+        except ValidationError:
+            raise
         except Exception as e:
             if isinstance(e, HTTPException):
                 raise
@@ -73,6 +78,8 @@ def handle_spents_errors(func: Callable[..., Any]) -> Callable[..., Any]:
         except SQLAlchemyError as e:
             raise DatabaseError(f"Database operation failed: {str(e)}")
         except EntityNotFoundError:
+            raise
+        except ValidationError:
             raise
         except Exception as e:
             if isinstance(e, HTTPException):

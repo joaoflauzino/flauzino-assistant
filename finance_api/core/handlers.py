@@ -8,6 +8,7 @@ from finance_api.core.exceptions import (
     ServiceError,
     LimitServiceError,
     SpentServiceError,
+    ValidationError,
 )
 
 
@@ -30,6 +31,14 @@ async def entity_conflict_handler(request: Request, exc: EntityConflictError):
         status_code=409,
         content={"message": "Conflict", "detail": str(exc)},
     )
+
+
+async def validation_error_handler(request: Request, exc: ValidationError):
+    return JSONResponse(
+        status_code=422,
+        content={"message": "Validation Error", "detail": str(exc)},
+    )
+
 
 async def service_error_handler(request: Request, exc: ServiceError):
     return JSONResponse(

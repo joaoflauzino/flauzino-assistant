@@ -6,9 +6,10 @@ if TYPE_CHECKING:
     from finance_api.models.limits import SpendingLimit
 
 from finance_api.repositories.limits import SpendingLimitRepository
+from finance_api.repositories.categories import CategoryRepository
 from finance_api.schemas.limits import SpendingLimitCreate, SpendingLimitUpdate
 from finance_api.core.decorators import handle_limits_errors
-from finance_api.core.exceptions import EntityNotFoundError
+from finance_api.core.exceptions import EntityNotFoundError, ValidationError
 from finance_api.schemas.pagination import PaginatedResponse
 from finance_api.core.logger import get_logger
 
@@ -22,6 +23,14 @@ class SpendingLimitService:
     @handle_limits_errors
     async def create(self, limit_data: SpendingLimitCreate) -> "SpendingLimit":
         logger.info(f"Creating spending limit for category: {limit_data.category}")
+
+        # Validate category exists in database
+        category_repo = CategoryRepository(self.repo.db)
+        if not await category_repo.get_by_key(limit_data.category):
+            raise ValidationError(
+                f"Category '{limit_data.category}' does not exist. Please create it first."
+            )
+
         return await self.repo.create(limit_data)
 
     @handle_limits_errors
@@ -32,7 +41,9 @@ class SpendingLimitService:
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
     ) -> PaginatedResponse["SpendingLimit"]:
-        logger.info(f"Listing spending limits page {page} size {size} start {start_date} end {end_date}")
+        logger.info(
+            f"Listing spending limits page {page} size {size} start {start_date} end {end_date}"
+        )
         skip = (page - 1) * size
         items, total = await self.repo.list(skip, size, start_date, end_date)
         return PaginatedResponse.create(items, total, page, size)

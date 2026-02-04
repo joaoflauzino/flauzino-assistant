@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from finance_api.repositories.spents import SpentRepository
-from finance_api.schemas.enums import CardEnum, CategoryEnum, NameEnum
+from finance_api.schemas.enums import CardEnum, NameEnum
 from finance_api.schemas.spents import SpentCreate
 
 
@@ -26,7 +26,7 @@ async def test_create_spent(mock_db_session):
     # Arrange
     repo = SpentRepository(mock_db_session)
     spent_data = SpentCreate(
-        category=CategoryEnum.MARKET,
+        category="mercado",  # Use string instead of CategoryEnum
         amount=150.75,
         payment_method=CardEnum.ITAU,
         payment_owner=NameEnum.JOAO_LUCAS,

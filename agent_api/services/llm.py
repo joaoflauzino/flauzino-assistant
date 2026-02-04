@@ -1,18 +1,41 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
+import httpx
 
 from agent_api.schemas.assistant import AssistantResponse
 from agent_api.settings import settings
-from finance_api.schemas.enums import CardEnum, CategoryEnum, NameEnum
+from finance_api.schemas.enums import CardEnum, NameEnum
 from agent_api.core.decorators import handle_llm_errors
 from agent_api.core.logger import get_logger
 
 logger = get_logger(__name__)
 
-VALID_CATEGORIES = ", ".join([c.value for c in CategoryEnum])
+
+# Fetch categories dynamically from finance API
+async def get_valid_categories() -> str:
+    """Fetch valid categories from finance API."""
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{settings.FINANCE_SERVICE_URL}/categories?size=100"
+            )
+            if response.status_code == 200:
+                data = response.json()
+                categories = [item["key"] for item in data.get("items", [])]
+                return ", ".join(categories)
+    except Exception as e:
+        logger.warning(f"Failed to fetch categories: {e}")
+    # Fallback to common categories
+    return "alimentacao, comer_fora, farmacia, mercado, transporte, moradia, saude, lazer, educação, compras, vestuario, viagem, serviços, crianças, outros"
+
+
 VALID_PAYMENT_METHODS = ", ".join([c.value for c in CardEnum])
 VALID_OWNERS = ", ".join([o.value for o in NameEnum])
 
-SYSTEM_PROMPT = f"""
+
+async def get_system_prompt() -> str:
+    """Generate system prompt with dynamic categories."""
+    valid_categories = await get_valid_categories()
+    return f"""
 Você é um assistente financeiro da Família Flauzino.
 Seu objetivo é:
 
@@ -21,7 +44,7 @@ Seu objetivo é:
 
 **CATEGORIAS VÁLIDAS**:
 O campo `categoria` DEVE ser estritamente um destes valores:
-[{VALID_CATEGORIES}]
+[{valid_categories}]
 
 **MÉTODOS DE PAGAMENTO VÁLIDOS**:
 O campo `metodo_pagamento` DEVE ser estritamente um destes valores:
@@ -72,7 +95,8 @@ async def get_llm_response(history: list) -> AssistantResponse:
 
     logger.info("Calling LLM service")
 
-    messages = [("system", SYSTEM_PROMPT)]
+    system_prompt = await get_system_prompt()
+    messages = [("system", system_prompt)]
     for msg in history:
         role = "human" if msg["role"] == "user" else "ai"
         messages.append((role, msg["content"]))

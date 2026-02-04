@@ -39,3 +39,10 @@ class SpentServiceError(ServiceError):
         self.message = message
         super().__init__(self.message)
 
+
+class ValidationError(FinanceError):
+    """Raised when validation fails (HTTP 422)."""
+
+    def __init__(self, message="Validation Error"):
+        self.message = message
+        super().__init__(self.message)

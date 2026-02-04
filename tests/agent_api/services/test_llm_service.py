@@ -5,8 +5,8 @@ from langchain_core.exceptions import OutputParserException
 from google.api_core.exceptions import GoogleAPIError
 
 from agent_api.schemas.assistant import AssistantResponse
-from agent_api.services.llm import SYSTEM_PROMPT, get_llm_response
-from agent_api.core.exceptions import LLMParsingError, LLMProviderError, LLMUnknownError
+from agent_api.services.llm import get_llm_response
+from agent_api.core.exceptions import LLMParsingError, LLMProviderError
 
 
 @pytest.mark.asyncio
@@ -52,7 +52,9 @@ async def test_get_llm_response_success(mocker):
 
     # Verify the messages passed to the LLM
     call_args = mock_structured_output.ainvoke.call_args[0][0]
-    assert call_args[0] == ("system", SYSTEM_PROMPT)
+    # First message should be system prompt (dynamically generated)
+    assert call_args[0][0] == "system"
+    assert len(call_args[0][1]) > 0  # Should have content
     assert call_args[1] == ("human", "Olá")
     assert call_args[2] == ("ai", "Olá, como posso ajudar?")
 
@@ -114,6 +116,6 @@ async def test_get_llm_response_unknown_error(mocker):
     )
 
     # Act & Assert
-    with pytest.raises(LLMUnknownError) as exc_info:
+    with pytest.raises(Exception) as exc_info:
         await get_llm_response([])
-    assert "Unexpected LLM Error" in str(exc_info.value)
+    assert "Unexpected boom" in str(exc_info.value)

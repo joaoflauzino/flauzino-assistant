@@ -1,10 +1,8 @@
 from pydantic import BaseModel, Field
 
-from finance_api.schemas.enums import CategoryEnum
-
 
 class SpendingDetails(BaseModel):
-    categoria: CategoryEnum = Field(..., description="Categoria do gasto")
+    categoria: str = Field(..., description="Categoria do gasto")
     valor: float = Field(..., description="Valor do gasto")
     metodo_pagamento: str = Field(
         ..., description="Nome do cartão de crédito utilizado (ex: itau, c6, xp)"

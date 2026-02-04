@@ -13,6 +13,17 @@ from finance_api.repositories.spents import SpentRepository
 pytestmark = pytest.mark.asyncio
 
 
+@pytest.fixture(autouse=True)
+def mock_category_repo(mocker):
+    """Auto-use fixture that mocks CategoryRepository for all tests."""
+    mock_category = MagicMock()
+    mock_category.key = "mercado"
+    mocker.patch(
+        "finance_api.services.spents.CategoryRepository"
+    ).return_value.get_by_key = AsyncMock(return_value=mock_category)
+    return mock_category
+
+
 @pytest.fixture
 async def test_client():
     """Fixture to create a test client for the FastAPI app."""
@@ -27,6 +38,7 @@ async def test_client():
 def mock_spent_repository():
     """Fixture for a mocked SpentRepository."""
     repo = MagicMock(spec=SpentRepository)
+    repo.db = AsyncMock()  # Add db attribute for CategoryRepository
     repo.create = AsyncMock()
     repo.list = AsyncMock()
     repo.get_by_id = AsyncMock()
@@ -129,7 +141,8 @@ async def test_list_spents_success(test_client, mock_spent_repository, mocker):
     assert response_data["page"] == 1
     assert response_data["size"] == 10
     assert response_data["pages"] == 1
-    mock_spent_repository.list.assert_awaited_once_with(0, 10)
+    # Repository list now has 4 params: skip, limit, start_date, end_date
+    mock_spent_repository.list.assert_awaited_once_with(0, 10, None, None)
 
     # Cleanup
     app.dependency_overrides.clear()
@@ -287,9 +300,9 @@ async def test_create_spent_repository_error(
 
     # Assert
     assert response.status_code == 500
-    assert response.json() == {
-        "detail": "Internal Server Error: Database connection failed"
-    }
+    response_json = response.json()
+    assert response_json["message"] == "Internal Server Error"
+    assert "Database connection failed" in response_json["detail"]
 
     # Cleanup
     app.dependency_overrides.clear()
@@ -347,7 +360,8 @@ async def test_list_spents_pagination(test_client, mock_spent_repository, mocker
     assert response_data["page"] == 1
     assert response_data["size"] == 1
     assert response_data["pages"] == 2
-    mock_spent_repository.list.assert_awaited_once_with(0, 1)
+    # Repository list now has 4 params: skip, limit, start_date, end_date
+    mock_spent_repository.list.assert_awaited_once_with(0, 1, None, None)
 
     # Cleanup
     app.dependency_overrides.clear()

@@ -32,11 +32,20 @@ class SpentRepository:
         end_date: Optional[date] = None,
     ) -> tuple[List[Spent], int]:
         query = select(Spent)
-        
+
+        # Convert UTC timestamp to Brazil timezone (America/Sao_Paulo) before extracting date
+        # This ensures date filtering works correctly for Brazilian users (UTC-3)
+        # Using AT TIME ZONE converts the timestamp to the specified timezone
         if start_date:
-            query = query.where(func.date(Spent.created_at) >= start_date)
+            query = query.where(
+                func.date(Spent.created_at.op("AT TIME ZONE")("America/Sao_Paulo"))
+                >= start_date
+            )
         if end_date:
-            query = query.where(func.date(Spent.created_at) <= end_date)
+            query = query.where(
+                func.date(Spent.created_at.op("AT TIME ZONE")("America/Sao_Paulo"))
+                <= end_date
+            )
 
         # Count query
         count_query = select(func.count()).select_from(query.subquery())

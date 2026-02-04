@@ -58,6 +58,148 @@
             "_type": "request_group"
         },
         {
+            "_id": "req_list_categories",
+            "parentId": "fld_finance_api",
+            "modified": 1738800000000,
+            "created": 1738800000000,
+            "url": "{{ _.finance_url }}/categories",
+            "name": "List Categories",
+            "description": "",
+            "method": "GET",
+            "body": {},
+            "parameters": [
+                {
+                    "name": "page",
+                    "value": "1",
+                    "disabled": false
+                },
+                {
+                    "name": "size",
+                    "value": "100",
+                    "disabled": false
+                }
+            ],
+            "headers": [],
+            "authentication": {},
+            "metaSortKey": -105,
+            "isPrivate": false,
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "req_get_category",
+            "parentId": "fld_finance_api",
+            "modified": 1738800000000,
+            "created": 1738800000000,
+            "url": "{{ _.finance_url }}/categories/CATEGORY_ID_HERE",
+            "name": "Get Category by ID",
+            "description": "",
+            "method": "GET",
+            "body": {},
+            "parameters": [],
+            "headers": [],
+            "authentication": {},
+            "metaSortKey": -104,
+            "isPrivate": false,
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "req_create_category",
+            "parentId": "fld_finance_api",
+            "modified": 1738800000000,
+            "created": 1738800000000,
+            "url": "{{ _.finance_url }}/categories",
+            "name": "Create Category",
+            "description": "",
+            "method": "POST",
+            "body": {
+                "mimeType": "application/json",
+                "text": "{\n\t\"key\": \"pets\",\n\t\"display_name\": \"Animais de Estimação\"\n}"
+            },
+            "parameters": [],
+            "headers": [
+                {
+                    "name": "Content-Type",
+                    "value": "application/json"
+                }
+            ],
+            "authentication": {},
+            "metaSortKey": -103,
+            "isPrivate": false,
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "req_update_category",
+            "parentId": "fld_finance_api",
+            "modified": 1738800000000,
+            "created": 1738800000000,
+            "url": "{{ _.finance_url }}/categories/CATEGORY_ID_HERE",
+            "name": "Update Category",
+            "description": "",
+            "method": "PUT",
+            "body": {
+                "mimeType": "application/json",
+                "text": "{\n\t\"display_name\": \"Pets e Veterinário\"\n}"
+            },
+            "parameters": [],
+            "headers": [
+                {
+                    "name": "Content-Type",
+                    "value": "application/json"
+                }
+            ],
+            "authentication": {},
+            "metaSortKey": -102,
+            "isPrivate": false,
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "req_delete_category",
+            "parentId": "fld_finance_api",
+            "modified": 1738800000000,
+            "created": 1738800000000,
+            "url": "{{ _.finance_url }}/categories/CATEGORY_ID_HERE",
+            "name": "Delete Category",
+            "description": "",
+            "method": "DELETE",
+            "body": {},
+            "parameters": [],
+            "headers": [],
+            "authentication": {},
+            "metaSortKey": -101,
+            "isPrivate": false,
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
             "_id": "req_create_spent",
             "parentId": "fld_finance_api",
             "modified": 1700000000000,

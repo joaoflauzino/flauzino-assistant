@@ -5,17 +5,39 @@ CREATE TABLE IF NOT EXISTS spents (
     payment_method VARCHAR NOT NULL,
     payment_owner VARCHAR NOT NULL,
     location VARCHAR NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS ix_spents_category ON spents (category);
 
-CREATE TABLE IF NOT EXISTS spending_limits (
+-- Categories table for dynamic category management
+CREATE TABLE IF NOT EXISTS categories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    category VARCHAR NOT NULL UNIQUE,
-    amount DOUBLE PRECISION NOT NULL
+    key VARCHAR(50) NOT NULL UNIQUE,
+    display_name VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE INDEX IF NOT EXISTS ix_categories_key ON categories (key);
+
+-- Seed categories with existing category mappings
+INSERT INTO categories (key, display_name) VALUES
+    ('alimentacao', 'Alimentação'),
+    ('comer_fora', 'Comer Fora'),
+    ('farmacia', 'Farmácia'),
+    ('mercado', 'Mercado'),
+    ('transporte', 'Transporte'),
+    ('moradia', 'Moradia'),
+    ('saude', 'Saúde'),
+    ('lazer', 'Lazer'),
+    ('educação', 'Educação'),
+    ('compras', 'Compras'),
+    ('vestuario', 'Vestuário'),
+    ('viagem', 'Viagem'),
+    ('serviços', 'Serviços'),
+    ('crianças', 'Crianças'),
+    ('outros', 'Outros')
+ON CONFLICT (key) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS chat_sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

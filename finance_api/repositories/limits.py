@@ -33,11 +33,17 @@ class SpendingLimitRepository:
         end_date: Optional[date] = None,
     ) -> tuple[List[SpendingLimit], int]:
         query = select(SpendingLimit)
-        
-        if start_date:
-            query = query.where(func.date(SpendingLimit.created_at) >= start_date)
-        if end_date:
-            query = query.where(func.date(SpendingLimit.created_at) <= end_date)
+
+        # Note: SpendingLimit doesn't have created_at field currently
+        # If you add it later, uncomment and update this:
+        # if start_date:
+        #     query = query.where(
+        #         func.date(func.timezone('America/Sao_Paulo', SpendingLimit.created_at)) >= start_date
+        #     )
+        # if end_date:
+        #     query = query.where(
+        #         func.date(func.timezone('America/Sao_Paulo', SpendingLimit.created_at)) <= end_date
+        #     )
 
         count_query = select(func.count()).select_from(query.subquery())
         count_result = await self.db.execute(count_query)

@@ -2,6 +2,14 @@
 
 Este projeto tem como objetivo criar um assistente virtual capaz de lidar com registros de gastos pessoais de forma inteligente e automatizada.
 
+## Funcionalidades
+
+- 💬 **Agente LLM**: Interface de linguagem natural para adicionar gastos e limites
+- 📊 **Rastreamento Financeiro**: Acompanhe gastos e defina limites por categoria
+- 🎯 **Gerenciamento de Categorias**: Sistema dinâmico de categorias com REST API
+- 📈 **Dashboard**: Análise visual de gastos com gráficos
+- 🌐 **Arquitetura Multi-API**: Serviços separados para agente e finanças
+
 ## Arquitetura
 
 O projeto é dividido em três módulos principais:
@@ -113,6 +121,41 @@ Os endpoints de listagem (`GET`) utilizam paginação baseada em página.
 
 
 
+#### Categories (Categorias)
+
+Gerencie categorias de forma dinâmica via API.
+
+- **Listar Categorias (GET /categories)**
+  ```bash
+  curl -X 'GET' 'http://localhost:8000/categories?page=1&size=100'
+  ```
+
+- **Obter por ID (GET /categories/{id})**
+  ```bash
+  curl -X 'GET' 'http://localhost:8000/categories/{category-id}'
+  ```
+
+- **Criar Categoria (POST /categories)**
+  ```bash
+  curl -X 'POST' 'http://localhost:8000/categories' \
+    -H 'Content-Type: application/json' \
+    -d '{ "key": "pets", "display_name": "Animais de Estimação" }'
+  ```
+
+- **Atualizar (PUT /categories/{id})**
+  ```bash
+  curl -X 'PUT' 'http://localhost:8000/categories/{category-id}' \
+    -H 'Content-Type: application/json' \
+    -d '{ "display_name": "Pets e Veterinário" }'
+  ```
+
+- **Deletar (DELETE /categories/{id})**
+  ```bash
+  curl -X 'DELETE' 'http://localhost:8000/categories/{category-id}'
+  ```
+
+> **Nota:** Após criar uma categoria, você pode usá-la imediatamente em gastos e limites usando a `key` definida.
+
 #### Spents (Gastos)
 
 - **Criar (POST /spents)**
@@ -195,9 +238,17 @@ curl -X 'POST' \
 
 - [x] Fazer o agente responder bem em cenários que existem erros ao interagir com a `finance_api`
 - [x] Fazer o agente confirmar os dados antes de enviar para a `finance_api`
+- [x] Criar tabela para categorias e validação dinâmica de categorias
+- [ ] Criar tabelas para cartões
+- [ ] Criar tabela para donos de cartões
 - [ ] Implementar extração de dados de comprovantes (OCR) no agente
 - [ ] Suportar comandos de voz no agente
 - [ ] Criar bot no Telegram integrado à `agent_api`
 - [ ] Planejar estratégia de backup do banco de dados
 - [ ] Desenvolver interface web para visualizar, criar, atualizar e excluir gastos e limites
+    - [ ] Criar seção para visualização de gastos e limites com stacked charts
+    - [ ] Criar seção para detalhamento de gastos via tabela
+    - [ ] Criar seção para visualização, cadastro, edição, deleção de categorias
+    - [ ] Criar seção para visualização, cadastro, edição, deleção de cartões
+    - [ ] Criar seção para visualização, cadastro, edição, deleção de donos de cartões
 

@@ -37,7 +37,7 @@ class FinanceService:
 
     async def save_spent(self, details: SpendingDetails):
         payload = {
-            "category": details.categoria.value,
+            "category": details.categoria,  # No .value since it's now a string
             "amount": details.valor,
             "payment_method": details.metodo_pagamento,
             "payment_owner": details.proprietário,
@@ -47,7 +47,7 @@ class FinanceService:
 
     async def save_limit(self, details: LimitDetails):
         payload = {
-            "category": details.category.value,
+            "category": details.category,  # No .value since it's now a string
             "amount": details.value,
         }
         return await self._post_to_finance_api("limits", payload)

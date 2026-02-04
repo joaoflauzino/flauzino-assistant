@@ -14,6 +14,17 @@ from sqlalchemy.exc import IntegrityError
 pytestmark = pytest.mark.asyncio
 
 
+@pytest.fixture(autouse=True)
+def mock_category_repo(mocker):
+    """Auto-use fixture that mocks CategoryRepository for all tests."""
+    mock_category = MagicMock()
+    mock_category.key = "mercado"
+    mocker.patch(
+        "finance_api.services.limits.CategoryRepository"
+    ).return_value.get_by_key = AsyncMock(return_value=mock_category)
+    return mock_category
+
+
 @pytest.fixture
 async def test_client():
     """Fixture to create a test client for the FastAPI app."""
@@ -28,6 +39,7 @@ async def test_client():
 def mock_limit_repository():
     """Fixture for a mocked SpendingLimitRepository."""
     repo = MagicMock(spec=SpendingLimitRepository)
+    repo.db = AsyncMock()  # Add db attribute for CategoryRepository
     repo.create = AsyncMock()
     repo.list = AsyncMock()
     repo.get_by_category = AsyncMock()
@@ -111,7 +123,8 @@ async def test_list_limits_success(test_client, mock_limit_repository, mocker):
     assert response_data["page"] == 1
     assert response_data["size"] == 10
     assert response_data["pages"] == 1
-    mock_limit_repository.list.assert_awaited_once_with(0, 10)
+    # Repository list now has 4 params: skip, limit, start_date, end_date
+    mock_limit_repository.list.assert_awaited_once_with(0, 10, None, None)
 
     # Cleanup
     app.dependency_overrides.clear()
@@ -298,7 +311,8 @@ async def test_list_limits_pagination(test_client, mock_limit_repository, mocker
     assert response_data["page"] == 1
     assert response_data["size"] == 1
     assert response_data["pages"] == 2
-    mock_limit_repository.list.assert_awaited_once_with(0, 1)
+    # Repository list now has 4 params: skip, limit, start_date, end_date
+    mock_limit_repository.list.assert_awaited_once_with(0, 1, None, None)
 
     # Cleanup
     app.dependency_overrides.clear()
