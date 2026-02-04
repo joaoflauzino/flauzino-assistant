@@ -1,8 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from finance_api.routers import limits, spents
-from finance_api.routes import categories
+from finance_api.routers import limits, spents, categories
 from finance_api.core.exceptions import (
     DatabaseError,
     EntityConflictError,
