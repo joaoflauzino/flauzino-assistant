@@ -22,3 +22,10 @@ export interface PaginatedResponse<T> {
     size: number;
     pages: number;
 }
+
+export interface Category {
+    id: string;
+    key: string;
+    display_name: string;
+    created_at: string;
+}

@@ -1,8 +1,9 @@
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Wallet, PiggyBank } from 'lucide-react';
+import { LayoutDashboard, Wallet, PiggyBank, Tags } from 'lucide-react';
 import { Dashboard } from './pages/Dashboard';
 import { SpentsPage } from './pages/SpentsPage';
 import { LimitsPage } from './pages/LimitsPage';
+import { CategoriesPage } from './pages/CategoriesPage';
 import './index.css';
 
 const Navigation = () => {
@@ -14,6 +15,7 @@ const Navigation = () => {
     { path: '/', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
     { path: '/spents', label: 'Spents', icon: <Wallet size={20} /> },
     { path: '/limits', label: 'Limits', icon: <PiggyBank size={20} /> },
+    { path: '/categories', label: 'Categories', icon: <Tags size={20} /> },
   ];
 
   return (
@@ -65,6 +67,7 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/spents" element={<SpentsPage />} />
             <Route path="/limits" element={<LimitsPage />} />
+            <Route path="/categories" element={<CategoriesPage />} />
           </Routes>
         </main>
       </div>
