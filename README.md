@@ -230,7 +230,10 @@ curl -X 'POST' \
 
 - [x] Fazer o agente responder bem em cenários que existem erros ao interagir com a `finance_api`
 - [x] Fazer o agente confirmar os dados antes de enviar para a `finance_api`
+- [ ] Criar tratamento de exeções para os repositórios
 - [x] Criar tabela para categorias e validação dinâmica de categorias
+    - [ ] Criar decorator para exceções no service de categorias no finance_api
+    - [ ] Mover rotes para routers na rota de categoria no finance_api
 - [ ] Criar tabelas para cartões
 - [ ] Criar tabela para donos de cartões
 - [ ] Implementar extração de dados de comprovantes (OCR) no agente
