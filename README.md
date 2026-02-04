@@ -2,14 +2,6 @@
 
 Este projeto tem como objetivo criar um assistente virtual capaz de lidar com registros de gastos pessoais de forma inteligente e automatizada.
 
-## Funcionalidades
-
-- 💬 **Agente LLM**: Interface de linguagem natural para adicionar gastos e limites
-- 📊 **Rastreamento Financeiro**: Acompanhe gastos e defina limites por categoria
-- 🎯 **Gerenciamento de Categorias**: Sistema dinâmico de categorias com REST API
-- 📈 **Dashboard**: Análise visual de gastos com gráficos
-- 🌐 **Arquitetura Multi-API**: Serviços separados para agente e finanças
-
 ## Arquitetura
 
 O projeto é dividido em três módulos principais:
