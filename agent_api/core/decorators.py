@@ -10,13 +10,11 @@ from fastapi import HTTPException
 from agent_api.core.exceptions import (
     FinanceUnreachableError,
     FinanceServerError,
-    FinanceServiceError,
     InvalidSpentError,
     LLMProviderError,
     LLMParsingError,
     DatabaseError,
-    ChatServiceError,
-    LLMServiceError,
+    ServiceError,
 )
 from agent_api.core.logger import get_logger
 
@@ -40,10 +38,10 @@ def handle_finance_errors(func: Callable[..., Any]) -> Callable[..., Any]:
                 raise FinanceServerError("Finance API internal error")
             raise
         except Exception as e:
-            if isinstance(e, FinanceServiceError) or isinstance(e, HTTPException):
+            if isinstance(e, ServiceError) or isinstance(e, HTTPException):
                 raise
             logger.error(f"Unexpected finance error: {e}", exc_info=True)
-            raise FinanceServiceError(f"Unexpected finance error: {str(e)}")
+            raise ServiceError(f"Unexpected finance error: {str(e)}")
 
     return wrapper
 
@@ -61,13 +59,13 @@ def handle_llm_errors(func: Callable[..., Any]) -> Callable[..., Any]:
             raise LLMProviderError(f"Google Gemini Error: {str(e)}")
         except Exception as e:
             logger.error(f"Unexpected LLM error: {e}", exc_info=True)
-            raise LLMServiceError(f"Unexpected LLM Error: {str(e)}")
+            raise ServiceError(f"Unexpected LLM Error: {str(e)}")
 
     return wrapper
 
 
-def handle_chat_service_errors(func: Callable[..., Any]) -> Callable[..., Any]:
-    """Decorator to catch unexpected errors in ChatService."""
+def handle_service_errors(func: Callable[..., Any]) -> Callable[..., Any]:
+    """Generic decorator to catch unexpected errors in Service Layer."""
 
     @functools.wraps(func)
     async def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -76,9 +74,9 @@ def handle_chat_service_errors(func: Callable[..., Any]) -> Callable[..., Any]:
         except SQLAlchemyError as e:
             raise DatabaseError(f"Database operation failed: {str(e)}")
         except Exception as e:
-            if isinstance(e, DatabaseError) or isinstance(e, HTTPException):
+            if isinstance(e, (DatabaseError, ServiceError, HTTPException)):
                 raise
-            logger.error(f"Unexpected chat service error: {e}", exc_info=True)
-            raise ChatServiceError(f"Unexpected error in chat service: {str(e)}")
+            logger.error(f"Unexpected service error: {e}", exc_info=True)
+            raise ServiceError(f"Unexpected error: {str(e)}")
 
     return wrapper

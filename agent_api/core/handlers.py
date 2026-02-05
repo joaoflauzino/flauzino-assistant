@@ -6,12 +6,7 @@ from agent_api.core.exceptions import (
     FinanceUnreachableError,
     InvalidSpentError,
     LLMProviderError,
-    LLMParsingError,
     ServiceError,
-    DatabaseError,
-    ChatServiceError,
-    LLMServiceError,
-    FinanceServiceError,
 )
 
 
@@ -43,42 +38,7 @@ async def llm_provider_handler(request: Request, exc: LLMProviderError):
     )
 
 
-async def llm_parsing_handler(request: Request, exc: LLMParsingError):
-    return JSONResponse(
-        status_code=500,
-        content={"message": "Internal Server Error", "detail": str(exc)},
-    )
-
-async def database_error_handler(request: Request, exc: DatabaseError):
-    return JSONResponse(
-        status_code=500,
-        content={"message": "Internal Server Error", "detail": str(exc)},
-    )
-
-
-
 async def service_error_handler(request: Request, exc: ServiceError):
-    return JSONResponse(
-        status_code=500,
-        content={"message": "Internal Server Error", "detail": str(exc)},
-    )
-
-
-async def chat_service_error_handler(request: Request, exc: ChatServiceError):
-    return JSONResponse(
-        status_code=500,
-        content={"message": "Internal Server Error", "detail": str(exc)},
-    )
-
-
-async def llm_service_error_handler(request: Request, exc: LLMServiceError):
-    return JSONResponse(
-        status_code=500,
-        content={"message": "Internal Server Error", "detail": str(exc)},
-    )
-
-
-async def finance_service_error_handler(request: Request, exc: FinanceServiceError):
     return JSONResponse(
         status_code=500,
         content={"message": "Internal Server Error", "detail": str(exc)},

@@ -5,7 +5,7 @@ from fastapi import HTTPException
 
 from typing import List, Dict, Any, Tuple
 
-from agent_api.core.decorators import handle_chat_service_errors
+from agent_api.core.decorators import handle_service_errors
 from agent_api.repositories.chat_repository import ChatRepository
 from agent_api.schemas.assistant import AssistantResponse
 from agent_api.schemas.dtos import ChatMessage, ChatResponse
@@ -21,7 +21,7 @@ class ChatService:
         self.repository = ChatRepository(db_session)
         self.http_client = http_client
 
-    @handle_chat_service_errors
+    @handle_service_errors
     async def process_message(
         self, message: str, session_id_str: str | None
     ) -> ChatResponse:
