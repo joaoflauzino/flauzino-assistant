@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
-import { Bar, Pie } from 'react-chartjs-2';
+import { Bar } from 'react-chartjs-2';
 import { CheckSquare, Square } from 'lucide-react';
 import api from '../services/api';
-import type { Spent, SpendingLimit } from '../types';
+import type { Spent, SpendingLimit, PaymentMethod } from '../types';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
@@ -49,6 +49,8 @@ export const Dashboard = () => {
 
     // Dynamic categories from API
     const [categoryNames, setCategoryNames] = useState<Record<string, string>>({});
+    // Dynamic payment methods from API
+    const [paymentMethodNames, setPaymentMethodNames] = useState<Record<string, string>>({});
 
     const fetchData = async () => {
         setLoading(true);
@@ -93,9 +95,25 @@ export const Dashboard = () => {
         }
     };
 
+    // Fetch payment methods from API
+    const fetchPaymentMethods = async () => {
+        try {
+            const res = await api.get<{ items: PaymentMethod[] }>('/payment-methods?size=1000');
+            const pmMap = res.data.items.reduce((acc, pm) => {
+                acc[pm.key] = pm.display_name;
+                return acc;
+            }, {} as Record<string, string>);
+            setPaymentMethodNames(pmMap);
+        } catch (error) {
+            console.error("Error fetching payment methods", error);
+        }
+    };
+
     useEffect(() => {
         // Fetch categories first
+        // Fetch categories and payment methods
         fetchCategories();
+        fetchPaymentMethods();
 
         // Set dates to current month on initial mount
         const monthDates = getCurrentMonthDates();
@@ -159,6 +177,14 @@ export const Dashboard = () => {
         const spent = spentByCategory[index];
         return spent;
     });
+
+    // Payment Method Data Processing
+    // 1. Get unique payment methods from filtered spents
+    const filteredSpents = spents.filter(s => selectedCategories.has(s.category));
+    const uniquePaymentMethods = Array.from(new Set(filteredSpents.map(s => s.payment_method)));
+
+    // 2. Aggregate spent amount by payment method
+
 
     const barData = {
         labels: categories.map(cat => categoryNames[cat] || cat),
@@ -232,19 +258,103 @@ export const Dashboard = () => {
         }
     };
 
-    const pieData = {
-        labels: categories.map(cat => categoryNames[cat] || cat),
+    const horizontalBarOptions = {
+        indexAxis: 'y' as const,
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                titleColor: '#f3f4f6',
+                bodyColor: '#e5e7eb',
+                borderColor: '#374151',
+                borderWidth: 1,
+                padding: 12,
+                callbacks: {
+                    label: function (context: any) {
+                        return `Spent: R$ ${context.raw.toFixed(2)}`;
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                grid: { color: 'rgba(75, 85, 99, 0.2)' },
+                ticks: {
+                    color: '#9ca3af',
+                    callback: function (value: any) {
+                        return 'R$ ' + value.toLocaleString();
+                    }
+                }
+            },
+            y: {
+                grid: { display: false },
+                ticks: {
+                    color: '#e5e7eb',
+                    font: { size: 12 }
+                }
+            }
+        }
+    };
+
+    // Prepare Top 5 Categories Data
+    const categoryDataList = categories.map((cat, index) => ({
+        name: categoryNames[cat] || cat,
+        amount: spentByCategory[index]
+    }));
+
+    // Sort descending and take top 5
+    const top5Categories = categoryDataList
+        .sort((a, b) => b.amount - a.amount)
+        .slice(0, 5);
+
+    const top5CategoriesData = {
+        labels: top5Categories.map(c => c.name),
         datasets: [
             {
-                data: spentByCategory,
+                label: 'Spent',
+                data: top5Categories.map(c => c.amount),
                 backgroundColor: [
-                    '#6366f1', '#ef4444', '#22c55e', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#f97316', '#06b6d4', '#84cc16'
+                    '#6366f1', '#ef4444', '#22c55e', '#f59e0b', '#ec4899'
                 ],
-                borderWidth: 2,
-                borderColor: '#1f2937'
+                borderRadius: 4,
+                barThickness: 20,
             },
         ],
     };
+
+    // Prepare Top 5 Payment Methods Data
+    const paymentMethodDataList = uniquePaymentMethods.map(pm => {
+        const amount = filteredSpents
+            .filter(s => s.payment_method === pm)
+            .reduce((acc, curr) => acc + curr.amount, 0);
+        return {
+            name: paymentMethodNames[pm] || pm,
+            amount
+        };
+    });
+
+    const top5PaymentMethods = paymentMethodDataList
+        .sort((a, b) => b.amount - a.amount)
+        .slice(0, 5);
+
+    const top5PaymentMethodsChartData = {
+        labels: top5PaymentMethods.map(pm => pm.name),
+        datasets: [
+            {
+                label: 'Spent',
+                data: top5PaymentMethods.map(pm => pm.amount),
+                backgroundColor: [
+                    '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'
+                ],
+                borderRadius: 4,
+                barThickness: 20,
+            },
+        ],
+    };
+
+
 
     return (
         <div>
@@ -456,37 +566,22 @@ export const Dashboard = () => {
                         border: '1px solid rgba(99, 102, 241, 0.1)',
                         boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
                     }}>
-                        <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: 600 }}>Expenses Distribution</h3>
-                        <div style={{ height: '350px', display: 'flex', justifyContent: 'center' }}>
-                            <Pie data={pieData} options={{
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                plugins: {
-                                    legend: {
-                                        position: 'bottom' as const,
-                                        labels: {
-                                            color: '#e5e7eb',
-                                            font: { size: 11 },
-                                            padding: 10
-                                        }
-                                    },
-                                    tooltip: {
-                                        backgroundColor: 'rgba(17, 24, 39, 0.95)',
-                                        titleColor: '#f3f4f6',
-                                        bodyColor: '#e5e7eb',
-                                        borderColor: '#374151',
-                                        borderWidth: 1,
-                                        padding: 12,
-                                        callbacks: {
-                                            label: function (context: any) {
-                                                const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
-                                                const percentage = ((context.raw / total) * 100).toFixed(1);
-                                                return `${context.label}: R$ ${context.raw.toFixed(2)} (${percentage}%)`;
-                                            }
-                                        }
-                                    }
-                                }
-                            }} />
+                        <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: 600 }}>Top 5 Expenses Distribution</h3>
+                        <div style={{ height: '350px' }}>
+                            <Bar data={top5CategoriesData} options={horizontalBarOptions} />
+                        </div>
+                    </div>
+
+                    <div style={{
+                        backgroundColor: 'var(--bg-secondary)',
+                        padding: '1.5rem',
+                        borderRadius: '12px',
+                        border: '1px solid rgba(99, 102, 241, 0.1)',
+                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                    }}>
+                        <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: 600 }}>Top 5 Spent by Payment Method</h3>
+                        <div style={{ height: '350px' }}>
+                            <Bar data={top5PaymentMethodsChartData} options={horizontalBarOptions} />
                         </div>
                     </div>
                 </div>

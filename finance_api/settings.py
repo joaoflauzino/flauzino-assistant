@@ -6,6 +6,7 @@ class FinanceApiSettings(BaseSettings):
 
     DATABASE_URL: str
     AGENT_SERVICE_URL: str = "http://localhost:8001"
+    FRONTEND_URL: str = "http://localhost:5173"
 
 
 settings = FinanceApiSettings()
