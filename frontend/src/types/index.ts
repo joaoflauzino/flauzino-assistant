@@ -29,3 +29,17 @@ export interface Category {
     display_name: string;
     created_at: string;
 }
+
+export interface PaymentMethod {
+    id: string;
+    key: string;
+    display_name: string;
+    created_at: string;
+}
+
+export interface PaymentOwner {
+    id: string;
+    key: string;
+    display_name: string;
+    created_at: string;
+}

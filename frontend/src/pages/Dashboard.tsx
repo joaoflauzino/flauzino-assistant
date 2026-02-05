@@ -149,13 +149,13 @@ export const Dashboard = () => {
         return limit ? limit.amount : 0;
     });
 
-    const remainingByCategory = categories.map((cat, index) => {
+    const remainingByCategory = categories.map((_cat, index) => {
         const limit = limitByCategory[index];
         const spent = spentByCategory[index];
         return Math.max(0, limit - spent);
     });
 
-    const exactSpentScale = categories.map((cat, index) => {
+    const exactSpentScale = categories.map((_cat, index) => {
         const spent = spentByCategory[index];
         return spent;
     });

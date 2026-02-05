@@ -1,17 +1,17 @@
 import { useEffect, useState } from 'react';
-import { Plus, Trash2, Edit2, ChevronLeft, ChevronRight, Tags } from 'lucide-react';
+import { Plus, Trash2, Edit2, ChevronLeft, ChevronRight, CreditCard } from 'lucide-react';
 import api from '../services/api';
-import type { Category, PaginatedResponse } from '../types';
+import type { PaymentMethod, PaginatedResponse } from '../types';
 import { Modal } from '../components/Modal';
 
-export const CategoriesPage = () => {
-    const [categories, setCategories] = useState<Category[]>([]);
+export const PaymentMethodsPage = () => {
+    const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+    const [editingMethod, setEditingMethod] = useState<PaymentMethod | null>(null);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -22,13 +22,13 @@ export const CategoriesPage = () => {
     const fetchData = async (p: number) => {
         setLoading(true);
         try {
-            const query = `/categories?page=${p}&size=10`;
-            const response = await api.get<PaginatedResponse<Category>>(query);
-            setCategories(response.data.items);
+            const query = `/payment-methods?page=${p}&size=10`;
+            const response = await api.get<PaginatedResponse<PaymentMethod>>(query);
+            setPaymentMethods(response.data.items);
             setTotalPages(response.data.pages);
             setTotalItems(response.data.total);
         } catch (error) {
-            console.error("Failed to fetch categories", error);
+            console.error("Failed to fetch payment methods", error);
         } finally {
             setLoading(false);
         }
@@ -41,43 +41,43 @@ export const CategoriesPage = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            if (editingCategory) {
-                await api.put(`/categories/${editingCategory.id}`, formData);
+            if (editingMethod) {
+                await api.put(`/payment-methods/${editingMethod.id}`, formData);
             } else {
-                await api.post('/categories', formData);
+                await api.post('/payment-methods', formData);
             }
             setIsModalOpen(false);
-            setEditingCategory(null);
+            setEditingMethod(null);
             setFormData({ key: '', display_name: '' });
             fetchData(page);
         } catch (error) {
-            console.error("Error saving category", error);
-            alert("Failed to save category. Ensure the key is unique.");
+            console.error("Error saving payment method", error);
+            alert("Failed to save payment method. Ensure the key is unique.");
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure? This might affect existing spents linked to this category.")) return;
+        if (!confirm("Are you sure? This might affect existing spents linked to this payment method.")) return;
         try {
-            await api.delete(`/categories/${id}`);
+            await api.delete(`/payment-methods/${id}`);
             fetchData(page);
         } catch (error) {
-            console.error("Error deleting category", error);
-            alert("Failed to delete category.");
+            console.error("Error deleting payment method", error);
+            alert("Failed to delete payment method.");
         }
     };
 
-    const openEdit = (category: Category) => {
-        setEditingCategory(category);
+    const openEdit = (method: PaymentMethod) => {
+        setEditingMethod(method);
         setFormData({
-            key: category.key,
-            display_name: category.display_name
+            key: method.key,
+            display_name: method.display_name
         });
         setIsModalOpen(true);
     };
 
     const openCreate = () => {
-        setEditingCategory(null);
+        setEditingMethod(null);
         setFormData({ key: '', display_name: '' });
         setIsModalOpen(true);
     };
@@ -86,8 +86,8 @@ export const CategoriesPage = () => {
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <div>
-                    <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0 }}>Categories</h1>
-                    <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>Manage your spending categories</p>
+                    <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0 }}>Payment Methods</h1>
+                    <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>Manage payment methods and cards</p>
                 </div>
 
                 <button
@@ -110,7 +110,7 @@ export const CategoriesPage = () => {
                     onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
                     onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                 >
-                    <Plus size={20} /> New Category
+                    <Plus size={20} /> New Payment Method
                 </button>
             </div>
 
@@ -136,10 +136,10 @@ export const CategoriesPage = () => {
                         padding: '1rem',
                         borderRadius: '12px'
                     }}>
-                        <Tags size={24} color="var(--accent-color)" />
+                        <CreditCard size={24} color="var(--accent-color)" />
                     </div>
                     <div>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0, marginBottom: '0.25rem' }}>Total Categories</p>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0, marginBottom: '0.25rem' }}>Total Payment Methods</p>
                         <h2 style={{ fontSize: '1.8rem', fontWeight: 700, margin: 0 }}>{totalItems}</h2>
                     </div>
                 </div>
@@ -157,7 +157,7 @@ export const CategoriesPage = () => {
             }}>
                 {loading ? (
                     <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                        Loading categories...
+                        Loading payment methods...
                     </div>
                 ) : (
                     <>
@@ -178,15 +178,15 @@ export const CategoriesPage = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {categories.length === 0 ? (
+                                    {paymentMethods.length === 0 ? (
                                         <tr>
                                             <td colSpan={3} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                                No categories found. Create one to get started!
+                                                No payment methods found. Create one to get started!
                                             </td>
                                         </tr>
                                     ) : (
-                                        categories.map((c) => (
-                                            <tr key={c.id} style={{
+                                        paymentMethods.map((pm) => (
+                                            <tr key={pm.id} style={{
                                                 borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
                                                 transition: 'background-color 0.2s'
                                             }}
@@ -201,14 +201,14 @@ export const CategoriesPage = () => {
                                                         borderRadius: '4px',
                                                         fontSize: '0.85rem'
                                                     }}>
-                                                        {c.key}
+                                                        {pm.key}
                                                     </span>
                                                 </td>
-                                                <td style={{ padding: '1.25rem 1.5rem', fontWeight: 500, fontSize: '1rem' }}>{c.display_name}</td>
+                                                <td style={{ padding: '1.25rem 1.5rem', fontWeight: 500, fontSize: '1rem' }}>{pm.display_name}</td>
                                                 <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
                                                     <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
                                                         <button
-                                                            onClick={() => openEdit(c)}
+                                                            onClick={() => openEdit(pm)}
                                                             title="Edit"
                                                             style={{
                                                                 padding: '0.5rem',
@@ -227,7 +227,7 @@ export const CategoriesPage = () => {
                                                             <Edit2 size={16} color="#f59e0b" />
                                                         </button>
                                                         <button
-                                                            onClick={() => handleDelete(c.id)}
+                                                            onClick={() => handleDelete(pm.id)}
                                                             title="Delete"
                                                             style={{
                                                                 padding: '0.5rem',
@@ -311,7 +311,7 @@ export const CategoriesPage = () => {
                 )}
             </div>
 
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingCategory ? "Edit Category" : "New Category"}>
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingMethod ? "Edit Payment Method" : "New Payment Method"}>
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1rem' }}>
                     <div>
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Key Identifier</label>
@@ -320,7 +320,7 @@ export const CategoriesPage = () => {
                             className="form-input"
                             value={formData.key}
                             onChange={e => setFormData({ ...formData, key: e.target.value })}
-                            placeholder="e.g. food_dining"
+                            placeholder="e.g. itau"
                             style={{
                                 width: '100%',
                                 padding: '0.9rem',
@@ -333,7 +333,7 @@ export const CategoriesPage = () => {
                             }}
                         />
                         <small style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '0.5rem', display: 'block' }}>
-                            Unique identifier used by the system (e.g. food, transport).
+                            Unique identifier used by the system (e.g. nubank, itau).
                         </small>
                     </div>
                     <div>
@@ -343,7 +343,7 @@ export const CategoriesPage = () => {
                             className="form-input"
                             value={formData.display_name}
                             onChange={e => setFormData({ ...formData, display_name: e.target.value })}
-                            placeholder="e.g. Food & Dining"
+                            placeholder="e.g. Itaú"
                             style={{
                                 width: '100%',
                                 padding: '0.9rem',
@@ -385,7 +385,7 @@ export const CategoriesPage = () => {
                                 minWidth: '100px'
                             }}
                         >
-                            {editingCategory ? "Update" : "Create"}
+                            {editingMethod ? "Update" : "Create"}
                         </button>
                     </div>
                 </form>

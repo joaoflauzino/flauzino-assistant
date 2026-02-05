@@ -1,9 +1,11 @@
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Wallet, PiggyBank, Tags } from 'lucide-react';
+import { LayoutDashboard, Wallet, PiggyBank, Tags, CreditCard, Users } from 'lucide-react';
 import { Dashboard } from './pages/Dashboard';
 import { SpentsPage } from './pages/SpentsPage';
 import { LimitsPage } from './pages/LimitsPage';
 import { CategoriesPage } from './pages/CategoriesPage';
+import { PaymentMethodsPage } from './pages/PaymentMethodsPage';
+import { PaymentOwnersPage } from './pages/PaymentOwnersPage';
 import './index.css';
 
 const Navigation = () => {
@@ -16,6 +18,8 @@ const Navigation = () => {
     { path: '/spents', label: 'Spents', icon: <Wallet size={20} /> },
     { path: '/limits', label: 'Limits', icon: <PiggyBank size={20} /> },
     { path: '/categories', label: 'Categories', icon: <Tags size={20} /> },
+    { path: '/payment-methods', label: 'Payment Methods', icon: <CreditCard size={20} /> },
+    { path: '/payment-owners', label: 'Payment Owners', icon: <Users size={20} /> },
   ];
 
   return (
@@ -68,6 +72,8 @@ function App() {
             <Route path="/spents" element={<SpentsPage />} />
             <Route path="/limits" element={<LimitsPage />} />
             <Route path="/categories" element={<CategoriesPage />} />
+            <Route path="/payment-methods" element={<PaymentMethodsPage />} />
+            <Route path="/payment-owners" element={<PaymentOwnersPage />} />
           </Routes>
         </main>
       </div>
