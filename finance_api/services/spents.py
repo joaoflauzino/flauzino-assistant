@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 from finance_api.repositories.spents import SpentRepository
 from finance_api.repositories.categories import CategoryRepository
 from finance_api.schemas.spents import SpentCreate, SpentUpdate
-from finance_api.core.decorators import handle_spents_errors
+from finance_api.core.decorators import handle_service_errors
 from finance_api.core.exceptions import EntityNotFoundError, ValidationError
 from finance_api.schemas.pagination import PaginatedResponse
 from finance_api.core.logger import get_logger
@@ -20,7 +20,7 @@ class SpentService:
     def __init__(self, repo: SpentRepository):
         self.repo = repo
 
-    @handle_spents_errors
+    @handle_service_errors
     async def create(self, spent: SpentCreate) -> "Spent":
         logger.info(f"Creating spent: {spent.amount} - {spent.category}")
 
@@ -33,7 +33,7 @@ class SpentService:
 
         return await self.repo.create(spent)
 
-    @handle_spents_errors
+    @handle_service_errors
     async def list(
         self,
         page: int = 1,
@@ -48,7 +48,7 @@ class SpentService:
         items, total = await self.repo.list(skip, size, start_date, end_date)
         return PaginatedResponse.create(items, total, page, size)
 
-    @handle_spents_errors
+    @handle_service_errors
     async def get_by_id(self, spent_id: UUID) -> "Spent":
         logger.info(f"Getting spent by id: {spent_id}")
         spent = await self.repo.get_by_id(spent_id)
@@ -56,7 +56,7 @@ class SpentService:
             raise EntityNotFoundError(f"Spent with id {spent_id} not found")
         return spent
 
-    @handle_spents_errors
+    @handle_service_errors
     async def update(self, spent_id: UUID, update_data: SpentUpdate) -> "Spent":
         logger.info(f"Updating spent: {spent_id}")
 
@@ -73,7 +73,7 @@ class SpentService:
             raise EntityNotFoundError(f"Spent with id {spent_id} not found")
         return updated_spent
 
-    @handle_spents_errors
+    @handle_service_errors
     async def delete(self, spent_id: UUID) -> bool:
         logger.info(f"Deleting spent: {spent_id}")
         deleted = await self.repo.delete(spent_id)

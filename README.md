@@ -284,8 +284,8 @@ curl -X 'POST' \
 - [ ] Criar tratamento de exeções para os repositórios
 - [ ] Criar campo para informar o item que foi comprado
 - [x] Criar tabela para categorias e validação dinâmica de categorias
-    - [ ] Criar decorator para exceções no service de categorias no finance_api
-    - [ ] Exceções na rota deveria estar no camada de service
+    - [x] Criar decorator para exceções no service de categorias no finance_api
+    - [x] Exceções na rota deveria estar no camada de service
 - [x] Criar tabelas para cartões
     - [ ] Faltando logs
     - [ ] handlers apenas para erros 500

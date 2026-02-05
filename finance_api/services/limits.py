@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 from finance_api.repositories.limits import SpendingLimitRepository
 from finance_api.repositories.categories import CategoryRepository
 from finance_api.schemas.limits import SpendingLimitCreate, SpendingLimitUpdate
-from finance_api.core.decorators import handle_limits_errors
+from finance_api.core.decorators import handle_service_errors
 from finance_api.core.exceptions import EntityNotFoundError, ValidationError
 from finance_api.schemas.pagination import PaginatedResponse
 from finance_api.core.logger import get_logger
@@ -20,7 +20,7 @@ class SpendingLimitService:
     def __init__(self, repo: SpendingLimitRepository):
         self.repo = repo
 
-    @handle_limits_errors
+    @handle_service_errors
     async def create(self, limit_data: SpendingLimitCreate) -> "SpendingLimit":
         logger.info(f"Creating spending limit for category: {limit_data.category}")
 
@@ -33,7 +33,7 @@ class SpendingLimitService:
 
         return await self.repo.create(limit_data)
 
-    @handle_limits_errors
+    @handle_service_errors
     async def list(
         self,
         page: int = 1,
@@ -48,12 +48,12 @@ class SpendingLimitService:
         items, total = await self.repo.list(skip, size, start_date, end_date)
         return PaginatedResponse.create(items, total, page, size)
 
-    @handle_limits_errors
+    @handle_service_errors
     async def get_by_category(self, category: str) -> Optional["SpendingLimit"]:
         logger.info(f"Getting spending limit by category: {category}")
         return await self.repo.get_by_category(category)
 
-    @handle_limits_errors
+    @handle_service_errors
     async def get_by_id(self, limit_id: UUID) -> "SpendingLimit":
         logger.info(f"Getting spending limit by id: {limit_id}")
         limit = await self.repo.get_by_id(limit_id)
@@ -61,7 +61,7 @@ class SpendingLimitService:
             raise EntityNotFoundError(f"Spending limit with id {limit_id} not found")
         return limit
 
-    @handle_limits_errors
+    @handle_service_errors
     async def update(
         self, limit_id: UUID, update_data: SpendingLimitUpdate
     ) -> "SpendingLimit":
@@ -71,7 +71,7 @@ class SpendingLimitService:
             raise EntityNotFoundError(f"Spending limit with id {limit_id} not found")
         return updated_limit
 
-    @handle_limits_errors
+    @handle_service_errors
     async def delete(self, limit_id: UUID) -> bool:
         logger.info(f"Deleting spending limit: {limit_id}")
         deleted = await self.repo.delete(limit_id)

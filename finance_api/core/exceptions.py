@@ -28,36 +28,6 @@ class ServiceError(FinanceError):
         super().__init__(self.message)
 
 
-class LimitServiceError(ServiceError):
-    def __init__(self, message="Limit Service Error"):
-        self.message = message
-        super().__init__(self.message)
-
-
-class SpentServiceError(ServiceError):
-    def __init__(self, message="Spent Service Error"):
-        self.message = message
-        super().__init__(self.message)
-
-
-class PaymentMethodServiceError(ServiceError):
-    def __init__(self, message="Payment Method Service Error"):
-        self.message = message
-        super().__init__(self.message)
-
-
-class PaymentOwnerServiceError(ServiceError):
-    def __init__(self, message="Payment Owner Service Error"):
-        self.message = message
-        super().__init__(self.message)
-
-
-class CategoryServiceError(ServiceError):
-    def __init__(self, message="Category Service Error"):
-        self.message = message
-        super().__init__(self.message)
-
-
 class ValidationError(FinanceError):
     """Raised when validation fails (HTTP 422)."""
 
