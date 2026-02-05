@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+
 from agent_api.core.exceptions import (
     FinanceUnreachableError,
     FinanceServerError,
@@ -14,25 +14,15 @@ from agent_api.core.handlers import (
     llm_provider_handler,
     service_error_handler,
 )
-from agent_api.routers import chat
-from agent_api.settings import settings
 
-app = FastAPI()
+from agent_api.routers.chat import router
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app = FastAPI(title="Flauzino Assistant Agent API")
 
-# Register exception handlers
 app.add_exception_handler(FinanceUnreachableError, finance_unreachable_handler)
 app.add_exception_handler(FinanceServerError, finance_server_error_handler)
 app.add_exception_handler(InvalidSpentError, invalid_spent_handler)
 app.add_exception_handler(LLMProviderError, llm_provider_handler)
 app.add_exception_handler(ServiceError, service_error_handler)
 
-# Register routers
-app.include_router(chat.router, prefix="/chat", tags=["chat"])
+app.include_router(router)
