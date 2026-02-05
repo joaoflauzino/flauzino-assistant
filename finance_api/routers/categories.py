@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from finance_api.core.database import get_db
@@ -44,10 +44,7 @@ async def get_category(
     service: CategoryService = Depends(get_category_service),
 ):
     """Get a category by ID."""
-    category = await service.get_by_id(category_id)
-    if not category:
-        raise HTTPException(status_code=404, detail="Category not found")
-    return category
+    return await service.get_by_id(category_id)
 
 
 @router.post("/", response_model=CategoryResponse, status_code=201)
@@ -56,10 +53,7 @@ async def create_category(
     service: CategoryService = Depends(get_category_service),
 ):
     """Create a new category."""
-    try:
-        return await service.create(category_data)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    return await service.create(category_data)
 
 
 @router.put("/{category_id}", response_model=CategoryResponse)
@@ -69,13 +63,7 @@ async def update_category(
     service: CategoryService = Depends(get_category_service),
 ):
     """Update an existing category."""
-    try:
-        category = await service.update(category_id, update_data)
-        if not category:
-            raise HTTPException(status_code=404, detail="Category not found")
-        return category
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    return await service.update(category_id, update_data)
 
 
 @router.delete("/{category_id}", status_code=204)
@@ -84,6 +72,4 @@ async def delete_category(
     service: CategoryService = Depends(get_category_service),
 ):
     """Delete a category."""
-    success = await service.delete(category_id)
-    if not success:
-        raise HTTPException(status_code=404, detail="Category not found")
+    await service.delete(category_id)

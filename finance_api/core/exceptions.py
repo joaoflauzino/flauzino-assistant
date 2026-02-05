@@ -52,6 +52,12 @@ class PaymentOwnerServiceError(ServiceError):
         super().__init__(self.message)
 
 
+class CategoryServiceError(ServiceError):
+    def __init__(self, message="Category Service Error"):
+        self.message = message
+        super().__init__(self.message)
+
+
 class ValidationError(FinanceError):
     """Raised when validation fails (HTTP 422)."""
 

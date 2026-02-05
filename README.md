@@ -300,7 +300,8 @@ curl -X 'POST' \
 - [ ] Criar bot no Telegram integrado à `agent_api`
 - [ ] Planejar estratégia de backup do banco de dados
 - [ ] Desenvolver interface web para visualizar, criar, atualizar e excluir gastos e limites
-    - [ ] Criar gráfico para visualizar o gasto por forma de pagamento
+    - [x] Criar gráfico para visualizar o gasto por forma de pagamento
+    - [ ] Criar uma seção para conversar com uma LLM sobre os gastos na seção de dashboard.
     - [x] Criar seção para visualização de gastos e limites com stacked charts
     - [x] Criar seção para detalhamento de gastos via tabela
     - [x] Criar seção para visualização, cadastro, edição, deleção de categorias
