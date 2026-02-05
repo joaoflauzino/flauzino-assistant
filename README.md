@@ -112,7 +112,6 @@ Os endpoints de listagem (`GET`) utilizam paginação baseada em página.
     ```
 
 
-
 #### Categories (Categorias)
 
 Gerencie categorias de forma dinâmica via API.
@@ -210,6 +209,58 @@ Gerencie categorias de forma dinâmica via API.
   curl -X 'DELETE' 'http://localhost:8000/limits/85889a09-85dc-4969-9dea-4abc6ac4dbb8'
   ```
 
+#### Payment Methods (Formas de Pagamento)
+
+- **Listar (GET /payment-methods)**
+  ```bash
+  curl -X 'GET' 'http://localhost:8000/payment-methods?page=1&size=100'
+  ```
+
+- **Criar (POST /payment-methods)**
+  ```bash
+  curl -X 'POST' 'http://localhost:8000/payment-methods' \
+    -H 'Content-Type: application/json' \
+    -d '{ "key": "visa", "display_name": "Visa" }'
+  ```
+
+- **Atualizar (PUT /payment-methods/{id})**
+  ```bash
+  curl -X 'PUT' 'http://localhost:8000/payment-methods/{id}' \
+    -H 'Content-Type: application/json' \
+    -d '{ "display_name": "Visa Platinum" }'
+  ```
+
+- **Deletar (DELETE /payment-methods/{id})**
+  ```bash
+  curl -X 'DELETE' 'http://localhost:8000/payment-methods/{id}'
+  ```
+
+#### Payment Owners (Donos de Pagamento)
+
+- **Listar (GET /payment-owners)**
+  ```bash
+  curl -X 'GET' 'http://localhost:8000/payment-owners?page=1&size=100'
+  ```
+
+- **Criar (POST /payment-owners)**
+  ```bash
+  curl -X 'POST' 'http://localhost:8000/payment-owners' \
+    -H 'Content-Type: application/json' \
+    -d '{ "key": "fernanda", "display_name": "Fernanda" }'
+  ```
+
+- **Atualizar (PUT /payment-owners/{id})**
+  ```bash
+  curl -X 'PUT' 'http://localhost:8000/payment-owners/{id}' \
+    -H 'Content-Type: application/json' \
+    -d '{ "display_name": "Maria Fernanda" }'
+  ```
+
+- **Deletar (DELETE /payment-owners/{id})**
+  ```bash
+  curl -X 'DELETE' 'http://localhost:8000/payment-owners/{id}'
+  ```
+
 ### Agent API
 
 Interface de conversação para interagir com o sistema.
@@ -233,9 +284,17 @@ curl -X 'POST' \
 - [ ] Criar tratamento de exeções para os repositórios
 - [x] Criar tabela para categorias e validação dinâmica de categorias
     - [ ] Criar decorator para exceções no service de categorias no finance_api
+    - [ ] Exceções na rota deveria estar no camada de service
     - [ ] Mover rotes para routers na rota de categoria no finance_api
-- [ ] Criar tabelas para cartões
-- [ ] Criar tabela para donos de cartões
+- [x] Criar tabelas para cartões
+    - [ ] Faltando logs
+    - [ ] handlers apenas para erros 500
+    - [ ] Avaliar decorators para exceções
+- [x] Criar tabela para donos de cartões
+    - [ ] Faltando logs
+    - [ ] handlers apenas para erros 500
+    - [ ] Avaliar decorators para exceções
+
 - [ ] Implementar extração de dados de comprovantes (OCR) no agente
 - [ ] Suportar comandos de voz no agente
 - [ ] Criar bot no Telegram integrado à `agent_api`

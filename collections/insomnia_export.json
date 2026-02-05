@@ -125,7 +125,7 @@
             "method": "POST",
             "body": {
                 "mimeType": "application/json",
-                "text": "{\n\t\"key\": \"pets\",\n\t\"display_name\": \"Animais de Estimação\"\n}"
+                "text": "{\n\t\"key\": \"pets\",\n\t\"display_name\": \"Animais de Estima\u00e7\u00e3o\"\n}"
             },
             "parameters": [],
             "headers": [
@@ -156,7 +156,7 @@
             "method": "PUT",
             "body": {
                 "mimeType": "application/json",
-                "text": "{\n\t\"display_name\": \"Pets e Veterinário\"\n}"
+                "text": "{\n\t\"display_name\": \"Pets e Veterin\u00e1rio\"\n}"
             },
             "parameters": [],
             "headers": [
@@ -494,7 +494,7 @@
             "method": "POST",
             "body": {
                 "mimeType": "application/json",
-                "text": "{\n\t\"message\": \"gastei 50 reais no mercado com o cartão do itau do joao lucas\",\n\t\"session_id\": \"optional-uuid\"\n}"
+                "text": "{\n\t\"message\": \"gastei 50 reais no mercado com o cart\u00e3o do itau do joao lucas\",\n\t\"session_id\": \"optional-uuid\"\n}"
             },
             "parameters": [],
             "headers": [
@@ -505,6 +505,290 @@
             ],
             "authentication": {},
             "metaSortKey": -100,
+            "isPrivate": false,
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "req_list_payment_methods",
+            "parentId": "fld_finance_api",
+            "modified": 1770258491805,
+            "created": 1770258491805,
+            "url": "{{ _.finance_url }}/payment-methods",
+            "name": "List Payment Methods",
+            "description": "",
+            "method": "GET",
+            "body": {},
+            "parameters": [
+                {
+                    "name": "page",
+                    "value": "1",
+                    "disabled": false
+                },
+                {
+                    "name": "size",
+                    "value": "100",
+                    "disabled": false
+                }
+            ],
+            "headers": [],
+            "authentication": {},
+            "metaSortKey": -200,
+            "isPrivate": false,
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "req_get_payment_method",
+            "parentId": "fld_finance_api",
+            "modified": 1770258491805,
+            "created": 1770258491805,
+            "url": "{{ _.finance_url }}/payment-methods/METHOD_ID_HERE",
+            "name": "Get Payment Method by ID",
+            "description": "",
+            "method": "GET",
+            "body": {},
+            "parameters": [],
+            "headers": [],
+            "authentication": {},
+            "metaSortKey": -199,
+            "isPrivate": false,
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "req_create_payment_method",
+            "parentId": "fld_finance_api",
+            "modified": 1770258491805,
+            "created": 1770258491805,
+            "url": "{{ _.finance_url }}/payment-methods",
+            "name": "Create Payment Method",
+            "description": "",
+            "method": "POST",
+            "body": {
+                "mimeType": "application/json",
+                "text": "{\n\t\"key\": \"nubank\",\n\t\"display_name\": \"Nubank\"\n}"
+            },
+            "parameters": [],
+            "headers": [
+                {
+                    "name": "Content-Type",
+                    "value": "application/json"
+                }
+            ],
+            "authentication": {},
+            "metaSortKey": -198,
+            "isPrivate": false,
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "req_update_payment_method",
+            "parentId": "fld_finance_api",
+            "modified": 1770258491805,
+            "created": 1770258491805,
+            "url": "{{ _.finance_url }}/payment-methods/METHOD_ID_HERE",
+            "name": "Update Payment Method",
+            "description": "",
+            "method": "PUT",
+            "body": {
+                "mimeType": "application/json",
+                "text": "{\n\t\"display_name\": \"Nubank Updated\"\n}"
+            },
+            "parameters": [],
+            "headers": [
+                {
+                    "name": "Content-Type",
+                    "value": "application/json"
+                }
+            ],
+            "authentication": {},
+            "metaSortKey": -197,
+            "isPrivate": false,
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "req_delete_payment_method",
+            "parentId": "fld_finance_api",
+            "modified": 1770258491805,
+            "created": 1770258491805,
+            "url": "{{ _.finance_url }}/payment-methods/METHOD_ID_HERE",
+            "name": "Delete Payment Method",
+            "description": "",
+            "method": "DELETE",
+            "body": {},
+            "parameters": [],
+            "headers": [],
+            "authentication": {},
+            "metaSortKey": -196,
+            "isPrivate": false,
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "req_list_payment_owners",
+            "parentId": "fld_finance_api",
+            "modified": 1770258491805,
+            "created": 1770258491805,
+            "url": "{{ _.finance_url }}/payment-owners",
+            "name": "List Payment Owners",
+            "description": "",
+            "method": "GET",
+            "body": {},
+            "parameters": [
+                {
+                    "name": "page",
+                    "value": "1",
+                    "disabled": false
+                },
+                {
+                    "name": "size",
+                    "value": "100",
+                    "disabled": false
+                }
+            ],
+            "headers": [],
+            "authentication": {},
+            "metaSortKey": -195,
+            "isPrivate": false,
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "req_get_payment_owner",
+            "parentId": "fld_finance_api",
+            "modified": 1770258491805,
+            "created": 1770258491805,
+            "url": "{{ _.finance_url }}/payment-owners/OWNER_ID_HERE",
+            "name": "Get Payment Owner by ID",
+            "description": "",
+            "method": "GET",
+            "body": {},
+            "parameters": [],
+            "headers": [],
+            "authentication": {},
+            "metaSortKey": -194,
+            "isPrivate": false,
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "req_create_payment_owner",
+            "parentId": "fld_finance_api",
+            "modified": 1770258491805,
+            "created": 1770258491805,
+            "url": "{{ _.finance_url }}/payment-owners",
+            "name": "Create Payment Owner",
+            "description": "",
+            "method": "POST",
+            "body": {
+                "mimeType": "application/json",
+                "text": "{\n\t\"key\": \"joao\",\n\t\"display_name\": \"Jo\u00e3o\"\n}"
+            },
+            "parameters": [],
+            "headers": [
+                {
+                    "name": "Content-Type",
+                    "value": "application/json"
+                }
+            ],
+            "authentication": {},
+            "metaSortKey": -193,
+            "isPrivate": false,
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "req_update_payment_owner",
+            "parentId": "fld_finance_api",
+            "modified": 1770258491805,
+            "created": 1770258491805,
+            "url": "{{ _.finance_url }}/payment-owners/OWNER_ID_HERE",
+            "name": "Update Payment Owner",
+            "description": "",
+            "method": "PUT",
+            "body": {
+                "mimeType": "application/json",
+                "text": "{\n\t\"display_name\": \"Jo\u00e3o Updated\"\n}"
+            },
+            "parameters": [],
+            "headers": [
+                {
+                    "name": "Content-Type",
+                    "value": "application/json"
+                }
+            ],
+            "authentication": {},
+            "metaSortKey": -192,
+            "isPrivate": false,
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "req_delete_payment_owner",
+            "parentId": "fld_finance_api",
+            "modified": 1770258491805,
+            "created": 1770258491805,
+            "url": "{{ _.finance_url }}/payment-owners/OWNER_ID_HERE",
+            "name": "Delete Payment Owner",
+            "description": "",
+            "method": "DELETE",
+            "body": {},
+            "parameters": [],
+            "headers": [],
+            "authentication": {},
+            "metaSortKey": -191,
             "isPrivate": false,
             "settingStoreCookies": true,
             "settingSendCookies": true,

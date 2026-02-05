@@ -59,3 +59,17 @@ async def spent_service_error_handler(request: Request, exc: SpentServiceError):
         status_code=500,
         content={"message": "Internal Server Error", "detail": str(exc)},
     )
+
+
+async def payment_method_service_error_handler(request: Request, exc: ServiceError):
+    return JSONResponse(
+        status_code=500,
+        content={"message": "Internal Server Error", "detail": str(exc)},
+    )
+
+
+async def payment_owner_service_error_handler(request: Request, exc: ServiceError):
+    return JSONResponse(
+        status_code=500,
+        content={"message": "Internal Server Error", "detail": str(exc)},
+    )
