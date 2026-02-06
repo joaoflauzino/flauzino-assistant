@@ -44,3 +44,16 @@ class DatabaseError(ServiceError):
     def __init__(self, message="Database Error"):
         self.message = message
         super().__init__(self.message)
+
+
+class OCRProcessingError(ServiceError):
+    def __init__(self, message="OCR Processing Error"):
+        self.message = message
+        super().__init__(self.message)
+
+
+class InvalidImageError(ServiceError):
+    def __init__(self, message="Invalid or corrupted image file"):
+        self.message = message
+        super().__init__(self.message)
+

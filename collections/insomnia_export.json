@@ -797,6 +797,78 @@
       "settingRebuildPath": true,
       "settingFollowRedirects": "global",
       "_type": "request"
+    },
+    {
+      "_id": "req_ocr_extract",
+      "parentId": "fld_agent_api",
+      "modified": 1738892022000,
+      "created": 1738892022000,
+      "url": "{{ _.agent_url }}/ocr/extract",
+      "name": "Extract Text from Receipt",
+      "description": "Upload a receipt image and extract text using OCR",
+      "method": "POST",
+      "body": {
+        "mimeType": "multipart/form-data",
+        "params": [
+          {
+            "name": "file",
+            "type": "file",
+            "fileName": "",
+            "value": ""
+          }
+        ]
+      },
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": -90,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_ocr_process_receipt",
+      "parentId": "fld_agent_api",
+      "modified": 1738892022000,
+      "created": 1738892022000,
+      "url": "{{ _.agent_url }}/ocr/process-receipt",
+      "name": "Process Receipt (OCR + Chat)",
+      "description": "Upload receipt, extract text via OCR, process with LLM, and start/continue a chat session",
+      "method": "POST",
+      "body": {
+        "mimeType": "multipart/form-data",
+        "params": [
+          {
+            "name": "file",
+            "type": "file",
+            "fileName": "",
+            "value": ""
+          },
+          {
+            "name": "session_id",
+            "type": "text",
+            "value": "",
+            "disabled": true
+          }
+        ]
+      },
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": -80,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
     }
   ]
 }

@@ -80,3 +80,29 @@ def handle_service_errors(func: Callable[..., Any]) -> Callable[..., Any]:
             raise ServiceError(f"Unexpected error: {str(e)}")
 
     return wrapper
+
+
+def handle_ocr_errors(func: Callable[..., Any]) -> Callable[..., Any]:
+    """Decorator to catch OCR errors and raise OCRService implementation errors."""
+
+    @functools.wraps(func)
+    async def wrapper(*args: Any, **kwargs: Any) -> Any:
+        try:
+            return await func(*args, **kwargs)
+        except Exception as e:
+            if isinstance(e, (ServiceError, HTTPException)):
+                raise
+            logger.error(f"Unexpected OCR error: {e}", exc_info=True)
+            
+            # Import OCR exceptions here to avoid circular imports
+            from agent_api.core.exceptions import OCRProcessingError, InvalidImageError
+            
+            # Check for specific error types in the message
+            error_msg = str(e).lower()
+            if any(word in error_msg for word in ['image', 'decode', 'format', 'invalid']):
+                raise InvalidImageError(f"Invalid image: {str(e)}")
+            
+            raise OCRProcessingError(f"OCR processing failed: {str(e)}")
+
+    return wrapper
+

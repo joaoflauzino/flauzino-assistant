@@ -43,3 +43,18 @@ async def service_error_handler(request: Request, exc: ServiceError):
         status_code=500,
         content={"message": "Internal Server Error", "detail": str(exc)},
     )
+
+
+async def ocr_processing_handler(request: Request, exc):
+    return JSONResponse(
+        status_code=400,
+        content={"message": "OCR Processing Error", "detail": str(exc)},
+    )
+
+
+async def invalid_image_handler(request: Request, exc):
+    return JSONResponse(
+        status_code=400,
+        content={"message": "Invalid Image", "detail": str(exc)},
+    )
+

@@ -11,6 +11,23 @@ O projeto é dividido em três módulos principais:
 -   **`agent_api/`**: Uma API FastAPI que serve como a interface de conversação. Ela recebe mensagens do usuário, utiliza um LLM para extrair informações e se comunica com a `finance_api` para registrar os dados.
 -   **`frontend/`**: Interface Web moderna construída com React e Vite para gerenciamento visual de gastos e limites.
 
+## Requisitos do Sistema
+
+- **Python 3.13+**
+- **Node.js 18+** (para o frontend)
+- **Docker** e **Docker Compose** (para banco de dados)
+- **Tesseract OCR** (para processamento de imagens)
+  ```bash
+  # Ubuntu/Debian
+  sudo apt-get install tesseract-ocr
+  
+  # macOS
+  brew install tesseract
+  
+  # Para suporte a português (opcional)
+  sudo apt-get install tesseract-ocr-por
+  ```
+
 ## Como Executar
 
 Este projeto utiliza `uv` para gerenciamento de dependências e `Docker` para o banco de dados.
@@ -277,6 +294,69 @@ curl -X 'POST' \
 }'
 ```
 
+#### Extrair Texto de Recibo (POST /ocr/extract)
+
+Extrai texto de uma imagem de recibo usando OCR.
+
+```bash
+curl -X 'POST' \
+  'http://localhost:8001/ocr/extract' \
+  -F 'file=@/path/to/receipt.jpg'
+```
+
+**Resposta:**
+```json
+{
+  "text": "SUPERMERCADO XYZ\nValor: R$ 132,07\n...",
+  "confidence": 85.5,
+  "char_count": 1235,
+  "filename": "receipt.jpg"
+}
+```
+
+#### Processar Recibo Completo (POST /ocr/process-receipt)
+
+Processa uma imagem de recibo e inicia/continua uma sessão de chat.
+
+```bash
+curl -X 'POST' \
+  'http://localhost:8001/ocr/process-receipt' \
+  -F 'file=@/path/to/receipt.jpg'
+```
+
+**Resposta:**
+```json
+{
+  "response": "Para registrar o gasto, preciso do método de pagamento utilizado (Itau, PicPay, XP, Nubank ou C6), quem foi o proprietário...",
+  "session_id": "9a144f4c-016e-4792-936f-504fe524bf10",
+  "history": [
+    {
+      "role": "user",
+      "content": "Aqui está o texto extraído de um recibo...\n\nPor favor, extraia as informações de gastos."
+    },
+    {
+      "role": "assistant",
+      "content": "Para registrar o gasto, preciso do método de pagamento..."
+    }
+  ]
+}
+```
+
+**Você pode então continuar a conversa usando o `/chat` com o `session_id` retornado:**
+
+```bash
+curl -X 'POST' \
+  'http://localhost:8001/chat' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "message": "foi com o cartão do itau do joao lucas",
+    "session_id": "9a144f4c-016e-4792-936f-504fe524bf10"
+  }'
+```
+
+**Formatos suportados:** JPG, JPEG, PNG, WebP, BMP, TIFF  
+**Tamanho máximo:** 10MB
+
 ## Próximos Passos
 
 - [x] Fazer o agente responder bem em cenários que existem erros ao interagir com a `finance_api`
@@ -287,7 +367,8 @@ curl -X 'POST' \
     - [x] Exceções na rota deveria estar no camada de service
 - [x] Criar tabelas para cartões
 - [x] Criar tabela para donos de cartões
-- [ ] Implementar extração de dados de comprovantes (OCR) no agente
+- [x] Implementar extração de dados de comprovantes (OCR) no agente
+  - [ ] Avaliar qualidade do OCR
 - [ ] Suportar comandos de voz no agente
 - [ ] Criar bot no Telegram integrado à `agent_api`
 - [ ] Planejar estratégia de backup do banco de dados
@@ -300,4 +381,3 @@ curl -X 'POST' \
     - [x] Criar seção para visualização, cadastro, edição, deleção de categorias
     - [x] Criar seção para visualização, cadastro, edição, deleção de cartões
     - [x] Criar seção para visualização, cadastro, edição, deleção de donos de cartões
-
