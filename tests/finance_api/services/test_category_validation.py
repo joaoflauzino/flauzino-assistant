@@ -1,10 +1,11 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from finance_api.services.spents import SpentService
+import pytest
+
+from finance_api.core.exceptions import ValidationError
 from finance_api.repositories.spents import SpentRepository
 from finance_api.schemas.spents import SpentCreate
-from finance_api.core.exceptions import ValidationError
+from finance_api.services.spents import SpentService
 
 
 @pytest.mark.asyncio
@@ -28,6 +29,7 @@ async def test_spent_creation_validates_category(mocker):
             SpentCreate(
                 category="nonexistent_category",
                 amount=100.0,
+                item_bought="item1",
                 payment_method="itau",
                 payment_owner="joao_lucas",
                 location="Test Location",
@@ -63,6 +65,7 @@ async def test_spent_creation_with_valid_category(mocker):
         SpentCreate(
             category="test_cat",
             amount=100.0,
+            item_bought="item1",
             payment_method="itau",
             payment_owner="joao_lucas",
             location="Test",

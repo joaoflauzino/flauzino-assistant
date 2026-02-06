@@ -153,7 +153,7 @@ Gerencie categorias de forma dinâmica via API.
   ```bash
   curl -X 'POST' 'http://localhost:8000/spents' \
     -H 'Content-Type: application/json' \
-    -d '{ "category": "comer_fora", "amount": 150.50, "payment_method": "itau", "payment_owner": "joao_lucas", "location": "restaurante_xyz" }'
+    -d '{ "category": "comer_fora", "amount": 150.50, "item_bought": "jantar", "payment_method": "itau", "payment_owner": "joao_lucas", "location": "restaurante_xyz" }'
   ```
 
 - **Listar (GET /spents)**
@@ -282,7 +282,7 @@ curl -X 'POST' \
 - [x] Fazer o agente responder bem em cenários que existem erros ao interagir com a `finance_api`
 - [x] Fazer o agente confirmar os dados antes de enviar para a `finance_api`
 - [ ] Criar tratamento de exeções para os repositórios
-- [ ] Criar campo para informar o item que foi comprado
+- [x] Criar campo para informar o item que foi comprado
 - [x] Criar tabela para categorias e validação dinâmica de categorias
     - [x] Criar decorator para exceções no service de categorias no finance_api
     - [x] Exceções na rota deveria estar no camada de service

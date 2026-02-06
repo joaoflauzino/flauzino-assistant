@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS spents (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     category VARCHAR NOT NULL,
     amount DOUBLE PRECISION NOT NULL,
+    item_bought VARCHAR NOT NULL,
     payment_method VARCHAR NOT NULL,
     payment_owner VARCHAR NOT NULL,
     location VARCHAR NOT NULL,
@@ -64,7 +65,7 @@ ON CONFLICT (key) DO NOTHING;
 -- Seed categories with existing category mappings
 INSERT INTO categories (key, display_name) VALUES
     ('alimentacao', 'Alimentação'),
-    ('comer_fora', 'Comer Fora'),
+    ('comer_fora', 'Comer fora'),
     ('farmacia', 'Farmácia'),
     ('mercado', 'Mercado'),
     ('transporte', 'Transporte'),
@@ -75,8 +76,8 @@ INSERT INTO categories (key, display_name) VALUES
     ('compras', 'Compras'),
     ('vestuario', 'Vestuário'),
     ('viagem', 'Viagem'),
-    ('serviços', 'Serviços'),
-    ('crianças', 'Crianças'),
+    ('servicos', 'Serviços'),
+    ('criancas', 'Crianças'),
     ('outros', 'Outros')
 ON CONFLICT (key) DO NOTHING;
 
@@ -98,36 +99,36 @@ INSERT INTO spending_limits (category, amount) VALUES
 ON CONFLICT (category) DO NOTHING;
 
 -- Seed spents
-INSERT INTO spents (category, amount, payment_method, payment_owner, location) VALUES
-    ('mercado', 350.50, 'itau', 'joao_lucas', 'Supermercado ABC'),
-    ('mercado', 125.80, 'nubank', 'lailla', 'Hortifruti'),
-    ('comer_fora', 85.00, 'nubank', 'joao_lucas', 'Restaurante XYZ'),
-    ('comer_fora', 45.90, 'itau', 'lailla', 'Cafeteria'),
-    ('transporte', 22.50, 'picpay', 'joao_lucas', 'Uber'),
-    ('transporte', 15.00, 'picpay', 'joao_lucas', 'Metrô'),
-    ('lazer', 120.00, 'itau', 'joao_lucas', 'Cinema'),
-    ('farmacia', 85.50, 'itau', 'lailla', 'Farmácia Pague Menos'),
-    ('vestuario', 159.90, 'itau', 'joao_lucas', 'Loja de Roupas'),
-    ('moradia', 1200.00, 'picpay', 'joao_lucas', 'Aluguel'),
-    ('moradia', 150.00, 'nubank', 'lailla', 'Condomínio'),
-    ('saude', 350.00, 'itau', 'joao_lucas', 'Plano de Saúde'),
-    ('saude', 120.00, 'nubank', 'lailla', 'Consulta Médica'),
-    ('educação', 800.00, 'picpay', 'joao_lucas', 'Curso de Inglês'),
-    ('serviços', 100.00, 'itau', 'lailla', 'Netflix/Spotify'),
-    ('viagem', 450.00, 'itau', 'joao_lucas', 'Passagem Aérea'),
-    ('viagem', 1200.00, 'itau', 'lailla', 'Hotel'),
-    ('mercado', 400.00, 'itau', 'joao_lucas', 'Feira Mensal'),
-    ('mercado', 89.90, 'nubank', 'lailla', 'Padaria'),
-    ('comer_fora', 120.00, 'itau', 'joao_lucas', 'Jantar Japonês'),
-    ('comer_fora', 35.00, 'nubank', 'lailla', 'Sorveteria'),
-    ('transporte', 45.00, 'picpay', 'joao_lucas', 'Gasolina'),
-    ('transporte', 18.90, 'nubank', 'lailla', 'Uber'),
-    ('lazer', 250.00, 'itau', 'joao_lucas', 'Show'),
-    ('lazer', 60.00, 'nubank', 'lailla', 'Livros'),
-    ('farmacia', 45.00, 'itau', 'joao_lucas', 'Vitaminas'),
-    ('vestuario', 200.00, 'itau', 'lailla', 'Tênis'),
-    ('compras', 150.00, 'itau', 'joao_lucas', 'Presente Aniversário'),
-    ('outros', 50.00, 'picpay', 'joao_lucas', 'Manutenção Casa');
+INSERT INTO spents (category, amount, item_bought, payment_method, payment_owner, location) VALUES
+    ('mercado', 350.50, 'compras do mês', 'itau', 'joao_lucas', 'supermercado abc'),
+    ('mercado', 125.80, 'frutas e verduras', 'nubank', 'lailla', 'hortifruti'),
+    ('comer_fora', 85.00, 'jantar a dois', 'nubank', 'joao_lucas', 'restaurante xyz'),
+    ('comer_fora', 45.90, 'café e bolo', 'itau', 'lailla', 'cafeteria'),
+    ('transporte', 22.50, 'corrida para o trabalho', 'picpay', 'joao_lucas', 'uber'),
+    ('transporte', 15.00, 'passagem de metrô', 'picpay', 'joao_lucas', 'metrô'),
+    ('lazer', 120.00, 'ingressos para o cinema', 'itau', 'joao_lucas', 'cinema'),
+    ('farmacia', 85.50, 'remédios e produtos de higiene', 'itau', 'lailla', 'farmácia pague menos'),
+    ('vestuario', 159.90, 'calça jeans e camiseta', 'itau', 'joao_lucas', 'loja de roupas'),
+    ('moradia', 1200.00, 'aluguel do apartamento', 'picpay', 'joao_lucas', 'aluguel'),
+    ('moradia', 150.00, 'taxa de condomínio', 'nubank', 'lailla', 'condomínio'),
+    ('saude', 350.00, 'mensalidade do plano de saúde', 'itau', 'joao_lucas', 'plano de saúde'),
+    ('saude', 120.00, 'consulta com especialista', 'nubank', 'lailla', 'consulta médica'),
+    ('educação', 800.00, 'mensalidade do curso de inglês', 'picpay', 'joao_lucas', 'curso de inglês'),
+    ('serviços', 100.00, 'assinaturas de streaming', 'itau', 'lailla', 'netflix/spotify'),
+    ('viagem', 450.00, 'passagem de avião para o feriado', 'itau', 'joao_lucas', 'passagem aérea'),
+    ('viagem', 1200.00, 'hospedagem em hotel', 'itau', 'lailla', 'hotel'),
+    ('mercado', 400.00, 'compras para o churrasco', 'itau', 'joao_lucas', 'feira mensal'),
+    ('mercado', 89.90, 'pães e frios', 'nubank', 'lailla', 'padaria'),
+    ('comer_fora', 120.00, 'rodízio de comida japonesa', 'itau', 'joao_lucas', 'jantar japonês'),
+    ('comer_fora', 35.00, 'casquinha de sorvete', 'nubank', 'lailla', 'sorveteria'),
+    ('transporte', 45.00, 'abastecimento do carro', 'picpay', 'joao_lucas', 'gasolina'),
+    ('transporte', 18.90, 'corrida para o shopping', 'nubank', 'lailla', 'uber'),
+    ('lazer', 250.00, 'ingresso para show', 'itau', 'joao_lucas', 'show'),
+    ('lazer', 60.00, 'compra de livros', 'nubank', 'lailla', 'livros'),
+    ('farmacia', 45.00, 'suplementos vitamínicos', 'itau', 'joao_lucas', 'vitaminas'),
+    ('vestuario', 200.00, 'tênis de corrida', 'itau', 'lailla', 'tênis'),
+    ('compras', 150.00, 'presente de aniversário', 'itau', 'joao_lucas', 'presente aniversário'),
+    ('outros', 50.00, 'pequenos reparos em casa', 'picpay', 'joao_lucas', 'manutenção casa');
 
 CREATE TABLE IF NOT EXISTS chat_sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -141,7 +142,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     content TEXT NOT NULL,
     created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT now(),
     CONSTRAINT fk_session
-        FOREIGN KEY(session_id) 
+        FOREIGN KEY(session_id)
         REFERENCES chat_sessions(id)
         ON DELETE CASCADE
 );

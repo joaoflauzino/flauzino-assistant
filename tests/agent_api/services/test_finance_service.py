@@ -1,14 +1,16 @@
-import pytest
-import httpx
 from unittest.mock import AsyncMock, MagicMock
-from agent_api.services.finance import FinanceService
-from agent_api.schemas.assistant import AssistantResponse
-from agent_api.schemas.spending import SpendingDetails
+
+import httpx
+import pytest
+
 from agent_api.core.exceptions import (
-    FinanceUnreachableError,
     FinanceServerError,
+    FinanceUnreachableError,
     InvalidSpentError,
 )
+from agent_api.schemas.assistant import AssistantResponse
+from agent_api.schemas.spending import SpendingDetails
+from agent_api.services.finance import FinanceService
 
 
 @pytest.fixture
@@ -25,6 +27,7 @@ def finance_service(mock_client):
             categoria="comer_fora",
             valor=100.0,
             metodo_pagamento="nubank",
+            item_comprado="Test Item",
             proprietário="joao_lucas",
             local_compra="Test Location",
         ),

@@ -17,6 +17,7 @@ class Spent(Base):
     )
     category: Mapped[str] = mapped_column(String, index=True)
     amount: Mapped[float] = mapped_column(Float)
+    item_bought: Mapped[str] = mapped_column(String, nullable=False)
     payment_method: Mapped[str] = mapped_column(String, nullable=False)
     payment_owner: Mapped[str] = mapped_column(String, nullable=False)
     location: Mapped[str] = mapped_column(String, nullable=False)

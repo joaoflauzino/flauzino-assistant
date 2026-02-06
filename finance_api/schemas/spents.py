@@ -4,12 +4,11 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from finance_api.schemas.enums import CardEnum, NameEnum
-
 
 class SpentBase(BaseModel):
     category: str = Field(..., min_length=1, max_length=50, description="Category key")
     amount: float
+    item_bought: str = Field(..., min_length=1, max_length=50)
     payment_method: str = Field(..., min_length=1, max_length=50)
     payment_owner: str = Field(..., min_length=1, max_length=50)
     location: str
@@ -27,6 +26,7 @@ class SpentCreate(SpentBase): ...
 class SpentUpdate(BaseModel):
     category: Optional[str] = Field(None, min_length=1, max_length=50)
     amount: Optional[float] = None
+    item_bought: Optional[str] = Field(None, min_length=1, max_length=50)
     payment_method: Optional[str] = Field(None, min_length=1, max_length=50)
     payment_owner: Optional[str] = Field(None, min_length=1, max_length=50)
     location: Optional[str] = None

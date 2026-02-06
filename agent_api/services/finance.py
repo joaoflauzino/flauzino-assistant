@@ -1,11 +1,11 @@
 import httpx
 
+from agent_api.core.decorators import handle_finance_errors
+from agent_api.core.logger import get_logger
 from agent_api.schemas.assistant import AssistantResponse
 from agent_api.schemas.limit import LimitDetails
 from agent_api.schemas.spending import SpendingDetails
 from agent_api.settings import settings
-from agent_api.core.decorators import handle_finance_errors
-from agent_api.core.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -39,6 +39,7 @@ class FinanceService:
         payload = {
             "category": details.categoria,  # No .value since it's now a string
             "amount": details.valor,
+            "item_bought": details.item_comprado,
             "payment_method": details.metodo_pagamento,
             "payment_owner": details.proprietário,
             "location": details.local_compra,

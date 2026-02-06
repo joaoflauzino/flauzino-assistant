@@ -28,6 +28,7 @@ async def test_create_spent(mock_db_session):
     spent_data = SpentCreate(
         category="mercado",  # Use string instead of CategoryEnum
         amount=150.75,
+        item_bought="item1",
         payment_method=CardEnum.ITAU,
         payment_owner=NameEnum.JOAO_LUCAS,
         location="Supermarket",
