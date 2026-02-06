@@ -4,6 +4,7 @@ export interface Spent {
     amount: number;
     payment_method: string;
     payment_owner: string;
+    item_bought: string;
     location: string;
     created_at: string;
 }

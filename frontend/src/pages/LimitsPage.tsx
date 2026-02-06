@@ -62,7 +62,7 @@ export const LimitsPage = () => {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure?")) return;
+        if (!confirm("Tem certeza?")) return;
         try {
             await api.delete(`/limits/${id}`);
             fetchData(page);
@@ -92,7 +92,7 @@ export const LimitsPage = () => {
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <div>
-                    <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0 }}>Limits</h1>
+                    <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0 }}>Limites</h1>
                     <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>Set budget goals for categories</p>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -116,7 +116,7 @@ export const LimitsPage = () => {
                         onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
                         onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                     >
-                        <Plus size={20} /> New Limit
+                        <Plus size={20} /> Novo Limite
                     </button>
                 </div>
             </div>
@@ -164,7 +164,7 @@ export const LimitsPage = () => {
             }}>
                 {loading ? (
                     <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                        Loading limits...
+                        Carregando limites...
                     </div>
                 ) : (
                     <>
@@ -179,9 +179,9 @@ export const LimitsPage = () => {
                                         top: 0,
                                         zIndex: 10
                                     }}>
-                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>CATEGORY</th>
+                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>CATEGORIA</th>
                                         <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>LIMIT AMOUNT</th>
-                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem', textAlign: 'right' }}>ACTIONS</th>
+                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem', textAlign: 'right' }}>AÇÕES</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -258,7 +258,7 @@ export const LimitsPage = () => {
                                 borderTop: '1px solid rgba(255, 255, 255, 0.05)'
                             }}>
                                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                                    Showing page {page} of {totalPages}
+                                    Mostrando página {page} de {totalPages}
                                 </span>
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                                     <button
@@ -278,7 +278,7 @@ export const LimitsPage = () => {
                                             fontSize: '0.9rem'
                                         }}
                                     >
-                                        <ChevronLeft size={16} /> Previous
+                                        <ChevronLeft size={16} /> Anterior
                                     </button>
                                     <button
                                         disabled={page === totalPages}
@@ -297,7 +297,7 @@ export const LimitsPage = () => {
                                             fontSize: '0.9rem'
                                         }}
                                     >
-                                        Next <ChevronRight size={16} />
+                                        Próximo <ChevronRight size={16} />
                                     </button>
                                 </div>
                             </div>
@@ -306,10 +306,10 @@ export const LimitsPage = () => {
                 )}
             </div>
 
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingLimit ? "Edit Limit" : "New Limit"}>
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingLimit ? "Editar Limite" : "Novo Limite"}>
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1rem' }}>
                     <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Category</label>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Categoria</label>
                         <input
                             required
                             className="form-input"

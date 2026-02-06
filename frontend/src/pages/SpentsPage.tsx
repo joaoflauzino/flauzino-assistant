@@ -12,7 +12,7 @@ export const SpentsPage = () => {
     const [totalItems, setTotalItems] = useState(0);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingSpent, setEditingSpent] = useState<Spent | null>(null);
-    // Helper to get the first and last day of current month
+    // Helper to get the first and last day de current month
     const getCurrentMonthDates = () => {
         const now = new Date();
         const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -90,7 +90,7 @@ export const SpentsPage = () => {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure?")) return;
+        if (!confirm("Tem certeza?")) return;
         try {
             await api.delete(`/spents/${id}`);
             fetchData(page);
@@ -127,13 +127,13 @@ export const SpentsPage = () => {
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <div>
-                    <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0 }}>Spents</h1>
-                    <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>Track and manage your expenses</p>
+                    <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0 }}>Gastos</h1>
+                    <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>Acompanhe e gerencie suas despesas</p>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                     <form onSubmit={handleFilter} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
                         <div>
-                            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.3rem', fontWeight: 500 }}>Start Date</label>
+                            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.3rem', fontWeight: 500 }}>Data Inicial</label>
                             <input
                                 type="date"
                                 value={startDate}
@@ -151,7 +151,7 @@ export const SpentsPage = () => {
                             />
                         </div>
                         <div>
-                            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.3rem', fontWeight: 500 }}>End Date</label>
+                            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.3rem', fontWeight: 500 }}>Data Final</label>
                             <input
                                 type="date"
                                 value={endDate}
@@ -185,7 +185,7 @@ export const SpentsPage = () => {
                             onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
                             onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                         >
-                            Filter
+                            Filtrar
                         </button>
                     </form>
 
@@ -217,7 +217,7 @@ export const SpentsPage = () => {
                         <Wallet size={24} color="var(--accent-color)" />
                     </div>
                     <div>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0, marginBottom: '0.25rem' }}>Total Spents Found</p>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0, marginBottom: '0.25rem' }}>Total de Gastos Encontrados</p>
                         <h2 style={{ fontSize: '1.8rem', fontWeight: 700, margin: 0 }}>{totalItems}</h2>
                     </div>
                 </div>
@@ -236,7 +236,7 @@ export const SpentsPage = () => {
             }}>
                 {loading ? (
                     <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                        Loading spents...
+                        Carregando gastos...
                     </div>
                 ) : (
                     <>
@@ -251,13 +251,13 @@ export const SpentsPage = () => {
                                         top: 0,
                                         zIndex: 10
                                     }}>
-                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>CATEGORY</th>
-                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>AMOUNT</th>
-                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>METHOD</th>
-                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>OWNER</th>
-                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>LOCATION</th>
-                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>DATE</th>
-                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem', textAlign: 'right' }}>ACTIONS</th>
+                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>CATEGORIA</th>
+                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>VALOR</th>
+                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>MÉTODO</th>
+                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>TITULAR</th>
+                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>LOCALIZAÇÃO</th>
+                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>DATA</th>
+                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem', textAlign: 'right' }}>AÇÕES</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -338,7 +338,7 @@ export const SpentsPage = () => {
                                 borderTop: '1px solid rgba(255, 255, 255, 0.05)'
                             }}>
                                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                                    Showing page {page} of {totalPages}
+                                    Mostrando página {page} de {totalPages}
                                 </span>
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                                     <button
@@ -358,7 +358,7 @@ export const SpentsPage = () => {
                                             fontSize: '0.9rem'
                                         }}
                                     >
-                                        <ChevronLeft size={16} /> Previous
+                                        <ChevronLeft size={16} /> Anterior
                                     </button>
                                     <button
                                         disabled={page === totalPages}
@@ -377,7 +377,7 @@ export const SpentsPage = () => {
                                             fontSize: '0.9rem'
                                         }}
                                     >
-                                        Next <ChevronRight size={16} />
+                                        Próximo <ChevronRight size={16} />
                                     </button>
                                 </div>
                             </div>
@@ -409,14 +409,14 @@ export const SpentsPage = () => {
                     onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
                     onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                 >
-                    <Plus size={22} /> New Spent
+                    <Plus size={22} /> Novo Gasto
                 </button>
             </div>
 
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingSpent ? "Edit Spent" : "New Spent"}>
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingSpent ? "Editar Gasto" : "Novo Gasto"}>
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1rem' }}>
                     <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Category</label>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Categoria</label>
                         <input
                             required
                             className="form-input"
@@ -458,7 +458,7 @@ export const SpentsPage = () => {
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Method</label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Método</label>
                             <input
                                 required
                                 value={formData.payment_method}
@@ -476,7 +476,7 @@ export const SpentsPage = () => {
                             />
                         </div>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Owner</label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Titular</label>
                             <input
                                 required
                                 value={formData.payment_owner}
@@ -495,7 +495,7 @@ export const SpentsPage = () => {
                         </div>
                     </div>
                     <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Location</label>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Localização</label>
                         <input
                             required
                             value={formData.location}

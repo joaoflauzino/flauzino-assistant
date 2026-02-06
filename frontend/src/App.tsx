@@ -14,12 +14,12 @@ const Navigation = () => {
   const isActive = (path: string) => location.pathname === path;
 
   const navItems = [
-    { path: '/', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
-    { path: '/spents', label: 'Spents', icon: <Wallet size={20} /> },
-    { path: '/limits', label: 'Limits', icon: <PiggyBank size={20} /> },
-    { path: '/categories', label: 'Categories', icon: <Tags size={20} /> },
-    { path: '/payment-methods', label: 'Payment Methods', icon: <CreditCard size={20} /> },
-    { path: '/payment-owners', label: 'Payment Owners', icon: <Users size={20} /> },
+    { path: '/', label: 'Painel', icon: <LayoutDashboard size={20} /> },
+    { path: '/spents', label: 'Gastos', icon: <Wallet size={20} /> },
+    { path: '/limits', label: 'Limites', icon: <PiggyBank size={20} /> },
+    { path: '/categories', label: 'Categorias', icon: <Tags size={20} /> },
+    { path: '/payment-methods', label: 'Métodos de Pagamento', icon: <CreditCard size={20} /> },
+    { path: '/payment-owners', label: 'Titulares de Pagamento', icon: <Users size={20} /> },
   ];
 
   return (
@@ -33,7 +33,7 @@ const Navigation = () => {
       gap: '0.5rem',
       position: 'fixed'
     }}>
-      <h2 style={{ padding: '0 1rem', marginBottom: '2rem', color: 'var(--accent-color)' }}>Flauzino Finance</h2>
+      <h2 style={{ padding: '0 1rem', marginBottom: '2rem', color: 'var(--accent-color)' }}>Flauzino Finanças</h2>
       {navItems.map((item) => (
         <Link
           key={item.path}

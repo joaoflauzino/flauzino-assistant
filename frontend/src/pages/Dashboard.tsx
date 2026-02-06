@@ -15,7 +15,7 @@ interface Category {
     created_at: string;
 }
 
-// Helper to get the first and last day of current month
+// Helper to get the first and last day de current month
 const getCurrentMonthDates = () => {
     const now = new Date();
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -152,7 +152,7 @@ export const Dashboard = () => {
         setSelectedCategories(new Set());
     };
 
-    if (loading) return <div style={{ color: 'white', fontSize: '1.2rem' }}>Loading dashboard...</div>;
+    if (loading) return <div style={{ color: 'white', fontSize: '1.2rem' }}>Carregando painel...</div>;
 
     // Process Data - filter by selected categories
     const allCategories = Array.from(new Set([...spents.map(s => s.category), ...limits.map(l => l.category)]));
@@ -190,14 +190,14 @@ export const Dashboard = () => {
         labels: categories.map(cat => categoryNames[cat] || cat),
         datasets: [
             {
-                label: 'Spent',
+                label: 'Gasto',
                 data: exactSpentScale,
                 backgroundColor: 'rgba(239, 68, 68, 0.8)',
                 borderRadius: 6,
                 stack: 'Stack 0',
             },
             {
-                label: 'Remaining Limit',
+                label: 'Limite Restante',
                 data: remainingByCategory,
                 backgroundColor: 'rgba(34, 197, 94, 0.6)',
                 borderRadius: 6,
@@ -220,7 +220,7 @@ export const Dashboard = () => {
             },
             title: {
                 display: true,
-                text: 'Budget Usage by Category',
+                text: 'Uso do Orçamento por Categoria',
                 color: '#f3f4f6',
                 font: { size: 16, weight: 'bold' as const },
                 padding: 20
@@ -313,7 +313,7 @@ export const Dashboard = () => {
         labels: top5Categories.map(c => c.name),
         datasets: [
             {
-                label: 'Spent',
+                label: 'Gasto',
                 data: top5Categories.map(c => c.amount),
                 backgroundColor: [
                     '#6366f1', '#ef4444', '#22c55e', '#f59e0b', '#ec4899'
@@ -343,10 +343,41 @@ export const Dashboard = () => {
         labels: top5PaymentMethods.map(pm => pm.name),
         datasets: [
             {
-                label: 'Spent',
+                label: 'Gasto',
                 data: top5PaymentMethods.map(pm => pm.amount),
                 backgroundColor: [
                     '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'
+                ],
+                borderRadius: 4,
+                barThickness: 20,
+            },
+        ],
+    };
+
+    // Prepare Top 10 Items Data
+    const itemDataList = Array.from(new Set(filteredSpents.map(s => s.item_bought))).map(item => {
+        const amount = filteredSpents
+            .filter(s => s.item_bought === item)
+            .reduce((acc, curr) => acc + curr.amount, 0);
+        return {
+            name: item,
+            amount
+        };
+    });
+
+    const top10Items = itemDataList
+        .sort((a, b) => b.amount - a.amount)
+        .slice(0, 10);
+
+    const top10ItemsChartData = {
+        labels: top10Items.map(item => item.name),
+        datasets: [
+            {
+                label: 'Gasto',
+                data: top10Items.map(item => item.amount),
+                backgroundColor: [
+                    '#6366f1', '#ef4444', '#22c55e', '#f59e0b', '#ec4899',
+                    '#3b82f6', '#10b981', '#8b5cf6', '#f97316', '#14b8a6'
                 ],
                 borderRadius: 4,
                 barThickness: 20,
@@ -359,11 +390,11 @@ export const Dashboard = () => {
     return (
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 700 }}>Dashboard</h1>
+                <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 700 }}>Painel</h1>
 
                 <form onSubmit={handleFilter} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
                     <div>
-                        <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.3rem', fontWeight: 500 }}>Start Date</label>
+                        <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.3rem', fontWeight: 500 }}>Data Inicial</label>
                         <input
                             type="date"
                             value={startDate}
@@ -381,7 +412,7 @@ export const Dashboard = () => {
                         />
                     </div>
                     <div>
-                        <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.3rem', fontWeight: 500 }}>End Date</label>
+                        <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.3rem', fontWeight: 500 }}>Data Final</label>
                         <input
                             type="date"
                             value={endDate}
@@ -415,7 +446,7 @@ export const Dashboard = () => {
                         onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
                         onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                     >
-                        Filter
+                        Filtrar
                     </button>
                 </form>
             </div>
@@ -429,7 +460,7 @@ export const Dashboard = () => {
                 border: '1px solid rgba(99, 102, 241, 0.1)'
             }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Select Categories</h3>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Selecionar Categorias</h3>
                     <div style={{ display: 'flex', gap: '0.75rem' }}>
                         <button
                             onClick={selectAllCategories}
@@ -453,7 +484,7 @@ export const Dashboard = () => {
                                 e.currentTarget.style.color = 'var(--accent-color)';
                             }}
                         >
-                            Select All
+                            Selecionar Todas
                         </button>
                         <button
                             onClick={deselectAllCategories}
@@ -477,7 +508,7 @@ export const Dashboard = () => {
                                 e.currentTarget.style.color = '#ef4444';
                             }}
                         >
-                            Deselect All
+                            Desselecionar Todas
                         </button>
                     </div>
                 </div>
@@ -543,48 +574,67 @@ export const Dashboard = () => {
                     textAlign: 'center',
                     color: 'var(--text-secondary)'
                 }}>
-                    <p style={{ fontSize: '1.1rem', margin: 0 }}>No categories selected. Please select at least one category to view the charts.</p>
+                    <p style={{ fontSize: '1.1rem', margin: 0 }}>Nenhuma categoria selecionada. Por favor selecione pelo menos uma categoria para visualizar os gráficos.</p>
                 </div>
             ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '2rem' }}>
-                    <div style={{
-                        backgroundColor: 'var(--bg-secondary)',
-                        padding: '1.5rem',
-                        borderRadius: '12px',
-                        border: '1px solid rgba(99, 102, 241, 0.1)',
-                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-                    }}>
-                        <div style={{ height: '400px' }}>
-                            <Bar data={barData} options={barOptions} />
+                <>
+                    {/* Top Row - 2 Charts */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '2rem', marginBottom: '2rem' }}>
+                        <div style={{
+                            backgroundColor: 'var(--bg-secondary)',
+                            padding: '1.5rem',
+                            borderRadius: '12px',
+                            border: '1px solid rgba(99, 102, 241, 0.1)',
+                            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                        }}>
+                            <div style={{ height: '400px' }}>
+                                <Bar data={barData} options={barOptions} />
+                            </div>
+                        </div>
+
+                        <div style={{
+                            backgroundColor: 'var(--bg-secondary)',
+                            padding: '1.5rem',
+                            borderRadius: '12px',
+                            border: '1px solid rgba(99, 102, 241, 0.1)',
+                            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                        }}>
+                            <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: 600 }}>Top 5 Distribuição de Despesas</h3>
+                            <div style={{ height: '350px' }}>
+                                <Bar data={top5CategoriesData} options={horizontalBarOptions} />
+                            </div>
                         </div>
                     </div>
 
-                    <div style={{
-                        backgroundColor: 'var(--bg-secondary)',
-                        padding: '1.5rem',
-                        borderRadius: '12px',
-                        border: '1px solid rgba(99, 102, 241, 0.1)',
-                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-                    }}>
-                        <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: 600 }}>Top 5 Expenses Distribution</h3>
-                        <div style={{ height: '350px' }}>
-                            <Bar data={top5CategoriesData} options={horizontalBarOptions} />
+                    {/* Bottom Row - 2 Charts */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '2rem' }}>
+                        <div style={{
+                            backgroundColor: 'var(--bg-secondary)',
+                            padding: '1.5rem',
+                            borderRadius: '12px',
+                            border: '1px solid rgba(99, 102, 241, 0.1)',
+                            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                        }}>
+                            <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: 600 }}>Top 5 Gastos por Método de Pagamento</h3>
+                            <div style={{ height: '350px' }}>
+                                <Bar data={top5PaymentMethodsChartData} options={horizontalBarOptions} />
+                            </div>
                         </div>
-                    </div>
 
-                    <div style={{
-                        backgroundColor: 'var(--bg-secondary)',
-                        padding: '1.5rem',
-                        borderRadius: '12px',
-                        border: '1px solid rgba(99, 102, 241, 0.1)',
-                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-                    }}>
-                        <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: 600 }}>Top 5 Spent by Payment Method</h3>
-                        <div style={{ height: '350px' }}>
-                            <Bar data={top5PaymentMethodsChartData} options={horizontalBarOptions} />
+                        <div style={{
+                            backgroundColor: 'var(--bg-secondary)',
+                            padding: '1.5rem',
+                            borderRadius: '12px',
+                            border: '1px solid rgba(99, 102, 241, 0.1)',
+                            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                        }}>
+                            <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: 600 }}>Top 10 Itens Comprados</h3>
+                            <div style={{ height: '350px' }}>
+                                <Bar data={top10ItemsChartData} options={horizontalBarOptions} />
+                            </div>
                         </div>
                     </div>
-                </div>
+                </>
             )}
         </div>
     );

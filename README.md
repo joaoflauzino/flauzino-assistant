@@ -281,26 +281,19 @@ curl -X 'POST' \
 
 - [x] Fazer o agente responder bem em cenários que existem erros ao interagir com a `finance_api`
 - [x] Fazer o agente confirmar os dados antes de enviar para a `finance_api`
-- [ ] Criar tratamento de exeções para os repositórios
 - [x] Criar campo para informar o item que foi comprado
 - [x] Criar tabela para categorias e validação dinâmica de categorias
     - [x] Criar decorator para exceções no service de categorias no finance_api
     - [x] Exceções na rota deveria estar no camada de service
 - [x] Criar tabelas para cartões
-    - [ ] Faltando logs
-    - [ ] handlers apenas para erros 500
-    - [ ] Avaliar decorators para exceções
 - [x] Criar tabela para donos de cartões
-    - [ ] Faltando logs
-    - [ ] handlers apenas para erros 500
-    - [ ] Avaliar decorators para exceções
-
 - [ ] Implementar extração de dados de comprovantes (OCR) no agente
 - [ ] Suportar comandos de voz no agente
 - [ ] Criar bot no Telegram integrado à `agent_api`
 - [ ] Planejar estratégia de backup do banco de dados
-- [ ] Desenvolver interface web para visualizar, criar, atualizar e excluir gastos e limites
+- [x] Desenvolver interface web para visualizar, criar, atualizar e excluir gastos e limites
     - [x] Criar gráfico para visualizar o gasto por forma de pagamento
+    - [x] Criar gráfico para visualizar gastos dos top 10 itens comprados
     - [ ] Criar uma seção para conversar com uma LLM sobre os gastos na seção de dashboard.
     - [x] Criar seção para visualização de gastos e limites com stacked charts
     - [x] Criar seção para detalhamento de gastos via tabela
