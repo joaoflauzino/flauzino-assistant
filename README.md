@@ -66,8 +66,16 @@ Este projeto utiliza `uv` para gerenciamento de dependências e `Docker` para o 
 1.  **Inicie o banco de dados PostgreSQL:**
     A partir da raiz do projeto, execute:
     ```bash
-    docker-compose -f infra/docker-compose.yml up -d
+    docker-compose --env-file .env -f infra/docker-compose.yml up -d
     ```
+
+    > **Nota para usuários MacOS (OrbStack/Docker Desktop):**
+    > Para garantir a compatibilidade, defina a variável `ARCH` antes de subir o container, ou adicione ao seu `.env`:
+    > ```bash
+    > export ARCH=arm64
+    > docker-compose -f infra/docker-compose.yml up -d
+    > ```
+    > Se não definido, o padrão será `amd64` (Linux/Intel).
 
 ### 3. Executando os Serviços
 
