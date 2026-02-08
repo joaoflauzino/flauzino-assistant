@@ -21,7 +21,7 @@ export const LimitsPage = () => {
     const fetchData = async (p: number) => {
         setLoading(true);
         try {
-            let query = `/limits?page=${p}&size=10`;
+            let query = `/limits/?page=${p}&size=10`;
 
             const response = await api.get<PaginatedResponse<SpendingLimit>>(query);
             setLimits(response.data.items);
@@ -49,7 +49,7 @@ export const LimitsPage = () => {
             if (editingLimit) {
                 await api.patch(`/limits/${editingLimit.id}`, payload);
             } else {
-                await api.post('/limits', payload);
+                await api.post('/limits/', payload);
             }
             setIsModalOpen(false);
             setEditingLimit(null);

@@ -22,7 +22,7 @@ export const PaymentMethodsPage = () => {
     const fetchData = async (p: number) => {
         setLoading(true);
         try {
-            const query = `/payment-methods?page=${p}&size=10`;
+            const query = `/payment-methods/?page=${p}&size=10`;
             const response = await api.get<PaginatedResponse<PaymentMethod>>(query);
             setPaymentMethods(response.data.items);
             setTotalPages(response.data.pages);
@@ -44,7 +44,7 @@ export const PaymentMethodsPage = () => {
             if (editingMethod) {
                 await api.put(`/payment-methods/${editingMethod.id}`, formData);
             } else {
-                await api.post('/payment-methods', formData);
+                await api.post('/payment-methods/', formData);
             }
             setIsModalOpen(false);
             setEditingMethod(null);

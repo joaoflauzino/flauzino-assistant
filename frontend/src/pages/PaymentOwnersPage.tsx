@@ -22,7 +22,7 @@ export const PaymentOwnersPage = () => {
     const fetchData = async (p: number) => {
         setLoading(true);
         try {
-            const query = `/payment-owners?page=${p}&size=10`;
+            const query = `/payment-owners/?page=${p}&size=10`;
             const response = await api.get<PaginatedResponse<PaymentOwner>>(query);
             setPaymentOwners(response.data.items);
             setTotalPages(response.data.pages);
@@ -44,7 +44,7 @@ export const PaymentOwnersPage = () => {
             if (editingOwner) {
                 await api.put(`/payment-owners/${editingOwner.id}`, formData);
             } else {
-                await api.post('/payment-owners', formData);
+                await api.post('/payment-owners/', formData);
             }
             setIsModalOpen(false);
             setEditingOwner(null);

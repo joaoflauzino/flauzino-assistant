@@ -23,13 +23,12 @@ from finance_api.core.handlers import (
     validation_error_handler,
 )
 
-from finance_api.settings import settings
 
 app = FastAPI(title="Flauzino Assistant API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL, settings.FRONTEND_URL],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

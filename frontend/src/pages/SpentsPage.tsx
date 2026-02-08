@@ -47,7 +47,7 @@ export const SpentsPage = () => {
     const fetchData = async (p: number) => {
         setLoading(true);
         try {
-            let query = `/spents?page=${p}&size=10`;
+            let query = `/spents/?page=${p}&size=10`;
             if (startDate) query += `&start_date=${startDate}`;
             if (endDate) query += `&end_date=${endDate}`;
 
@@ -77,7 +77,7 @@ export const SpentsPage = () => {
             if (editingSpent) {
                 await api.patch(`/spents/${editingSpent.id}`, payload);
             } else {
-                await api.post('/spents', payload);
+                await api.post('/spents/', payload);
             }
             setIsModalOpen(false);
             setEditingSpent(null);

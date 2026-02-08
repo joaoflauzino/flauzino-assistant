@@ -22,7 +22,7 @@ export const CategoriesPage = () => {
     const fetchData = async (p: number) => {
         setLoading(true);
         try {
-            const query = `/categories?page=${p}&size=10`;
+            const query = `/categories/?page=${p}&size=10`;
             const response = await api.get<PaginatedResponse<Category>>(query);
             setCategories(response.data.items);
             setTotalPages(response.data.pages);
@@ -44,7 +44,7 @@ export const CategoriesPage = () => {
             if (editingCategory) {
                 await api.put(`/categories/${editingCategory.id}`, formData);
             } else {
-                await api.post('/categories', formData);
+                await api.post('/categories/', formData);
             }
             setIsModalOpen(false);
             setEditingCategory(null);

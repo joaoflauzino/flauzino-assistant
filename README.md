@@ -79,27 +79,28 @@ Este projeto utiliza `uv` para gerenciamento de dependências e `Docker` para o 
 
 ### 3. Executando os Serviços
 
-Você precisará de dois terminais para rodar as duas APIs simultaneamente.
+Agora você pode rodar toda a stack (Banco de dados, Finance API, Agent API e Frontend) utilizando o Docker Compose.
 
-1.  **Inicie a API Financeira (porta 8000):**
+1.  **Inicie tudo com um único comando:**
     ```bash
-    uv run uvicorn finance_api.main:app --port 8000 --reload
+    docker-compose --env-file .env -f infra/docker-compose.yml up -d --build
     ```
-    -   **Docs (Swagger):** `http://localhost:8000/docs`
 
-2.  **Inicie a API do Agente (porta 8001):**
-    ```bash
-    uv run uvicorn agent_api.main:app --port 8001 --reload
-    ```
-    -   **Docs (Swagger):** `http://localhost:8001/docs`
+    Isso irá:
+    - Iniciar o banco de dados PostgreSQL.
+    - Construir e iniciar a `finance_api` na porta 8000.
+    - Construir e iniciar a `agent_api` na porta 8001.
+    - Construir e iniciar o `frontend` na porta 5173.
 
-3.  **Inicie o Frontend (porta 5173):**
+2.  **Acesse a aplicação:**
+    - Frontend: `http://localhost:5173`
+    - Finance docs: `http://localhost:8000/docs`
+    - Agent docs: `http://localhost:8001/docs`
+
+3.  **Verifique os logs:**
     ```bash
-    cd frontend
-    npm install
-    npm run dev
+    docker-compose -f infra/docker-compose.yml logs -f
     ```
-    -   **Acesse:** `http://localhost:5173`
 
 ## Testes
 

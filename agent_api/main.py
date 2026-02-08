@@ -24,6 +24,16 @@ from agent_api.routers.ocr import router as ocr_router
 
 app = FastAPI(title="Flauzino Assistant Agent API")
 
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.add_exception_handler(FinanceUnreachableError, finance_unreachable_handler)
 app.add_exception_handler(FinanceServerError, finance_server_error_handler)
 app.add_exception_handler(InvalidSpentError, invalid_spent_handler)
@@ -34,4 +44,3 @@ app.add_exception_handler(InvalidImageError, invalid_image_handler)
 
 app.include_router(chat_router)
 app.include_router(ocr_router)
-

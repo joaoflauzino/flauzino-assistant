@@ -55,13 +55,13 @@ export const Dashboard = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            let query = '/spents?size=1000';
+            let query = '/spents/?size=1000';
             if (startDate) query += `&start_date=${startDate}`;
             if (endDate) query += `&end_date=${endDate}`;
 
             const [spentsRes, limitsRes] = await Promise.all([
                 api.get(query),
-                api.get('/limits?size=1000')
+                api.get('/limits/?size=1000')
             ]);
             setSpents(spentsRes.data.items);
             setLimits(limitsRes.data.items);
@@ -98,7 +98,7 @@ export const Dashboard = () => {
     // Fetch payment methods from API
     const fetchPaymentMethods = async () => {
         try {
-            const res = await api.get<{ items: PaymentMethod[] }>('/payment-methods?size=1000');
+            const res = await api.get<{ items: PaymentMethod[] }>('/payment-methods/?size=1000');
             const pmMap = res.data.items.reduce((acc, pm) => {
                 acc[pm.key] = pm.display_name;
                 return acc;

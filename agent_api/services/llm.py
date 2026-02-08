@@ -5,7 +5,6 @@ from agent_api.core.decorators import handle_llm_errors
 from agent_api.core.logger import get_logger
 from agent_api.schemas.assistant import AssistantResponse
 from agent_api.settings import settings
-from finance_api.schemas.enums import CardEnum, NameEnum
 
 logger = get_logger(__name__)
 
@@ -28,13 +27,43 @@ async def get_valid_categories() -> str:
     return "alimentacao, comer_fora, farmacia, mercado, transporte, moradia, saude, lazer, educação, compras, vestuario, viagem, serviços, crianças, outros"
 
 
-VALID_PAYMENT_METHODS = ", ".join([c.value for c in CardEnum])
-VALID_OWNERS = ", ".join([o.value for o in NameEnum])
+async def get_valid_payment_methods() -> str:
+    """Fetch valid payment methods from finance API."""
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{settings.FINANCE_SERVICE_URL}/payment-methods?size=100"
+            )
+            if response.status_code == 200:
+                data = response.json()
+                methods = [item["key"] for item in data.get("items", [])]
+                return ", ".join(methods)
+    except Exception as e:
+        logger.warning(f"Failed to fetch payment methods: {e}")
+    return "itau, nubank, picpay, xp, c6"
+
+
+async def get_valid_owners() -> str:
+    """Fetch valid payment owners from finance API."""
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{settings.FINANCE_SERVICE_URL}/payment-owners?size=100"
+            )
+            if response.status_code == 200:
+                data = response.json()
+                owners = [item["key"] for item in data.get("items", [])]
+                return ", ".join(owners)
+    except Exception as e:
+        logger.warning(f"Failed to fetch payment owners: {e}")
+    return "joao_lucas, lailla"
 
 
 async def get_system_prompt() -> str:
     """Generate system prompt with dynamic categories."""
     valid_categories = await get_valid_categories()
+    valid_payment_methods = await get_valid_payment_methods()
+    valid_owners = await get_valid_owners()
     return f"""
         Você é um assistente financeiro da Família Flauzino.
         Seu objetivo é:
@@ -48,11 +77,11 @@ async def get_system_prompt() -> str:
 
         **MÉTODOS DE PAGAMENTO VÁLIDOS**:
         O campo `metodo_pagamento` DEVE ser estritamente um destes valores:
-        [{VALID_PAYMENT_METHODS}]
+        [{valid_payment_methods}]
 
         **NOMES DE PROPRIETÁRIOS VÁLIDOS**:
         O campo `proprietario` DEVE ser estritamente um destes valores:
-        [{VALID_OWNERS}]
+        [{valid_owners}]
 
         1. **Registro de Gastos**:
         Se o usuário estiver tentando registrar um gasto, você deve extrair as seguintes informações:
