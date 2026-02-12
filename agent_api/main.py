@@ -22,9 +22,9 @@ from agent_api.core.handlers import (
 from agent_api.routers.chat import router as chat_router
 from agent_api.routers.ocr import router as ocr_router
 
-app = FastAPI(title="Flauzino Assistant Agent API")
-
 from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI(title="Flauzino Assistant Agent API")
 
 app.add_middleware(
     CORSMiddleware,

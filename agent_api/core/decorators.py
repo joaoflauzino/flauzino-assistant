@@ -93,16 +93,17 @@ def handle_ocr_errors(func: Callable[..., Any]) -> Callable[..., Any]:
             if isinstance(e, (ServiceError, HTTPException)):
                 raise
             logger.error(f"Unexpected OCR error: {e}", exc_info=True)
-            
+
             # Import OCR exceptions here to avoid circular imports
             from agent_api.core.exceptions import OCRProcessingError, InvalidImageError
-            
+
             # Check for specific error types in the message
             error_msg = str(e).lower()
-            if any(word in error_msg for word in ['image', 'decode', 'format', 'invalid']):
+            if any(
+                word in error_msg for word in ["image", "decode", "format", "invalid"]
+            ):
                 raise InvalidImageError(f"Invalid image: {str(e)}")
-            
+
             raise OCRProcessingError(f"OCR processing failed: {str(e)}")
 
     return wrapper
-

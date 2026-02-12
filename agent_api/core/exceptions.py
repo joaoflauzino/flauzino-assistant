@@ -56,4 +56,3 @@ class InvalidImageError(ServiceError):
     def __init__(self, message="Invalid or corrupted image file"):
         self.message = message
         super().__init__(self.message)
-

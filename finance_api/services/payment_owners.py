@@ -1,4 +1,4 @@
-from typing import Optional, Sequence
+from typing import Sequence
 from uuid import UUID
 
 from finance_api.core.decorators import handle_service_errors

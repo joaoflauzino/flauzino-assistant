@@ -57,4 +57,3 @@ async def invalid_image_handler(request: Request, exc):
         status_code=400,
         content={"message": "Invalid Image", "detail": str(exc)},
     )
-
