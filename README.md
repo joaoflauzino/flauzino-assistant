@@ -377,7 +377,7 @@ curl -X 'POST' \
 - [x] Criar tabelas para cartões
 - [x] Criar tabela para donos de cartões
 - [x] Implementar extração de dados de comprovantes (OCR) no agente
-  - [ ] Avaliar qualidade do OCR
+  - [x] Avaliar qualidade do OCR
 - [ ] Suportar comandos de voz no agente
 - [ ] Criar bot no Telegram integrado à `agent_api`
 - [ ] Planejar estratégia de backup do banco de dados
