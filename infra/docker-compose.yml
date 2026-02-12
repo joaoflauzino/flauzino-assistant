@@ -57,6 +57,19 @@ services:
     networks:
       - default
 
+  telegram_bot:
+    build:
+      context: ../
+      dockerfile: telegram_api/Dockerfile
+    environment:
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      AGENT_API_URL: http://agent_api:8001
+    depends_on:
+      - agent_api
+    restart: unless-stopped
+    networks:
+      - default
+
 volumes:
   postgres_data:
 

@@ -4,11 +4,12 @@ Este projeto tem como objetivo criar um assistente virtual capaz de lidar com re
 
 ## Arquitetura
 
-O projeto é dividido em três módulos principais:
+O projeto é dividido em quatro módulos principais:
 
 -   **`infra/`**: Contém a configuração da infraestrutura, incluindo o banco de dados PostgreSQL via Docker Compose e scripts de inicialização.
 -   **`finance_api/`**: Uma API FastAPI responsável por toda a lógica de negócio e persistência de dados. Implementa uma **Camada de Serviço** para isolar regras de negócio e **Tratamento Global de Exceções**.
 -   **`agent_api/`**: Uma API FastAPI que serve como a interface de conversação. Ela recebe mensagens do usuário, utiliza um LLM para extrair informações e se comunica com a `finance_api` para registrar os dados.
+-   **`telegram_api/`**: Bot do Telegram que se comunica com a `agent_api` via HTTP para processar mensagens e recibos enviados pelos usuários.
 -   **`frontend/`**: Interface Web moderna construída com React e Vite para gerenciamento visual de gastos e limites.
 
 ## Requisitos do Sistema
@@ -49,6 +50,7 @@ Este projeto utiliza `uv` para gerenciamento de dependências e `Docker` para o 
     | `MODEL_NAME` | Modelo do Gemini a ser utilizado. | `gemini-2.5-flash` | Não |
     | `FINANCE_SERVICE_URL` | URL da API Financeira (usada pelo Agente). | `http://localhost:8000` | Não |
     | `AGENT_SERVICE_URL` | URL da API do Agente (usada pela Finance API). | `http://localhost:8001` | Não |
+    | `TELEGRAM_BOT_TOKEN` | Token do bot do Telegram (obtenha via [@BotFather](https://t.me/botfather)). | - | **Sim** (para usar o bot do Telegram) |
 
     Exemplo de arquivo `.env`:
     ```env
@@ -59,7 +61,17 @@ Este projeto utiliza `uv` para gerenciamento de dependências e `Docker` para o 
     MODEL_NAME="gemini-2.5-flash"
     FINANCE_SERVICE_URL="http://localhost:8000"
     AGENT_SERVICE_URL="http://localhost:8001"
+    
+    # Para usar o bot do Telegram
+    TELEGRAM_BOT_TOKEN="seu_token_do_telegram_aqui"
     ```
+    
+3.  **Configure o bot do Telegram (opcional):**
+    Se você deseja usar o bot do Telegram:
+    1. Acesse [@BotFather](https://t.me/botfather) no Telegram
+    2. Envie o comando `/newbot`
+    3. Siga as instruções para escolher o nome e username do bot
+    4. Copie o token fornecido e adicione ao `.env` como `TELEGRAM_BOT_TOKEN`
 
 ### 2. Infraestrutura
 
@@ -91,6 +103,7 @@ Agora você pode rodar toda a stack (Banco de dados, Finance API, Agent API e Fr
     - Construir e iniciar a `finance_api` na porta 8000.
     - Construir e iniciar a `agent_api` na porta 8001.
     - Construir e iniciar o `frontend` na porta 5173.
+    - Construir e iniciar o `telegram_bot` (se `TELEGRAM_BOT_TOKEN` estiver configurado).
 
 2.  **Acesse a aplicação:**
     - Frontend: `http://localhost:5173`
@@ -366,6 +379,58 @@ curl -X 'POST' \
 **Formatos suportados:** JPG, JPEG, PNG, WebP, BMP, TIFF  
 **Tamanho máximo:** 10MB
 
+## Usando o Bot do Telegram
+
+O Flauzino Assistant inclui um bot do Telegram que permite registrar gastos e processar recibos diretamente pelo aplicativo de mensagens.
+
+### Configuração do Bot
+
+1. **Crie seu bot:**
+   - Acesse [@BotFather](https://t.me/botfather) no Telegram
+   - Envie `/newbot` e siga as instruções
+   - Copie o token fornecido e adicione ao `.env` como `TELEGRAM_BOT_TOKEN`
+
+2. **Inicie os serviços:**
+   ```bash
+   docker-compose --env-file .env -f infra/docker-compose.yml up -d --build
+   ```
+
+3. **Encontre seu bot:**
+   - Procure pelo username que você definiu no BotFather
+   - Envie `/start` para iniciar
+
+### Comandos Disponíveis
+
+- `/start` - Mensagem de boas-vindas e instruções
+- `/help` - Mostra como usar o bot com exemplos
+
+### Como Usar
+
+**Registrar gastos via mensagem de texto:**
+```
+gastei 50 reais no mercado com o cartão do itau do joao lucas
+```
+
+O bot irá:
+1. Processar sua mensagem
+2. Pedir informações faltantes (se houver)
+3. Confirmar os dados antes de registrar
+4. Salvar no banco de dados via `agent_api` → `finance_api`
+
+**Enviar recibos via foto:**
+1. Tire uma foto do recibo
+2. Envie a foto para o bot
+3. O bot irá extrair o texto automaticamente (OCR)
+4. Pedir informações adicionais se necessário
+5. Confirmar e registrar o gasto
+
+### Sessões de Conversa
+
+- Cada chat do Telegram tem sua própria sessão
+- O bot lembra do contexto da conversa
+- Você pode corrigir ou adicionar informações a qualquer momento
+- Todas as sessões são armazenadas no banco de dados
+
 ## Próximos Passos
 
 - [x] Fazer o agente responder bem em cenários que existem erros ao interagir com a `finance_api`
@@ -378,8 +443,8 @@ curl -X 'POST' \
 - [x] Criar tabela para donos de cartões
 - [x] Implementar extração de dados de comprovantes (OCR) no agente
   - [x] Avaliar qualidade do OCR
+- [x] Criar bot no Telegram integrado à `agent_api`
 - [ ] Suportar comandos de voz no agente
-- [ ] Criar bot no Telegram integrado à `agent_api`
 - [ ] Planejar estratégia de backup do banco de dados
 - [x] Desenvolver interface web para visualizar, criar, atualizar e excluir gastos e limites
     - [x] Criar gráfico para visualizar o gasto por forma de pagamento
