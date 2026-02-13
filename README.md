@@ -14,10 +14,10 @@ O projeto é dividido em quatro módulos principais:
 
 ## Requisitos do Sistema
 
-- **Python 3.13+**
-- **Node.js 18+** (para o frontend)
-- **Docker** e **Docker Compose** (para banco de dados)
-- **Tesseract OCR** (para processamento de imagens)
+- **Python 3.13+** (apenas para execução local)
+- **Node.js 18+** (apenas para execução local do frontend)
+- **Docker** e **Docker Compose**
+- **Tesseract OCR** (apenas para execução local)
   ```bash
   # Ubuntu/Debian
   sudo apt-get install tesseract-ocr
