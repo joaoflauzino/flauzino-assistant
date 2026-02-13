@@ -33,7 +33,9 @@ async def close_http_client() -> None:
         logger.info("HTTP client closed")
 
 
-async def send_message_to_agent(message: str, session_id: str) -> dict[str, Any]:
+async def send_message_to_agent(
+    message: str, session_id: str | None = None
+) -> dict[str, Any]:
     """Send a text message to agent_api's /chat endpoint.
 
     Args:
@@ -47,10 +49,13 @@ async def send_message_to_agent(message: str, session_id: str) -> dict[str, Any]
         httpx.HTTPError: If the request fails
     """
     url = f"{settings.AGENT_API_URL}/chat"
+
     payload = {
         "message": message,
-        "session_id": session_id,
     }
+
+    if session_id:
+        payload["session_id"] = session_id
 
     logger.info(f"Sending message to agent_api: {url}")
     client = get_http_client()

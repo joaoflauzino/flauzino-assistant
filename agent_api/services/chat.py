@@ -38,7 +38,16 @@ class ChatService:
 
         await self._handle_finance_action(response)
 
-        return self._build_response(session_id, response.response_message, messages)
+        # Determine completion status.
+        # We consider the session "complete" (ready to be cleared) if the assistant
+        # has successfully performed a confirmed action (is_complete and is_confirmed).
+        # Or if the user explicitly cancels/completes a flow (logic could be expanded).
+        # For now, let's use the flags from AssistantResponse.
+        is_flow_complete = response.is_complete and response.is_confirmed
+
+        return self._build_response(
+            session_id, response.response_message, messages, is_flow_complete
+        )
 
     async def _get_or_create_session(self, session_id_str: str | None) -> uuid.UUID:
         if session_id_str:
@@ -80,6 +89,7 @@ class ChatService:
         session_id: uuid.UUID,
         response_text: str,
         previous_messages: list[ChatMessage],
+        is_complete: bool = False,
     ) -> ChatResponse:
         updated_history_dtos = [
             ChatMessage(role=m.role, content=m.content) for m in previous_messages
@@ -92,4 +102,5 @@ class ChatService:
             response=response_text,
             session_id=str(session_id),
             history=updated_history_dtos,
+            is_complete=is_complete,
         )

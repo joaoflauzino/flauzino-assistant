@@ -148,3 +148,10 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 );
 
 CREATE INDEX IF NOT EXISTS ix_chat_messages_session_id ON chat_messages (session_id);
+
+CREATE TABLE IF NOT EXISTS telegram_sessions (
+    chat_id BIGINT PRIMARY KEY,
+    session_id UUID NOT NULL,
+    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT now()
+);

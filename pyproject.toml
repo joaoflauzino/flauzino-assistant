@@ -20,9 +20,15 @@ dependencies = [
     "pytest-cov>=7.0.0",
     "python-dotenv>=1.2.1",
     "python-multipart>=0.0.22",
-    "python-telegram-bot>=21.0.0",
+    "python-telegram-bot>=22.6",
+    "python-telegram-bot>=21.10",
+    "python-multipart>=0.0.20",
+    "asyncpg>=0.30.0",
+    "sqlalchemy[asyncio]>=2.0.38",
+    "asyncpg>=0.30.0",
     "sqlalchemy>=2.0.46",
     "uvicorn>=0.40.0",
+    "asyncpg>=0.30.0",
 ]
 
 [dependency-groups]

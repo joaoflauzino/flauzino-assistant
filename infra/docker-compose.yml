@@ -62,10 +62,12 @@ services:
       context: ../
       dockerfile: telegram_api/Dockerfile
     environment:
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
-      AGENT_API_URL: http://agent_api:8001
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - AGENT_API_URL=http://agent_api:8001
+      - DATABASE_URL=${DATABASE_URL}
     depends_on:
       - agent_api
+      - db
     restart: unless-stopped
     networks:
       - default

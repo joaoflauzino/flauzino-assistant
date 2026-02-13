@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Main entry point for the Telegram bot."""
 
 import signal
@@ -9,6 +8,7 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters
 from telegram_api.settings import settings
 from telegram_api.core.logger import get_logger
 from telegram_api.core.http_client import close_http_client
+from telegram_api.core.database import init_db, close_db
 from telegram_api.handlers.command_handler import start_command, help_command
 from telegram_api.handlers.message_handler import handle_text_message
 from telegram_api.handlers.photo_handler import handle_photo_message
@@ -38,11 +38,17 @@ def main() -> None:
 
     logger.info("Handlers registered successfully")
 
-    # Handle graceful shutdown
+    # Handle graceful shutdown and startup
+    async def post_init(application):
+        """Initialize resources on startup."""
+        logger.info("Initializing resources...")
+        await init_db()
+
     async def shutdown(application):
         """Cleanup on shutdown."""
         logger.info("Shutting down, cleaning up resources...")
         await close_http_client()
+        await close_db()
 
     def signal_handler(signum, frame):
         logger.info(f"Received signal {signum}, shutting down...")
@@ -56,7 +62,8 @@ def main() -> None:
         f"Bot started. Polling Telegram for updates and forwarding to agent_api: {settings.AGENT_API_URL}"
     )
 
-    # Register shutdown handler with application
+    # Register startup and shutdown handlers with application
+    application.post_init = post_init
     application.post_shutdown = shutdown
 
     application.run_polling(allowed_updates=Update.ALL_TYPES)

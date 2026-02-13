@@ -444,6 +444,7 @@ O bot irá:
 - [x] Implementar extração de dados de comprovantes (OCR) no agente
   - [x] Avaliar qualidade do OCR
 - [x] Criar bot no Telegram integrado à `agent_api`
+- [ ] Garantir execução via docker e via python
 - [ ] Suportar comandos de voz no agente
 - [ ] Planejar estratégia de backup do banco de dados
 - [x] Desenvolver interface web para visualizar, criar, atualizar e excluir gastos e limites

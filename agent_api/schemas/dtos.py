@@ -17,3 +17,4 @@ class ChatResponse(BaseModel):
     response: str
     session_id: str
     history: List[ChatMessage]
+    is_complete: bool = False

@@ -4,6 +4,8 @@ import httpx
 
 from telegram_api.core.http_client import send_message_to_agent
 from telegram_api.core.logger import get_logger
+from telegram_api.core.database import get_db
+from telegram_api.repositories.session_repository import SessionRepository
 
 logger = get_logger(__name__)
 
@@ -17,7 +19,6 @@ async def handle_text_message(
 
     user_message = update.message.text
     chat_id = update.effective_chat.id
-    session_id = f"telegram_{chat_id}"
 
     logger.info(f"Received message from chat {chat_id}: {user_message[:50]}...")
 
@@ -25,13 +26,33 @@ async def handle_text_message(
     await update.message.chat.send_action("typing")
 
     try:
-        # Call agent_api
-        response_data = await send_message_to_agent(user_message, session_id)
+        async with get_db() as session:
+            repo = SessionRepository(session)
 
-        # Extract the response message
-        bot_response = response_data.get(
-            "response", "Desculpe, não consegui processar sua mensagem."
-        )
+            # Get existing session_id
+            session_id = await repo.get_session(chat_id)
+
+            # Call agent_api
+            response_data = await send_message_to_agent(
+                user_message, session_id=session_id
+            )
+
+            # Extract the response message
+            bot_response = response_data.get(
+                "response", "Desculpe, não consegui processar sua mensagem."
+            )
+
+            # Check if flow is complete
+            is_complete = response_data.get("is_complete", False)
+
+            if is_complete:
+                await repo.delete_session(chat_id)
+                logger.info(f"Session cleared for chat {chat_id} (task complete)")
+            else:
+                # Extract and save new session_id if not complete
+                new_session_id = response_data.get("session_id")
+                if new_session_id:
+                    await repo.save_session(chat_id, new_session_id)
 
         # Send response back to user
         await update.message.reply_text(bot_response)
