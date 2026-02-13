@@ -73,25 +73,53 @@ Este projeto utiliza `uv` para gerenciamento de dependências e `Docker` para o 
     3. Siga as instruções para escolher o nome e username do bot
     4. Copie o token fornecido e adicione ao `.env` como `TELEGRAM_BOT_TOKEN`
 
-### 2. Infraestrutura
+### 2. Infraestrutura (Para Desenvolvimento Local)
+
+Se você deseja rodar as APIs localmente (via Python ou VS Code), inicie apenas o banco de dados:
 
 1.  **Inicie o banco de dados PostgreSQL:**
     A partir da raiz do projeto, execute:
     ```bash
-    docker-compose --env-file .env -f infra/docker-compose.yml up -d
+    docker-compose --env-file .env -f infra/docker-compose.yml up -d db
     ```
 
     > **Nota para usuários MacOS (OrbStack/Docker Desktop):**
     > Para garantir a compatibilidade, defina a variável `ARCH` antes de subir o container, ou adicione ao seu `.env`:
     > ```bash
     > export ARCH=arm64
-    > docker-compose -f infra/docker-compose.yml up -d
+    > docker-compose -f infra/docker-compose.yml up -d db
     > ```
     > Se não definido, o padrão será `amd64` (Linux/Intel).
 
-### 3. Executando os Serviços
+2.  **Execute os serviços manualmente:**
 
-Agora você pode rodar toda a stack (Banco de dados, Finance API, Agent API e Frontend) utilizando o Docker Compose.
+    Em terminais separados, execute cada serviço:
+
+    *   **Finance API:**
+        ```bash
+        uv run uvicorn finance_api.main:app --port 8000 --reload
+        ```
+
+    *   **Agent API:**
+        ```bash
+        uv run uvicorn agent_api.main:app --port 8001 --reload
+        ```
+
+    *   **Telegram Bot:**
+        ```bash
+        uv run python -m telegram_api.main
+        ```
+
+    *   **Frontend:**
+        ```bash
+        cd frontend
+        npm install
+        npm run dev
+        ```
+
+### 3. Executando Toda a Stack via Docker
+
+Se você deseja rodar tudo (Banco, APIs, Frontend) via Docker:
 
 1.  **Inicie tudo com um único comando:**
     ```bash
@@ -383,21 +411,13 @@ curl -X 'POST' \
 
 O Flauzino Assistant inclui um bot do Telegram que permite registrar gastos e processar recibos diretamente pelo aplicativo de mensagens.
 
-### Configuração do Bot
+### Como Usar
+    
+Certifique-se de que o serviços estão rodando conforme descrito na seção "Executando os Serviços".
 
-1. **Crie seu bot:**
-   - Acesse [@BotFather](https://t.me/botfather) no Telegram
-   - Envie `/newbot` e siga as instruções
-   - Copie o token fornecido e adicione ao `.env` como `TELEGRAM_BOT_TOKEN`
-
-2. **Inicie os serviços:**
-   ```bash
-   docker-compose --env-file .env -f infra/docker-compose.yml up -d --build
-   ```
-
-3. **Encontre seu bot:**
-   - Procure pelo username que você definiu no BotFather
-   - Envie `/start` para iniciar
+1. **Encontre seu bot:**
+   - Procure pelo username que você definiu no BotFather.
+   - Envie `/start` para iniciar.
 
 ### Comandos Disponíveis
 
