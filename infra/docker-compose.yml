@@ -22,7 +22,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-flauzino}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-assistant}
     depends_on:
       - db
     networks:
@@ -38,7 +38,7 @@ services:
       - FINANCE_SERVICE_URL=http://finance_api:8000
       - GEMINI_API_KEY=${GOOGLE_API_KEY}
       - MODEL_NAME=${MODEL_NAME:-gemini-2.0-flash-exp}
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-flauzino}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-assistant}
     depends_on:
       - db
       - finance_api
@@ -64,7 +64,7 @@ services:
     environment:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - AGENT_API_URL=http://agent_api:8001
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-flauzino}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-assistant}
     depends_on:
       - agent_api
       - db

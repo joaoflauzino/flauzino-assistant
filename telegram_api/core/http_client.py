@@ -113,3 +113,45 @@ async def send_receipt_to_agent(
             if attempt == 2:
                 raise
             await asyncio.sleep(2**attempt)  # Exponential backoff
+
+
+async def send_audio_to_agent(
+    file_content: bytes, filename: str, content_type: str, session_id: str | None = None
+) -> dict[str, Any]:
+    """Send an audio file to agent_api's /audio/process-audio endpoint.
+
+    Args:
+        file_content: The audio file bytes
+        filename: The original filename or a generic one
+        content_type: MIME type of the audio
+        session_id: Optional session ID to continue a conversation
+
+    Returns:
+        The response from agent_api containing extracted text response and session info
+
+    Raises:
+        httpx.HTTPError: If the request fails
+    """
+    url = f"{settings.AGENT_API_URL}/audio/process-audio"
+
+    logger.info(f"Sending audio to agent_api: {url}")
+
+    files = {"file": (filename, file_content, content_type)}
+    data = {}
+    if session_id:
+        data["session_id"] = session_id
+
+    client = get_http_client()
+
+    for attempt in range(3):
+        try:
+            response = await client.post(url, files=files, data=data)
+            response.raise_for_status()
+            result = response.json()
+            logger.info(f"Received audio response from agent_api (attempt {attempt + 1})")
+            return result
+        except httpx.HTTPError as e:
+            logger.warning(f"HTTP error on attempt {attempt + 1}: {e}")
+            if attempt == 2:
+                raise
+            await asyncio.sleep(2**attempt)  # Exponential backoff

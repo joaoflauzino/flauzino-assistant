@@ -56,3 +56,15 @@ class InvalidImageError(ServiceError):
     def __init__(self, message="Invalid or corrupted image file"):
         self.message = message
         super().__init__(self.message)
+
+
+class AudioProcessingError(ServiceError):
+    def __init__(self, message="Audio Processing Error"):
+        self.message = message
+        super().__init__(self.message)
+
+
+class InvalidAudioError(ServiceError):
+    def __init__(self, message="Invalid or corrupted audio file"):
+        self.message = message
+        super().__init__(self.message)

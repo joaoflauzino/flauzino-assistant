@@ -9,6 +9,8 @@ from agent_api.core.exceptions import (
     ServiceError,
     OCRProcessingError,
     InvalidImageError,
+    AudioProcessingError,
+    InvalidAudioError,
 )
 from agent_api.core.handlers import (
     finance_unreachable_handler,
@@ -18,10 +20,13 @@ from agent_api.core.handlers import (
     service_error_handler,
     ocr_processing_handler,
     invalid_image_handler,
+    audio_processing_handler,
+    invalid_audio_handler,
 )
 
 from agent_api.routers.chat import router as chat_router
 from agent_api.routers.ocr import router as ocr_router
+from agent_api.routers.audio import router as audio_router
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -47,6 +52,9 @@ app.add_exception_handler(LLMProviderError, llm_provider_handler)
 app.add_exception_handler(ServiceError, service_error_handler)
 app.add_exception_handler(OCRProcessingError, ocr_processing_handler)
 app.add_exception_handler(InvalidImageError, invalid_image_handler)
+app.add_exception_handler(AudioProcessingError, audio_processing_handler)
+app.add_exception_handler(InvalidAudioError, invalid_audio_handler)
 
 app.include_router(chat_router)
 app.include_router(ocr_router)
+app.include_router(audio_router)

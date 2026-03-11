@@ -12,6 +12,7 @@ from telegram_api.core.database import init_db, close_db
 from telegram_api.handlers.command_handler import start_command, help_command
 from telegram_api.handlers.message_handler import handle_text_message
 from telegram_api.handlers.photo_handler import handle_photo_message
+from telegram_api.handlers.voice_handler import handle_voice_message
 
 
 logger = get_logger(__name__)
@@ -30,6 +31,9 @@ def main() -> None:
 
     # Register photo handler (before text handler to prioritize photos)
     application.add_handler(MessageHandler(filters.PHOTO, handle_photo_message))
+
+    # Register voice/audio handler
+    application.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, handle_voice_message))
 
     # Register text message handler
     application.add_handler(

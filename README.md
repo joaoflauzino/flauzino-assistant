@@ -407,6 +407,37 @@ curl -X 'POST' \
 **Formatos suportados:** JPG, JPEG, PNG, WebP, BMP, TIFF  
 **Tamanho máximo:** 10MB
 
+#### Processar Áudio (POST /audio/process-audio)
+
+Processa um arquivo de áudio ou mensagem de voz transcrita e inicia/continua uma sessão de chat perfeitamente.
+
+```bash
+curl -X 'POST' \
+  'http://localhost:8001/audio/process-audio' \
+  -F 'file=@/path/to/audio.ogg'
+```
+
+**Resposta:**
+```json
+{
+  "response": "Para registrar o gasto, preciso de quem foi o proprietário...",
+  "session_id": "9a144f4c-016e-4792-936f-504fe524bf10",
+  "history": [
+    {
+      "role": "user",
+      "content": "Ontem eu almocei no restaurante X e paguei 35 reais no crédito do nubank da lailla"
+    },
+    {
+      "role": "assistant",
+      "content": "Para registrar o gasto, preciso de quem foi o proprietário..."
+    }
+  ]
+}
+```
+
+**Formatos de Áudio suportados:** OGG, MP3, WAV, M4A, etc.  
+**Tamanho máximo do Áudio:** 10MB
+
 ## Usando o Bot do Telegram
 
 O Flauzino Assistant inclui um bot do Telegram que permite registrar gastos e processar recibos diretamente pelo aplicativo de mensagens.
@@ -444,6 +475,13 @@ O bot irá:
 4. Pedir informações adicionais se necessário
 5. Confirmar e registrar o gasto
 
+**Enviar mensagens de áudio/voz:**
+1. Grave uma mensagem de voz ou envie um arquivo de áudio pelo Telegram
+2. O agente transcreverá sua voz e entenderá o gasto de forma nativa
+3. Pedirá informações adicionais (por texto) se faltar algum detalhe
+4. Você pode continuar respondendo com novos áudios ou textos (tudo flui na mesma sessão)
+5. Confirmará e registrará o gasto
+
 ### Sessões de Conversa
 
 - Cada chat do Telegram tem sua própria sessão
@@ -463,9 +501,11 @@ O bot irá:
 - [x] Criar tabela para donos de cartões
 - [x] Implementar extração de dados de comprovantes (OCR) no agente
   - [x] Avaliar qualidade do OCR
+  - [] Avaliar OCR para imagens geradas pelo celular
 - [x] Criar bot no Telegram integrado à `agent_api`
-- [ ] Garantir execução via docker e via python
-- [ ] Suportar comandos de voz no agente
+- [x] Garantir execução via docker e via python
+- [x] Suportar comandos de voz no agente
+  - [ ] Avaliar melhor modelo pra isso e cotas
 - [ ] Planejar estratégia de backup do banco de dados
 - [x] Desenvolver interface web para visualizar, criar, atualizar e excluir gastos e limites
     - [x] Criar gráfico para visualizar o gasto por forma de pagamento

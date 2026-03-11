@@ -57,3 +57,17 @@ async def invalid_image_handler(request: Request, exc):
         status_code=400,
         content={"message": "Invalid Image", "detail": str(exc)},
     )
+
+
+async def audio_processing_handler(request: Request, exc):
+    return JSONResponse(
+        status_code=400,
+        content={"message": "Audio Processing Error", "detail": str(exc)},
+    )
+
+
+async def invalid_audio_handler(request: Request, exc):
+    return JSONResponse(
+        status_code=400,
+        content={"message": "Invalid Audio", "detail": str(exc)},
+    )
