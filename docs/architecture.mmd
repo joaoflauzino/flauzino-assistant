@@ -1,0 +1,21 @@
+flowchart LR
+    User((Usuário))
+    Frontend["Frontend\n(React + Vite)"]
+    Telegram["Telegram Bot\n(telegram_api)"]
+    AgentAPI["Agent API\n(FastAPI)"]
+    FinanceAPI["Finance API\n(FastAPI)"]
+    DB[("PostgreSQL\n(infra)")]
+    LLM{"Google Gemini"}
+    OCR["Tesseract OCR"]
+
+    User -- "Acessa Painel" --> Frontend
+    User -- "Envia texto/áudio/foto" --> Telegram
+    
+    Frontend -- "Gerencia Dados" --> FinanceAPI
+    Telegram -- "Encaminha Interações" --> AgentAPI
+    
+    AgentAPI -- "Processa Imagens" --> OCR
+    AgentAPI -- "Interpreta" --> LLM
+    AgentAPI -- "Salva transações" --> FinanceAPI
+    
+    FinanceAPI -- "Persiste Dados" --> DB

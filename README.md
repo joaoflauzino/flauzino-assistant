@@ -4,7 +4,9 @@ Este projeto tem como objetivo criar um assistente virtual capaz de lidar com re
 
 ## Arquitetura
 
-O projeto é dividido em quatro módulos principais:
+O projeto possui a seguinte arquitetura, dividida em cinco módulos principais:
+
+![Diagrama de Arquitetura do Sistema](docs/architecture.png)
 
 -   **`infra/`**: Contém a configuração da infraestrutura, incluindo o banco de dados PostgreSQL via Docker Compose e scripts de inicialização.
 -   **`finance_api/`**: Uma API FastAPI responsável por toda a lógica de negócio e persistência de dados. Implementa uma **Camada de Serviço** para isolar regras de negócio e **Tratamento Global de Exceções**.
