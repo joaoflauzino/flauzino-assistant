@@ -28,7 +28,7 @@ async def process_audio_file(
     Process an audio file and start/continue a chat session.
 
     This endpoint:
-    1. Transcribes the audio using Gemini natively
+    1. Transcribes the audio using faster-whisper locally
     2. Creates or continues a chat session
     3. Processes the transcribed text through the chat service
     4. Returns the assistant's response and session ID

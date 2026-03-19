@@ -503,11 +503,13 @@ O bot irá:
 - [x] Criar tabela para donos de cartões
 - [x] Implementar extração de dados de comprovantes (OCR) no agente
   - [x] Avaliar qualidade do OCR
-  - [] Avaliar OCR para imagens geradas pelo celular
+  - [ ] Avaliar OCR para imagens geradas pelo celular
 - [x] Criar bot no Telegram integrado à `agent_api`
 - [x] Garantir execução via docker e via python
 - [x] Suportar comandos de voz no agente
-  - [ ] Avaliar melhor modelo pra isso e cotas
+  - [x] Avaliar melhor modelo pra isso e cotas
+  - [ ] Avaliar modelo para responder com voz
+- [ ] Formatar resposta do telegram 
 - [ ] Planejar estratégia de backup do banco de dados
 - [x] Desenvolver interface web para visualizar, criar, atualizar e excluir gastos e limites
     - [x] Criar gráfico para visualizar o gasto por forma de pagamento

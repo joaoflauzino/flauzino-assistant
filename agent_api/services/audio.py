@@ -1,9 +1,8 @@
-import base64
-from langchain_core.messages import HumanMessage
-from langchain_google_genai import ChatGoogleGenerativeAI
+import tempfile
+import os
+from faster_whisper import WhisperModel
 
 from agent_api.core.logger import get_logger
-from agent_api.settings import settings
 
 logger = get_logger(__name__)
 
@@ -19,34 +18,39 @@ class AudioService:
 
     @staticmethod
     async def transcribe_audio(audio_bytes: bytes, mime_type: str) -> str:
-        """Transcribe audio using Gemini."""
+        """Transcribe audio using faster-whisper locally."""
         try:
-            llm = ChatGoogleGenerativeAI(
-                model=settings.AUDIO_MODEL_NAME, 
-                temperature=0
+            logger.info(f"Writing audio ({len(audio_bytes)} bytes) to temporary file for Whisper transcription.")
+            
+            # Write audio to a temporary file for faster-whisper to read
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".ogg") as tmp_file:
+                tmp_file.write(audio_bytes)
+                tmp_file_path = tmp_file.name
+
+            logger.info("Initializing Faster Whisper model...")
+            # Using int8 for CPU, assuming running on Raspberry Pi or similar light environments
+            model = WhisperModel("base", device="cpu", compute_type="int8")
+
+            logger.info("Transcribing audio...")
+            segments, info = model.transcribe(
+                tmp_file_path,
+                beam_size=5,
+                language="pt",
+                vad_filter=True
             )
+
+            # Combine all transcribed segments
+            transcribed_text = " ".join([segment.text for segment in segments]).strip()
             
-            audio_data = base64.b64encode(audio_bytes).decode("utf-8")
+            logger.info(f"Transcription successful. Detected language: {info.language}")
             
-            message = HumanMessage(
-                content=[
-                    {
-                        "type": "text", 
-                        "text": "Por favor, transcreva o áudio a seguir exatamente como foi falado, sem adicionar nenhum outro comentário ou texto."
-                    },
-                    {
-                        "type": "media",
-                        "mime_type": mime_type,
-                        "data": audio_data
-                    }
-                ]
-            )
+            # Clean up the temp file
+            os.remove(tmp_file_path)
             
-            logger.info(f"Calling Gemini to transcribe audio of length {len(audio_bytes)} bytes")
-            response = await llm.ainvoke([message])
-            return response.content
+            return transcribed_text
+            
         except Exception as e:
-            logger.error(f"Error transcribing audio: {e}", exc_info=True)
+            logger.error(f"Error transcribing audio with Whisper: {e}", exc_info=True)
             from agent_api.core.exceptions import AudioProcessingError
             raise AudioProcessingError(f"Falha ao transcrever o áudio: {str(e)}")
 
