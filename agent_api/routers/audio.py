@@ -21,6 +21,7 @@ router = APIRouter(prefix="/audio", tags=["Audio"])
 async def process_audio_file(
     file: UploadFile = File(..., description="Audio file"),
     session_id: Optional[str] = Form(None, description="Chat session ID for context"),
+    platform: Optional[str] = Form(None, description="Platform originating the request"),
     client: httpx.AsyncClient = Depends(get_http_client),
     db: AsyncSession = Depends(get_db),
 ):
@@ -55,7 +56,7 @@ async def process_audio_file(
 
     # Use ChatService to handle session and LLM processing
     chat_service = ChatService(db, client)
-    response = await chat_service.process_message(message, session_id)
+    response = await chat_service.process_message(message, session_id, platform)
 
     logger.info(f"Audio processed successfully. Session: {response.session_id}")
 

@@ -23,7 +23,7 @@ class ChatService:
 
     @handle_service_errors
     async def process_message(
-        self, message: str, session_id_str: str | None
+        self, message: str, session_id_str: str | None, platform: str | None = None
     ) -> ChatResponse:
         logger.info(f"Processing message for session: {session_id_str}")
         session_id = await self._get_or_create_session(session_id_str)
@@ -32,7 +32,7 @@ class ChatService:
 
         history_dicts, messages = await self._get_chat_history(session_id)
 
-        response = await get_llm_response(history_dicts)
+        response = await get_llm_response(history_dicts, platform)
 
         await self._save_message(session_id, "assistant", response.response_message)
 

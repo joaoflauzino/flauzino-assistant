@@ -52,6 +52,7 @@ async def send_message_to_agent(
 
     payload = {
         "message": message,
+        "platform": "telegram"
     }
 
     if session_id:
@@ -95,7 +96,7 @@ async def send_receipt_to_agent(
     logger.info(f"Sending receipt to agent_api: {url}")
 
     files = {"file": (filename, file_content, "image/jpeg")}
-    data = {}
+    data = {"platform": "telegram"}
     if session_id:
         data["session_id"] = session_id
 
@@ -137,7 +138,7 @@ async def send_audio_to_agent(
     logger.info(f"Sending audio to agent_api: {url}")
 
     files = {"file": (filename, file_content, content_type)}
-    data = {}
+    data = {"platform": "telegram"}
     if session_id:
         data["session_id"] = session_id
 

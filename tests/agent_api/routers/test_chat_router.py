@@ -59,7 +59,7 @@ async def test_chat_endpoint_delegates_to_service(test_client, mock_chat_service
     assert data["session_id"] == fake_session_id
 
     # Verify service call
-    mock_chat_service.process_message.assert_awaited_once_with("Hello", None)
+    mock_chat_service.process_message.assert_awaited_once_with("Hello", None, None)
 
 
 async def test_chat_endpoint_passes_session_id(test_client, mock_chat_service):
@@ -78,4 +78,4 @@ async def test_chat_endpoint_passes_session_id(test_client, mock_chat_service):
     await test_client.post("/chat", json=payload)
 
     # Assert
-    mock_chat_service.process_message.assert_awaited_once_with("Hello again", fake_id)
+    mock_chat_service.process_message.assert_awaited_once_with("Hello again", fake_id, None)

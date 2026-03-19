@@ -509,7 +509,7 @@ O bot irá:
 - [x] Suportar comandos de voz no agente
   - [x] Avaliar melhor modelo pra isso e cotas
   - [ ] Avaliar modelo para responder com voz
-- [ ] Formatar resposta do telegram 
+- [x] Formatar resposta do telegram 
 - [ ] Planejar estratégia de backup do banco de dados
 - [x] Desenvolver interface web para visualizar, criar, atualizar e excluir gastos e limites
     - [x] Criar gráfico para visualizar o gasto por forma de pagamento

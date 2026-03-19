@@ -119,3 +119,26 @@ async def test_get_llm_response_unknown_error(mocker):
     with pytest.raises(Exception) as exc_info:
         await get_llm_response([])
     assert "Unexpected boom" in str(exc_info.value)
+
+@pytest.mark.asyncio
+async def test_get_system_prompt_telegram():
+    from agent_api.services.llm import get_system_prompt
+    prompt = await get_system_prompt(platform="telegram")
+    assert "**Formatação para Telegram**" in prompt
+    assert "visualmente agradável" in prompt
+    assert "limpa, direta e formal-objetiva" not in prompt
+
+@pytest.mark.asyncio
+async def test_get_system_prompt_web():
+    from agent_api.services.llm import get_system_prompt
+    prompt = await get_system_prompt(platform="web")
+    assert "**Formatação para Web**" in prompt
+    assert "limpa, direta e formal-objetiva" in prompt
+    assert "Você DEVE usar formatação amigável" not in prompt
+
+@pytest.mark.asyncio
+async def test_get_system_prompt_default():
+    from agent_api.services.llm import get_system_prompt
+    prompt = await get_system_prompt(platform=None)
+    assert "**Formatação para Telegram**" not in prompt
+    assert "**Formatação para Web**" not in prompt

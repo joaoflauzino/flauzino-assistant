@@ -74,7 +74,20 @@ async def handle_photo_message(
                     await repo.save_session(chat_id, new_session_id)
 
         # Send response back to user
-        await update.message.reply_text(bot_response)
+        from telegram.error import BadRequest
+        from telegram.constants import ParseMode
+        
+        # Escape underscores to prevent Markdown parser from interpreting them as unclosed italics
+        escaped_response = bot_response.replace("_", "\\_")
+        
+        try:
+            await update.message.reply_text(escaped_response, parse_mode=ParseMode.MARKDOWN)
+        except BadRequest as e:
+            if "parse" in str(e).lower() or "entities" in str(e).lower():
+                logger.warning(f"Markdown parsing failed, falling back to plain text: {e}")
+                await update.message.reply_text(bot_response)
+            else:
+                raise
         logger.info(f"Sent OCR response to chat {chat_id}")
 
     except httpx.HTTPStatusError as e:

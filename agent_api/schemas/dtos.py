@@ -11,6 +11,7 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     message: str
     session_id: str | None = None
+    platform: str | None = None
 
 
 class ChatResponse(BaseModel):
