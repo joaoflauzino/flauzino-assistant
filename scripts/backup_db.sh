@@ -23,7 +23,7 @@ if [ $? -eq 0 ]; then
     echo "Backup completed successfully: $BACKUP_FILE"
     
     # Optional: If you want to automatically clean up old backups (older than 7 days)
-    # find "$BACKUP_DIR" -name "db_backup_*.dump" -type f -mtime +7 -delete
+    find "$BACKUP_DIR" -name "db_backup_*.dump" -type f -mtime +7 -delete
     
 else
     echo "Backup failed!"
