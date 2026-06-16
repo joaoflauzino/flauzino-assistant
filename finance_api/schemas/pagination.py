@@ -14,8 +14,6 @@ class PaginatedResponse(BaseModel, Generic[T]):
     pages: int
 
     @classmethod
-    def create(
-        cls, items: List[T], total: int, page: int, size: int
-    ) -> "PaginatedResponse[T]":
+    def create(cls, items: List[T], total: int, page: int, size: int) -> "PaginatedResponse[T]":
         pages = ceil(total / size) if size > 0 else 0
         return cls(items=items, total=total, page=page, size=size, pages=pages)

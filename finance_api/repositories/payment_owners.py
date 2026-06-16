@@ -13,27 +13,16 @@ class PaymentOwnerRepository:
         self.db = db
 
     async def get_by_id(self, owner_id: UUID) -> Optional[PaymentOwner]:
-        result = await self.db.execute(
-            select(PaymentOwner).where(PaymentOwner.id == owner_id)
-        )
+        result = await self.db.execute(select(PaymentOwner).where(PaymentOwner.id == owner_id))
         return result.scalar_one_or_none()
 
     async def get_by_key(self, key: str) -> Optional[PaymentOwner]:
-        result = await self.db.execute(
-            select(PaymentOwner).where(PaymentOwner.key == key.lower())
-        )
+        result = await self.db.execute(select(PaymentOwner).where(PaymentOwner.key == key.lower()))
         return result.scalar_one_or_none()
 
-    async def list(
-        self, page: int = 1, size: int = 100
-    ) -> tuple[Sequence[PaymentOwner], int]:
+    async def list(self, page: int = 1, size: int = 100) -> tuple[Sequence[PaymentOwner], int]:
         offset = (page - 1) * size
-        query = (
-            select(PaymentOwner)
-            .order_by(PaymentOwner.display_name)
-            .offset(offset)
-            .limit(size)
-        )
+        query = select(PaymentOwner).order_by(PaymentOwner.display_name).offset(offset).limit(size)
         result = await self.db.execute(query)
         items = result.scalars().all()
 

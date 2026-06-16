@@ -16,9 +16,7 @@ class PaymentOwnerService:
         self.repository = repository
 
     @handle_service_errors
-    async def list(
-        self, page: int = 1, size: int = 100
-    ) -> tuple[Sequence[PaymentOwner], int]:
+    async def list(self, page: int = 1, size: int = 100) -> tuple[Sequence[PaymentOwner], int]:
         logger.info(f"Listing payment owners page {page} size {size}")
         return await self.repository.list(page, size)
 
@@ -36,16 +34,12 @@ class PaymentOwnerService:
         # Check if key already exists
         existing = await self.repository.get_by_key(owner_data.key)
         if existing:
-            raise EntityConflictError(
-                f"Payment owner with key '{owner_data.key}' already exists."
-            )
+            raise EntityConflictError(f"Payment owner with key '{owner_data.key}' already exists.")
 
         return await self.repository.create(owner_data)
 
     @handle_service_errors
-    async def update(
-        self, owner_id: UUID, update_data: PaymentOwnerUpdate
-    ) -> PaymentOwner:
+    async def update(self, owner_id: UUID, update_data: PaymentOwnerUpdate) -> PaymentOwner:
         logger.info(f"Updating payment owner: {owner_id}")
         if update_data.key:
             existing = await self.repository.get_by_key(update_data.key)

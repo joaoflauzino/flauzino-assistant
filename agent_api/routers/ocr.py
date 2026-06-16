@@ -63,9 +63,7 @@ async def process_receipt_image(
     You can then continue the conversation using the /chat endpoint
     with the returned session_id to provide missing information.
     """
-    logger.info(
-        f"Received receipt processing request: {file.filename}, session: {session_id}"
-    )
+    logger.info(f"Received receipt processing request: {file.filename}, session: {session_id}")
 
     # Validate and extract text from image
     image_bytes = await file.read()

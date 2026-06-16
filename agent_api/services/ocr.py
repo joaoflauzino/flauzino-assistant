@@ -43,9 +43,7 @@ class OCRService:
 
         # Check file size
         if file_size > MAX_FILE_SIZE_MB * 1024 * 1024:
-            raise InvalidImageError(
-                f"File too large. Maximum size: {MAX_FILE_SIZE_MB}MB"
-            )
+            raise InvalidImageError(f"File too large. Maximum size: {MAX_FILE_SIZE_MB}MB")
 
     @staticmethod
     @handle_ocr_errors
@@ -105,9 +103,7 @@ class OCRService:
         custom_config = r"--oem 3 --psm 3"
 
         # Extract text
-        text = pytesseract.image_to_string(
-            processed_image, lang=lang, config=custom_config
-        )
+        text = pytesseract.image_to_string(processed_image, lang=lang, config=custom_config)
 
         # Get confidence data for quality assessment
         data = pytesseract.image_to_data(

@@ -53,9 +53,7 @@ async def test_get_session(mock_db_session):
 
     # Mock return value
     mock_session_obj = ChatSession(id=fake_id)
-    mock_db_session.execute.return_value.scalar_one_or_none.return_value = (
-        mock_session_obj
-    )
+    mock_db_session.execute.return_value.scalar_one_or_none.return_value = mock_session_obj
 
     # Act
     result = await repo.get_session(fake_id)
@@ -91,9 +89,7 @@ async def test_get_messages(mock_db_session):
     # Mock return value
     # The repo queries DESC (Newest first), so we should provide them in that order logically
     # msg2 is newer than msg1
-    mock_msg1 = ChatMessage(
-        role="user", content="Hi", created_at=datetime.now(timezone.utc)
-    )
+    mock_msg1 = ChatMessage(role="user", content="Hi", created_at=datetime.now(timezone.utc))
     mock_msg2 = ChatMessage(
         role="assistant", content="Hello", created_at=datetime.now(timezone.utc)
     )

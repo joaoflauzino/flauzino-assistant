@@ -15,9 +15,7 @@ pytestmark = pytest.mark.asyncio
 async def test_client():
     """Fixture for a test client for the FastAPI app."""
     async with LifespanManager(app):
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             yield client
 
 

@@ -33,9 +33,7 @@ async def list_payment_methods(
     """List all payment methods with pagination."""
     items, total = await service.list(page, size)
     pages = (total + size - 1) // size if total > 0 else 0
-    return PaginatedResponse(
-        items=items, total=total, page=page, size=size, pages=pages
-    )
+    return PaginatedResponse(items=items, total=total, page=page, size=size, pages=pages)
 
 
 @router.get("/{method_id}", response_model=PaymentMethodResponse)

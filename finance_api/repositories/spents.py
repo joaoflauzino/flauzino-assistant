@@ -38,13 +38,11 @@ class SpentRepository:
         # Using AT TIME ZONE converts the timestamp to the specified timezone
         if start_date:
             query = query.where(
-                func.date(Spent.created_at.op("AT TIME ZONE")("America/Sao_Paulo"))
-                >= start_date
+                func.date(Spent.created_at.op("AT TIME ZONE")("America/Sao_Paulo")) >= start_date
             )
         if end_date:
             query = query.where(
-                func.date(Spent.created_at.op("AT TIME ZONE")("America/Sao_Paulo"))
-                <= end_date
+                func.date(Spent.created_at.op("AT TIME ZONE")("America/Sao_Paulo")) <= end_date
             )
 
         # Count query

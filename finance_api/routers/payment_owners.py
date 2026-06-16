@@ -33,9 +33,7 @@ async def list_payment_owners(
     """List all payment owners with pagination."""
     items, total = await service.list(page, size)
     pages = (total + size - 1) // size if total > 0 else 0
-    return PaginatedResponse(
-        items=items, total=total, page=page, size=size, pages=pages
-    )
+    return PaginatedResponse(items=items, total=total, page=page, size=size, pages=pages)
 
 
 @router.get("/{owner_id}", response_model=PaymentOwnerResponse)

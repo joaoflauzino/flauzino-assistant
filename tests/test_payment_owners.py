@@ -17,9 +17,7 @@ pytestmark = pytest.mark.asyncio
 async def test_client():
     """Fixture to create a test client for the FastAPI app."""
     async with LifespanManager(app):
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             yield client
 
 
@@ -40,21 +38,24 @@ def mock_repo():
 async def test_create_payment_owner(test_client, mock_repo):
     """Test creating a new payment owner."""
     app.dependency_overrides[get_db] = lambda: MagicMock()
-    with  pytest.MonkeyPatch.context() as m:
+    with pytest.MonkeyPatch.context() as m:
         m.setattr("finance_api.routers.payment_owners.PaymentOwnerRepository", lambda db: mock_repo)
-        
+
         from finance_api.routers.payment_owners import get_payment_owner_service
-        
+
         mock_service = AsyncMock()
         mock_service.create.return_value = PaymentOwnerResponse(
-            id=uuid4(), key="test_owner", display_name="Test Owner", created_at="2024-01-01T00:00:00"
+            id=uuid4(),
+            key="test_owner",
+            display_name="Test Owner",
+            created_at="2024-01-01T00:00:00",
         )
-        
+
         app.dependency_overrides[get_payment_owner_service] = lambda: mock_service
 
         payload = {"key": "test_owner", "display_name": "Test Owner"}
         response = await test_client.post("/payment-owners/", json=payload)
-        
+
         assert response.status_code == 201
         data = response.json()
         assert data["key"] == "test_owner"
@@ -66,7 +67,7 @@ async def test_create_payment_owner(test_client, mock_repo):
 async def test_list_payment_owners(test_client):
     """Test listing payment owners."""
     from finance_api.routers.payment_owners import get_payment_owner_service
-    
+
     mock_service = AsyncMock()
     mock_service.list.return_value = ([], 0)
     app.dependency_overrides[get_payment_owner_service] = lambda: mock_service
@@ -74,14 +75,14 @@ async def test_list_payment_owners(test_client):
     response = await test_client.get("/payment-owners/")
     assert response.status_code == 200
     mock_service.list.assert_awaited_once()
-    
+
     app.dependency_overrides.clear()
 
 
 async def test_get_payment_owner(test_client):
     """Test getting a payment owner by ID."""
     from finance_api.routers.payment_owners import get_payment_owner_service
-    
+
     fake_id = uuid4()
     mock_service = AsyncMock()
     mock_service.get_by_id.return_value = PaymentOwnerResponse(
@@ -93,14 +94,14 @@ async def test_get_payment_owner(test_client):
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == str(fake_id)
-    
+
     app.dependency_overrides.clear()
 
 
 async def test_update_payment_owner(test_client):
     """Test updating a payment owner."""
     from finance_api.routers.payment_owners import get_payment_owner_service
-    
+
     fake_id = uuid4()
     mock_service = AsyncMock()
     mock_service.update.return_value = PaymentOwnerResponse(
@@ -110,17 +111,17 @@ async def test_update_payment_owner(test_client):
 
     payload = {"display_name": "Updated"}
     response = await test_client.put(f"/payment-owners/{fake_id}", json=payload)
-    
+
     assert response.status_code == 200
     mock_service.update.assert_awaited_once()
-    
+
     app.dependency_overrides.clear()
 
 
 async def test_delete_payment_owner(test_client):
     """Test deleting a payment owner."""
     from finance_api.routers.payment_owners import get_payment_owner_service
-    
+
     fake_id = uuid4()
     mock_service = AsyncMock()
     mock_service.delete.return_value = True
@@ -129,5 +130,5 @@ async def test_delete_payment_owner(test_client):
     response = await test_client.delete(f"/payment-owners/{fake_id}")
     assert response.status_code == 204
     mock_service.delete.assert_awaited_once()
-    
+
     app.dependency_overrides.clear()

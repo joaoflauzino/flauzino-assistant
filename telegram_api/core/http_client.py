@@ -33,9 +33,7 @@ async def close_http_client() -> None:
         logger.info("HTTP client closed")
 
 
-async def send_message_to_agent(
-    message: str, session_id: str | None = None
-) -> dict[str, Any]:
+async def send_message_to_agent(message: str, session_id: str | None = None) -> dict[str, Any]:
     """Send a text message to agent_api's /chat endpoint.
 
     Args:
@@ -50,10 +48,7 @@ async def send_message_to_agent(
     """
     url = f"{settings.AGENT_API_URL}/chat"
 
-    payload = {
-        "message": message,
-        "platform": "telegram"
-    }
+    payload = {"message": message, "platform": "telegram"}
 
     if session_id:
         payload["session_id"] = session_id

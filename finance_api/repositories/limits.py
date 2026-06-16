@@ -65,9 +65,7 @@ class SpendingLimitRepository:
         return limit
 
     async def get_by_id(self, limit_id: UUID) -> Optional[SpendingLimit]:
-        result = await self.db.execute(
-            select(SpendingLimit).where(SpendingLimit.id == limit_id)
-        )
+        result = await self.db.execute(select(SpendingLimit).where(SpendingLimit.id == limit_id))
         limit = result.scalar_one_or_none()
         if limit:
             logger.info(f"Retrieved limit: {limit_id}")

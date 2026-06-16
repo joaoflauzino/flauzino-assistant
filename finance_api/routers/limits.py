@@ -18,9 +18,7 @@ from finance_api.schemas.pagination import PaginatedResponse
 router = APIRouter()
 
 
-@router.post(
-    "/", response_model=SpendingLimitResponse, status_code=status.HTTP_201_CREATED
-)
+@router.post("/", response_model=SpendingLimitResponse, status_code=status.HTTP_201_CREATED)
 async def create_limit(
     limit_data: SpendingLimitCreate, db: AsyncSession = Depends(get_db)
 ) -> SpendingLimitResponse:
@@ -43,9 +41,7 @@ async def list_limits(
 
 
 @router.get("/{limit_id}", response_model=SpendingLimitResponse)
-async def get_limit(
-    limit_id: UUID, db: AsyncSession = Depends(get_db)
-) -> SpendingLimitResponse:
+async def get_limit(limit_id: UUID, db: AsyncSession = Depends(get_db)) -> SpendingLimitResponse:
     repo = SpendingLimitRepository(db)
     service = SpendingLimitService(repo)
     return await service.get_by_id(limit_id)

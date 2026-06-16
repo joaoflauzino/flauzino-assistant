@@ -15,9 +15,7 @@ router = APIRouter()
 
 
 @router.post("/", response_model=SpentResponse)
-async def create_spent(
-    spent: SpentCreate, db: AsyncSession = Depends(get_db)
-) -> SpentResponse:
+async def create_spent(spent: SpentCreate, db: AsyncSession = Depends(get_db)) -> SpentResponse:
     repo = SpentRepository(db)
     service = SpentService(repo)
     return await service.create(spent)
@@ -37,9 +35,7 @@ async def list_spents(
 
 
 @router.get("/{spent_id}", response_model=SpentResponse)
-async def get_spent(
-    spent_id: UUID, db: AsyncSession = Depends(get_db)
-) -> SpentResponse:
+async def get_spent(spent_id: UUID, db: AsyncSession = Depends(get_db)) -> SpentResponse:
     repo = SpentRepository(db)
     service = SpentService(repo)
     return await service.get_by_id(spent_id)

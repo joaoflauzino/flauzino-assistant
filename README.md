@@ -155,6 +155,21 @@ O projeto utiliza `pytest` para testes unitários.
     uv run pytest
     ```
 
+## Formatação e Linting
+
+O projeto utiliza `black` para formatação de código (limite de 100 caracteres por linha) e `ruff` para linting.
+
+1.  **Para formatar o código:**
+    ```bash
+    uv run black .
+    ```
+
+2.  **Para verificar problemas de linting:**
+    ```bash
+    uv run ruff check .
+    ```
+
+
 ## Documentação das APIs
 
 ### Finance API

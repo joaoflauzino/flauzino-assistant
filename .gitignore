@@ -210,3 +210,7 @@ __marimo__/
 .vscode/
 
 .trunk/
+
+# macOS
+.DS_Store
+*.DS_Store

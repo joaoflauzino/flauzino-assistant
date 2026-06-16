@@ -1,13 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from finance_api.routers import (
-    limits,
-    spents,
-    categories,
-    payment_methods,
-    payment_owners,
-)
 from finance_api.core.exceptions import (
     DatabaseError,
     EntityConflictError,
@@ -22,7 +15,13 @@ from finance_api.core.handlers import (
     service_error_handler,
     validation_error_handler,
 )
-
+from finance_api.routers import (
+    categories,
+    limits,
+    payment_methods,
+    payment_owners,
+    spents,
+)
 
 app = FastAPI(title="Flauzino Assistant API")
 
@@ -45,9 +44,5 @@ app.add_exception_handler(ServiceError, service_error_handler)
 app.include_router(spents.router, prefix="/spents", tags=["spents"])
 app.include_router(limits.router, prefix="/limits", tags=["limits"])
 app.include_router(categories.router, prefix="/categories", tags=["categories"])
-app.include_router(
-    payment_methods.router, prefix="/payment-methods", tags=["payment-methods"]
-)
-app.include_router(
-    payment_owners.router, prefix="/payment-owners", tags=["payment-owners"]
-)
+app.include_router(payment_methods.router, prefix="/payment-methods", tags=["payment-methods"])
+app.include_router(payment_owners.router, prefix="/payment-owners", tags=["payment-owners"])

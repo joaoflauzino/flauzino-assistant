@@ -34,17 +34,11 @@ async def test_process_message_new_session(chat_service, mocker):
 
     mock_session = ChatSession(id=fake_session_id)
     chat_service.repository.create_session.return_value = mock_session
-    chat_service.repository.get_messages.return_value = [
-        ChatMessage(role="user", content="Hello")
-    ]
+    chat_service.repository.get_messages.return_value = [ChatMessage(role="user", content="Hello")]
 
     # Mock LLM
-    mock_get_llm = mocker.patch(
-        "agent_api.services.chat.get_llm_response", new_callable=AsyncMock
-    )
-    mock_get_llm.return_value = AssistantResponse(
-        response_message="Hi there", is_complete=False
-    )
+    mock_get_llm = mocker.patch("agent_api.services.chat.get_llm_response", new_callable=AsyncMock)
+    mock_get_llm.return_value = AssistantResponse(response_message="Hi there", is_complete=False)
 
     # Act
     response = await chat_service.process_message(message, None)
@@ -55,12 +49,8 @@ async def test_process_message_new_session(chat_service, mocker):
     assert len(response.history) == 2  # User + Assistant
 
     chat_service.repository.create_session.assert_awaited_once()
-    chat_service.repository.add_message.assert_any_await(
-        fake_session_id, "user", "Hello"
-    )
-    chat_service.repository.add_message.assert_any_await(
-        fake_session_id, "assistant", "Hi there"
-    )
+    chat_service.repository.add_message.assert_any_await(fake_session_id, "user", "Hello")
+    chat_service.repository.add_message.assert_any_await(fake_session_id, "assistant", "Hi there")
 
 
 @pytest.mark.asyncio

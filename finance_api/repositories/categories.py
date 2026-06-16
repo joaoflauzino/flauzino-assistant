@@ -41,9 +41,7 @@ class CategoryRepository:
         return items, total
 
     async def get_by_id(self, category_id: UUID) -> Optional[Category]:
-        result = await self.db.execute(
-            select(Category).where(Category.id == category_id)
-        )
+        result = await self.db.execute(select(Category).where(Category.id == category_id))
         category = result.scalar_one_or_none()
         if category:
             logger.info(f"Retrieved category: {category_id}")
@@ -53,9 +51,7 @@ class CategoryRepository:
         result = await self.db.execute(select(Category).where(Category.key == key))
         return result.scalar_one_or_none()
 
-    async def update(
-        self, category_id: UUID, update_data: CategoryUpdate
-    ) -> Optional[Category]:
+    async def update(self, category_id: UUID, update_data: CategoryUpdate) -> Optional[Category]:
         stmt = (
             update(Category)
             .where(Category.id == category_id)

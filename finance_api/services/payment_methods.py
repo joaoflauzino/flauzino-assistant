@@ -16,9 +16,7 @@ class PaymentMethodService:
         self.repository = repository
 
     @handle_service_errors
-    async def list(
-        self, page: int = 1, size: int = 100
-    ) -> tuple[Sequence[PaymentMethod], int]:
+    async def list(self, page: int = 1, size: int = 100) -> tuple[Sequence[PaymentMethod], int]:
         logger.info(f"Listing payment methods page {page} size {size}")
         return await self.repository.list(page, size)
 
@@ -43,9 +41,7 @@ class PaymentMethodService:
         return await self.repository.create(method_data)
 
     @handle_service_errors
-    async def update(
-        self, method_id: UUID, update_data: PaymentMethodUpdate
-    ) -> PaymentMethod:
+    async def update(self, method_id: UUID, update_data: PaymentMethodUpdate) -> PaymentMethod:
         logger.info(f"Updating payment method: {method_id}")
         if update_data.key:
             existing = await self.repository.get_by_key(update_data.key)

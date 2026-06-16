@@ -35,9 +35,7 @@ class ChatRepository:
             logger.info(f"Retrieved session: {session.id}")
         return session
 
-    async def add_message(
-        self, session_id: uuid.UUID, role: str, content: str
-    ) -> ChatMessage:
+    async def add_message(self, session_id: uuid.UUID, role: str, content: str) -> ChatMessage:
         message = ChatMessage(session_id=session_id, role=role, content=content)
         self.session.add(message)
         await self.session.commit()
@@ -45,9 +43,7 @@ class ChatRepository:
         logger.info(f"Message added to session {session_id} by {role}")
         return message
 
-    async def get_messages(
-        self, session_id: uuid.UUID, limit: int = 10
-    ) -> List[ChatMessage]:
+    async def get_messages(self, session_id: uuid.UUID, limit: int = 10) -> List[ChatMessage]:
         query = (
             select(ChatMessage)
             .where(ChatMessage.session_id == session_id)

@@ -65,18 +65,14 @@ class ChatService:
             logger.info(f"Created new session: {session.id}")
             return session.id
 
-    async def _save_message(
-        self, session_id: uuid.UUID, role: str, content: str
-    ) -> None:
+    async def _save_message(self, session_id: uuid.UUID, role: str, content: str) -> None:
         await self.repository.add_message(session_id, role, content)
 
     async def _get_chat_history(
         self, session_id: uuid.UUID
     ) -> Tuple[List[Dict[str, Any]], List[ChatMessage]]:
         messages = await self.repository.get_messages(session_id)
-        history_dicts = [
-            {"role": m.role, "content": m.content} for m in reversed(messages)
-        ]
+        history_dicts = [{"role": m.role, "content": m.content} for m in reversed(messages)]
         return history_dicts, messages
 
     async def _handle_finance_action(self, response: AssistantResponse) -> None:
@@ -94,9 +90,7 @@ class ChatService:
         updated_history_dtos = [
             ChatMessage(role=m.role, content=m.content) for m in previous_messages
         ]
-        updated_history_dtos.append(
-            ChatMessage(role="assistant", content=response_text)
-        )
+        updated_history_dtos.append(ChatMessage(role="assistant", content=response_text))
 
         return ChatResponse(
             response=response_text,

@@ -41,9 +41,7 @@ class SpentService:
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
     ) -> PaginatedResponse["Spent"]:
-        logger.info(
-            f"Listing spents page {page} size {size} start {start_date} end {end_date}"
-        )
+        logger.info(f"Listing spents page {page} size {size} start {start_date} end {end_date}")
         skip = (page - 1) * size
         items, total = await self.repo.list(skip, size, start_date, end_date)
         return PaginatedResponse.create(items, total, page, size)

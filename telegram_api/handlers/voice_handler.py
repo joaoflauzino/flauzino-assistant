@@ -11,9 +11,7 @@ from telegram_api.repositories.session_repository import SessionRepository
 logger = get_logger(__name__)
 
 
-async def handle_voice_message(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> None:
+async def handle_voice_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle voice messages and audio files from users."""
     if not update.message:
         return
@@ -80,10 +78,10 @@ async def handle_voice_message(
         # Send response back to user
         from telegram.error import BadRequest
         from telegram.constants import ParseMode
-        
+
         # Escape underscores to prevent Markdown parser from interpreting them as unclosed italics
         escaped_response = bot_response.replace("_", "\\_")
-        
+
         try:
             await update.message.reply_text(escaped_response, parse_mode=ParseMode.MARKDOWN)
         except BadRequest as e:
@@ -95,9 +93,7 @@ async def handle_voice_message(
         logger.info(f"Sent audio processed response to chat {chat_id}")
 
     except httpx.HTTPStatusError as e:
-        logger.error(
-            f"HTTP error from agent_api: {e.response.status_code} - {e.response.text}"
-        )
+        logger.error(f"HTTP error from agent_api: {e.response.status_code} - {e.response.text}")
         error_message = (
             "😔 Desculpe, tive um problema ao processar o áudio. "
             "Por favor, tente enviar novamente em alguns instantes."
@@ -114,8 +110,5 @@ async def handle_voice_message(
 
     except Exception as e:
         logger.error(f"Unexpected error handling audio: {e}", exc_info=True)
-        error_message = (
-            "❌ Ocorreu um erro ao processar o áudio. "
-            "Por favor, tente novamente."
-        )
+        error_message = "❌ Ocorreu um erro ao processar o áudio. Por favor, tente novamente."
         await update.message.reply_text(error_message)

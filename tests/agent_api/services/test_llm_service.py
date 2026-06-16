@@ -22,9 +22,7 @@ async def test_get_llm_response_success(mocker):
     mock_llm_instance.with_structured_output.return_value = mock_structured_output
 
     # Patch the class to return our mocked instance
-    mocker.patch(
-        "agent_api.services.llm.ChatGoogleGenerativeAI", return_value=mock_llm_instance
-    )
+    mocker.patch("agent_api.services.llm.ChatGoogleGenerativeAI", return_value=mock_llm_instance)
 
     # This is what we expect the LLM to return
     mock_assistant_response = AssistantResponse(
@@ -68,14 +66,10 @@ async def test_get_llm_response_parsing_error(mocker):
     # Arrange
     mock_llm_instance = MagicMock()
     mock_structured_output = MagicMock()
-    mock_structured_output.ainvoke = AsyncMock(
-        side_effect=OutputParserException("Parsing failed")
-    )
+    mock_structured_output.ainvoke = AsyncMock(side_effect=OutputParserException("Parsing failed"))
     mock_llm_instance.with_structured_output.return_value = mock_structured_output
 
-    mocker.patch(
-        "agent_api.services.llm.ChatGoogleGenerativeAI", return_value=mock_llm_instance
-    )
+    mocker.patch("agent_api.services.llm.ChatGoogleGenerativeAI", return_value=mock_llm_instance)
 
     # Act & Assert
     with pytest.raises(LLMParsingError) as exc_info:
@@ -92,9 +86,7 @@ async def test_get_llm_response_google_api_error(mocker):
     mock_structured_output.ainvoke = AsyncMock(side_effect=GoogleAPIError("API Error"))
     mock_llm_instance.with_structured_output.return_value = mock_structured_output
 
-    mocker.patch(
-        "agent_api.services.llm.ChatGoogleGenerativeAI", return_value=mock_llm_instance
-    )
+    mocker.patch("agent_api.services.llm.ChatGoogleGenerativeAI", return_value=mock_llm_instance)
 
     # Act & Assert
     with pytest.raises(LLMProviderError) as exc_info:
@@ -111,34 +103,38 @@ async def test_get_llm_response_unknown_error(mocker):
     mock_structured_output.ainvoke = AsyncMock(side_effect=Exception("Unexpected boom"))
     mock_llm_instance.with_structured_output.return_value = mock_structured_output
 
-    mocker.patch(
-        "agent_api.services.llm.ChatGoogleGenerativeAI", return_value=mock_llm_instance
-    )
+    mocker.patch("agent_api.services.llm.ChatGoogleGenerativeAI", return_value=mock_llm_instance)
 
     # Act & Assert
     with pytest.raises(Exception) as exc_info:
         await get_llm_response([])
     assert "Unexpected boom" in str(exc_info.value)
 
+
 @pytest.mark.asyncio
 async def test_get_system_prompt_telegram():
     from agent_api.services.llm import get_system_prompt
+
     prompt = await get_system_prompt(platform="telegram")
     assert "**Formatação para Telegram**" in prompt
     assert "visualmente agradável" in prompt
     assert "limpa, direta e formal-objetiva" not in prompt
 
+
 @pytest.mark.asyncio
 async def test_get_system_prompt_web():
     from agent_api.services.llm import get_system_prompt
+
     prompt = await get_system_prompt(platform="web")
     assert "**Formatação para Web**" in prompt
     assert "limpa, direta e formal-objetiva" in prompt
     assert "Você DEVE usar formatação amigável" not in prompt
 
+
 @pytest.mark.asyncio
 async def test_get_system_prompt_default():
     from agent_api.services.llm import get_system_prompt
+
     prompt = await get_system_prompt(platform=None)
     assert "**Formatação para Telegram**" not in prompt
     assert "**Formatação para Web**" not in prompt

@@ -5,12 +5,8 @@ from pydantic import BaseModel, Field, ConfigDict
 
 
 class CategoryBase(BaseModel):
-    key: str = Field(
-        ..., max_length=50, description="Unique identifier key for the category"
-    )
-    display_name: str = Field(
-        ..., max_length=100, description="Human-readable display name"
-    )
+    key: str = Field(..., max_length=50, description="Unique identifier key for the category")
+    display_name: str = Field(..., max_length=100, description="Human-readable display name")
 
 
 class CategoryCreate(CategoryBase): ...

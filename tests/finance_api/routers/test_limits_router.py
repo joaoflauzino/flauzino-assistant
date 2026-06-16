@@ -19,9 +19,9 @@ def mock_category_repo(mocker):
     """Auto-use fixture that mocks CategoryRepository for all tests."""
     mock_category = MagicMock()
     mock_category.key = "mercado"
-    mocker.patch(
-        "finance_api.services.limits.CategoryRepository"
-    ).return_value.get_by_key = AsyncMock(return_value=mock_category)
+    mocker.patch("finance_api.services.limits.CategoryRepository").return_value.get_by_key = (
+        AsyncMock(return_value=mock_category)
+    )
     return mock_category
 
 
@@ -29,9 +29,7 @@ def mock_category_repo(mocker):
 async def test_client():
     """Fixture to create a test client for the FastAPI app."""
     async with LifespanManager(app):
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             yield client
 
 

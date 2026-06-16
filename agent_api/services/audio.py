@@ -14,14 +14,19 @@ class AudioService:
         # Check size (e.g., max 10MB)
         if file_size > 10 * 1024 * 1024:
             from agent_api.core.exceptions import InvalidAudioError
-            raise InvalidAudioError(f"Arquivo de áudio muito grande: {file_size} bytes. Máximo permitido é 10MB.")
+
+            raise InvalidAudioError(
+                f"Arquivo de áudio muito grande: {file_size} bytes. Máximo permitido é 10MB."
+            )
 
     @staticmethod
     async def transcribe_audio(audio_bytes: bytes, mime_type: str) -> str:
         """Transcribe audio using faster-whisper locally."""
         try:
-            logger.info(f"Writing audio ({len(audio_bytes)} bytes) to temporary file for Whisper transcription.")
-            
+            logger.info(
+                f"Writing audio ({len(audio_bytes)} bytes) to temporary file for Whisper transcription."
+            )
+
             # Write audio to a temporary file for faster-whisper to read
             with tempfile.NamedTemporaryFile(delete=False, suffix=".ogg") as tmp_file:
                 tmp_file.write(audio_bytes)
@@ -33,25 +38,23 @@ class AudioService:
 
             logger.info("Transcribing audio...")
             segments, info = model.transcribe(
-                tmp_file_path,
-                beam_size=5,
-                language="pt",
-                vad_filter=True
+                tmp_file_path, beam_size=5, language="pt", vad_filter=True
             )
 
             # Combine all transcribed segments
             transcribed_text = " ".join([segment.text for segment in segments]).strip()
-            
+
             logger.info(f"Transcription successful. Detected language: {info.language}")
-            
+
             # Clean up the temp file
             os.remove(tmp_file_path)
-            
+
             return transcribed_text
-            
+
         except Exception as e:
             logger.error(f"Error transcribing audio with Whisper: {e}", exc_info=True)
             from agent_api.core.exceptions import AudioProcessingError
+
             raise AudioProcessingError(f"Falha ao transcrever o áudio: {str(e)}")
 
 

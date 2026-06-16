@@ -62,9 +62,7 @@ class SpendingLimitService:
         return limit
 
     @handle_service_errors
-    async def update(
-        self, limit_id: UUID, update_data: SpendingLimitUpdate
-    ) -> "SpendingLimit":
+    async def update(self, limit_id: UUID, update_data: SpendingLimitUpdate) -> "SpendingLimit":
         logger.info(f"Updating spending limit: {limit_id}")
         updated_limit = await self.repo.update(limit_id, update_data)
         if not updated_limit:

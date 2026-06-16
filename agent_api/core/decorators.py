@@ -99,9 +99,7 @@ def handle_ocr_errors(func: Callable[..., Any]) -> Callable[..., Any]:
 
             # Check for specific error types in the message
             error_msg = str(e).lower()
-            if any(
-                word in error_msg for word in ["image", "decode", "format", "invalid"]
-            ):
+            if any(word in error_msg for word in ["image", "decode", "format", "invalid"]):
                 raise InvalidImageError(f"Invalid image: {str(e)}")
 
             raise OCRProcessingError(f"OCR processing failed: {str(e)}")

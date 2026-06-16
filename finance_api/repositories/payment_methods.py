@@ -17,9 +17,7 @@ class PaymentMethodRepository:
 
     async def get_by_id(self, method_id: UUID) -> Optional[PaymentMethod]:
         logger.debug(f"Repository: Fetching payment method by ID: {method_id}")
-        result = await self.db.execute(
-            select(PaymentMethod).where(PaymentMethod.id == method_id)
-        )
+        result = await self.db.execute(select(PaymentMethod).where(PaymentMethod.id == method_id))
         method = result.scalar_one_or_none()
         if method:
             logger.debug(f"Repository: Found payment method: {method.key}")
@@ -39,16 +37,11 @@ class PaymentMethodRepository:
             logger.debug(f"Repository: Payment method with key '{key}' not found")
         return method
 
-    async def list(
-        self, page: int = 1, size: int = 100
-    ) -> tuple[Sequence[PaymentMethod], int]:
+    async def list(self, page: int = 1, size: int = 100) -> tuple[Sequence[PaymentMethod], int]:
         logger.debug(f"Repository: Listing payment methods page={page} size={size}")
         offset = (page - 1) * size
         query = (
-            select(PaymentMethod)
-            .order_by(PaymentMethod.display_name)
-            .offset(offset)
-            .limit(size)
+            select(PaymentMethod).order_by(PaymentMethod.display_name).offset(offset).limit(size)
         )
         result = await self.db.execute(query)
         items = result.scalars().all()
@@ -80,9 +73,7 @@ class PaymentMethodRepository:
         logger.debug(f"Repository: Updating payment method: {method_id}")
         method = await self.get_by_id(method_id)
         if not method:
-            logger.debug(
-                f"Repository: Cannot update, payment method {method_id} not found"
-            )
+            logger.debug(f"Repository: Cannot update, payment method {method_id} not found")
             return None
 
         update_dict = update_data.model_dump(exclude_unset=True)
@@ -101,9 +92,7 @@ class PaymentMethodRepository:
         logger.debug(f"Repository: Deleting payment method: {method_id}")
         method = await self.get_by_id(method_id)
         if not method:
-            logger.debug(
-                f"Repository: Cannot delete, payment method {method_id} not found"
-            )
+            logger.debug(f"Repository: Cannot delete, payment method {method_id} not found")
             return False
 
         await self.db.delete(method)

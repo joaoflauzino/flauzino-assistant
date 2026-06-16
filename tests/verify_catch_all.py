@@ -1,8 +1,7 @@
-
 import pytest
-import asyncio
 from agent_api.core.decorators import handle_finance_errors, handle_chat_service_errors
 from agent_api.core.exceptions import FinanceServerError, DatabaseError
+
 
 @pytest.mark.asyncio
 async def test_finance_catch_all():
@@ -14,6 +13,7 @@ async def test_finance_catch_all():
         await buggy_service()
     assert "Unexpected finance error" in str(exc.value)
     assert "Unexpected boom" in str(exc.value)
+
 
 @pytest.mark.asyncio
 async def test_chat_catch_all():

@@ -18,9 +18,7 @@ class SessionRepository:
     async def get_session(self, chat_id: int) -> Optional[str]:
         """Retrieve the session ID for a given chat ID."""
         try:
-            query = select(TelegramSession.session_id).where(
-                TelegramSession.chat_id == chat_id
-            )
+            query = select(TelegramSession.session_id).where(TelegramSession.chat_id == chat_id)
             result = await self.session.execute(query)
             session_id = result.scalar_one_or_none()
 
@@ -60,9 +58,7 @@ class SessionRepository:
                 )
                 .on_conflict_do_update(
                     index_elements=[TelegramSession.chat_id],
-                    set_=dict(
-                        session_id=uuid.UUID(session_id), updated_at=datetime.utcnow()
-                    ),
+                    set_=dict(session_id=uuid.UUID(session_id), updated_at=datetime.utcnow()),
                 )
             )
 

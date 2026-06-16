@@ -18,9 +18,9 @@ def mock_category_repo(mocker):
     """Auto-use fixture that mocks CategoryRepository for all tests."""
     mock_category = MagicMock()
     mock_category.key = "mercado"
-    mocker.patch(
-        "finance_api.services.spents.CategoryRepository"
-    ).return_value.get_by_key = AsyncMock(return_value=mock_category)
+    mocker.patch("finance_api.services.spents.CategoryRepository").return_value.get_by_key = (
+        AsyncMock(return_value=mock_category)
+    )
     return mock_category
 
 
@@ -28,9 +28,7 @@ def mock_category_repo(mocker):
 async def test_client():
     """Fixture to create a test client for the FastAPI app."""
     async with LifespanManager(app):
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             yield client
 
 
@@ -57,9 +55,7 @@ async def test_create_spent_success(test_client, mock_spent_repository, mocker):
         yield MagicMock()
 
     app.dependency_overrides[get_db] = override_get_db
-    mocker.patch(
-        "finance_api.routers.spents.SpentRepository", return_value=mock_spent_repository
-    )
+    mocker.patch("finance_api.routers.spents.SpentRepository", return_value=mock_spent_repository)
 
     payload = {
         "category": "mercado",
@@ -99,9 +95,7 @@ async def test_list_spents_success(test_client, mock_spent_repository, mocker):
         yield MagicMock()
 
     app.dependency_overrides[get_db] = override_get_db
-    mocker.patch(
-        "finance_api.routers.spents.SpentRepository", return_value=mock_spent_repository
-    )
+    mocker.patch("finance_api.routers.spents.SpentRepository", return_value=mock_spent_repository)
 
     id1 = uuid4()
     id2 = uuid4()
@@ -159,9 +153,7 @@ async def test_get_spent_by_id_success(test_client, mock_spent_repository, mocke
         yield MagicMock()
 
     app.dependency_overrides[get_db] = override_get_db
-    mocker.patch(
-        "finance_api.routers.spents.SpentRepository", return_value=mock_spent_repository
-    )
+    mocker.patch("finance_api.routers.spents.SpentRepository", return_value=mock_spent_repository)
 
     fake_id = uuid4()
     mock_spent = MagicMock(
@@ -195,9 +187,7 @@ async def test_get_spent_by_id_not_found(test_client, mock_spent_repository, moc
         yield MagicMock()
 
     app.dependency_overrides[get_db] = override_get_db
-    mocker.patch(
-        "finance_api.routers.spents.SpentRepository", return_value=mock_spent_repository
-    )
+    mocker.patch("finance_api.routers.spents.SpentRepository", return_value=mock_spent_repository)
 
     mock_spent_repository.get_by_id.return_value = None
     fake_id = uuid4()
@@ -220,9 +210,7 @@ async def test_update_spent_success(test_client, mock_spent_repository, mocker):
         yield MagicMock()
 
     app.dependency_overrides[get_db] = override_get_db
-    mocker.patch(
-        "finance_api.routers.spents.SpentRepository", return_value=mock_spent_repository
-    )
+    mocker.patch("finance_api.routers.spents.SpentRepository", return_value=mock_spent_repository)
 
     fake_id = uuid4()
     updated_mock = MagicMock(
@@ -258,9 +246,7 @@ async def test_delete_spent_success(test_client, mock_spent_repository, mocker):
         yield MagicMock()
 
     app.dependency_overrides[get_db] = override_get_db
-    mocker.patch(
-        "finance_api.routers.spents.SpentRepository", return_value=mock_spent_repository
-    )
+    mocker.patch("finance_api.routers.spents.SpentRepository", return_value=mock_spent_repository)
 
     mock_spent_repository.delete.return_value = True
     fake_id = uuid4()
@@ -275,9 +261,7 @@ async def test_delete_spent_success(test_client, mock_spent_repository, mocker):
     app.dependency_overrides.clear()
 
 
-async def test_create_spent_repository_error(
-    test_client, mock_spent_repository, mocker
-):
+async def test_create_spent_repository_error(test_client, mock_spent_repository, mocker):
     """
     Test handling of a 500 error when the repository fails.
     """
@@ -287,9 +271,7 @@ async def test_create_spent_repository_error(
         yield MagicMock()
 
     app.dependency_overrides[get_db] = override_get_db
-    mocker.patch(
-        "finance_api.routers.spents.SpentRepository", return_value=mock_spent_repository
-    )
+    mocker.patch("finance_api.routers.spents.SpentRepository", return_value=mock_spent_repository)
 
     mock_spent_repository.create.side_effect = Exception("Database connection failed")
     payload = {
@@ -324,9 +306,7 @@ async def test_list_spents_pagination(test_client, mock_spent_repository, mocker
         yield MagicMock()
 
     app.dependency_overrides[get_db] = override_get_db
-    mocker.patch(
-        "finance_api.routers.spents.SpentRepository", return_value=mock_spent_repository
-    )
+    mocker.patch("finance_api.routers.spents.SpentRepository", return_value=mock_spent_repository)
 
     id1 = uuid4()
     id2 = uuid4()

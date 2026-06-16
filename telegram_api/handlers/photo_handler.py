@@ -11,9 +11,7 @@ from telegram_api.repositories.session_repository import SessionRepository
 logger = get_logger(__name__)
 
 
-async def handle_photo_message(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> None:
+async def handle_photo_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle photo messages (receipts) from users."""
     if not update.message or not update.message.photo:
         return
@@ -76,10 +74,10 @@ async def handle_photo_message(
         # Send response back to user
         from telegram.error import BadRequest
         from telegram.constants import ParseMode
-        
+
         # Escape underscores to prevent Markdown parser from interpreting them as unclosed italics
         escaped_response = bot_response.replace("_", "\\_")
-        
+
         try:
             await update.message.reply_text(escaped_response, parse_mode=ParseMode.MARKDOWN)
         except BadRequest as e:
@@ -91,9 +89,7 @@ async def handle_photo_message(
         logger.info(f"Sent OCR response to chat {chat_id}")
 
     except httpx.HTTPStatusError as e:
-        logger.error(
-            f"HTTP error from agent_api: {e.response.status_code} - {e.response.text}"
-        )
+        logger.error(f"HTTP error from agent_api: {e.response.status_code} - {e.response.text}")
         error_message = (
             "😔 Desculpe, tive um problema ao processar a imagem. "
             "Por favor, tente enviar outra foto."
@@ -103,8 +99,7 @@ async def handle_photo_message(
     except httpx.RequestError as e:
         logger.error(f"Connection error to agent_api: {e}")
         error_message = (
-            "⚠️ Não consegui conectar ao serviço de OCR. "
-            "Por favor, tente novamente mais tarde."
+            "⚠️ Não consegui conectar ao serviço de OCR. " "Por favor, tente novamente mais tarde."
         )
         await update.message.reply_text(error_message)
 

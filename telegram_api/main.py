@@ -14,7 +14,6 @@ from telegram_api.handlers.message_handler import handle_text_message
 from telegram_api.handlers.photo_handler import handle_photo_message
 from telegram_api.handlers.voice_handler import handle_voice_message
 
-
 logger = get_logger(__name__)
 
 
@@ -36,9 +35,7 @@ def main() -> None:
     application.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, handle_voice_message))
 
     # Register text message handler
-    application.add_handler(
-        MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text_message)
-    )
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text_message))
 
     logger.info("Handlers registered successfully")
 

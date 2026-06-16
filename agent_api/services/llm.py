@@ -14,9 +14,7 @@ async def get_valid_categories() -> str:
     """Fetch valid categories from finance API."""
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{settings.FINANCE_SERVICE_URL}/categories?size=100"
-            )
+            response = await client.get(f"{settings.FINANCE_SERVICE_URL}/categories?size=100")
             if response.status_code == 200:
                 data = response.json()
                 categories = [item["key"] for item in data.get("items", [])]
@@ -31,9 +29,7 @@ async def get_valid_payment_methods() -> str:
     """Fetch valid payment methods from finance API."""
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{settings.FINANCE_SERVICE_URL}/payment-methods?size=100"
-            )
+            response = await client.get(f"{settings.FINANCE_SERVICE_URL}/payment-methods?size=100")
             if response.status_code == 200:
                 data = response.json()
                 methods = [item["key"] for item in data.get("items", [])]
@@ -47,9 +43,7 @@ async def get_valid_owners() -> str:
     """Fetch valid payment owners from finance API."""
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{settings.FINANCE_SERVICE_URL}/payment-owners?size=100"
-            )
+            response = await client.get(f"{settings.FINANCE_SERVICE_URL}/payment-owners?size=100")
             if response.status_code == 200:
                 data = response.json()
                 owners = [item["key"] for item in data.get("items", [])]
@@ -64,7 +58,7 @@ async def get_system_prompt(platform: str | None = None) -> str:
     valid_categories = await get_valid_categories()
     valid_payment_methods = await get_valid_payment_methods()
     valid_owners = await get_valid_owners()
-    
+
     platform_instructions = ""
     if platform == "telegram":
         platform_instructions = (
@@ -145,9 +139,9 @@ async def get_system_prompt(platform: str | None = None) -> str:
 
 @handle_llm_errors
 async def get_llm_response(history: list, platform: str | None = None) -> AssistantResponse:
-    llm = ChatGoogleGenerativeAI(
-        model=settings.MODEL_NAME, temperature=0
-    ).with_structured_output(AssistantResponse)
+    llm = ChatGoogleGenerativeAI(model=settings.MODEL_NAME, temperature=0).with_structured_output(
+        AssistantResponse
+    )
 
     logger.info("Calling LLM service")
 

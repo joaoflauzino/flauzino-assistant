@@ -43,12 +43,10 @@ async def process_audio_file(
     AudioService.validate_audio_file(file.filename, len(audio_bytes))
 
     mime_type = file.content_type or "audio/ogg"
-    
+
     transcribed_text = await audio_service.transcribe_audio(audio_bytes, mime_type)
 
-    logger.info(
-        f"Audio transcription successful. Extracted {len(transcribed_text)} characters."
-    )
+    logger.info(f"Audio transcription successful. Extracted {len(transcribed_text)} characters.")
 
     # Process through chat service
     # We pass the transcibed text naturally, mimicking text input from the user
