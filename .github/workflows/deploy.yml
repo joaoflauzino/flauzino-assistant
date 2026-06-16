@@ -26,6 +26,9 @@ jobs:
       - name: Run Ruff Linter
         run: uv run ruff check .
         
+      - name: Setup environment variables
+        run: cp .env.example .env
+
       - name: Run Pytest
         run: uv run pytest
         
