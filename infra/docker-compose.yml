@@ -28,22 +28,22 @@ services:
     networks:
       - default
 
-  agent_api:
-    build:
-      context: ../
-      dockerfile: agent_api/Dockerfile
-    ports:
-      - "8001:8001"
-    environment:
-      - FINANCE_SERVICE_URL=http://finance_api:8000
-      - GEMINI_API_KEY=${GOOGLE_API_KEY}
-      - MODEL_NAME=${MODEL_NAME:-gemini-2.0-flash-exp}
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-flauzino}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-assistant}
-    depends_on:
-      - db
-      - finance_api
-    networks:
-      - default
+  # agent_api:
+  #   build:
+  #     context: ../
+  #     dockerfile: agent_api/Dockerfile
+  #   ports:
+  #     - "8001:8001"
+  #   environment:
+  #     - FINANCE_SERVICE_URL=http://finance_api:8000
+  #     - GEMINI_API_KEY=${GOOGLE_API_KEY}
+  #     - MODEL_NAME=${MODEL_NAME:-gemini-2.0-flash-exp}
+  #     - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-flauzino}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-assistant}
+  #   depends_on:
+  #     - db
+  #     - finance_api
+  #   networks:
+  #     - default
 
   frontend:
     build:
@@ -53,26 +53,23 @@ services:
       - "5173:80"
     depends_on:
       - finance_api
-      - agent_api
     networks:
       - default
-
-  telegram_bot:
-    build:
-      context: ../
-      dockerfile: telegram_api/Dockerfile
-    environment:
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - AGENT_API_URL=http://agent_api:8001
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-flauzino}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-assistant}
-    depends_on:
-      - agent_api
-      - db
-    restart: unless-stopped
-    networks:
-      - default
+  # telegram_bot:
+  #   build:
+  #     context: ../
+  #     dockerfile: telegram_api/Dockerfile
+  #   environment:
+  #     - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+  #     - AGENT_API_URL=http://agent_api:8001
+  #     - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-flauzino}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-assistant}
+  #   depends_on:
+  #     - agent_api
+  #     - db
+  #   restart: unless-stopped
+  #   networks:
+  #     - default
 
 volumes:
   postgres_data:
-
 
