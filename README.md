@@ -11,7 +11,7 @@ O projeto possui a seguinte arquitetura, dividida em cinco módulos principais:
 -   **`infra/`**: Contém a configuração da infraestrutura, incluindo o banco de dados PostgreSQL via Docker Compose e scripts de inicialização.
 -   **`finance_api/`**: Uma API FastAPI responsável por toda a lógica de negócio e persistência de dados. Implementa uma **Camada de Serviço** para isolar regras de negócio e **Tratamento Global de Exceções**.
 -   **`agent_api/`**: Uma API FastAPI que serve como a interface de conversação. Ela recebe mensagens do usuário, utiliza um LLM para extrair informações e se comunica com a `finance_api` para registrar os dados.
--   **`telegram_api/`**: Bot do Telegram que se comunica com a `agent_api` via HTTP para processar mensagens e recibos enviados pelos usuários.
+-   **`telegram_api`**: Bot do Telegram para processar interações dos usuários. Agora possui um fluxo interativo (`/gasto`) que se comunica diretamente com a `finance_api`, e envia áudios/recibos para a `agent_api`.
 -   **`frontend/`**: Interface Web moderna construída com React e Vite para gerenciamento visual de gastos e limites.
 
 ## Requisitos do Sistema
@@ -38,8 +38,9 @@ Este projeto utiliza `uv` para gerenciamento de dependências e `Docker` para o 
 ### 1. Configuração do Ambiente
 
 1.  **Instale as dependências:**
+    Você pode usar o comando Makefile (que usa o `uv sync` internamente):
     ```bash
-    uv sync
+    make install
     ```
 
 2.  **Crie as variáveis de ambiente:**
@@ -82,41 +83,39 @@ Se você deseja rodar as APIs localmente (via Python ou VS Code), inicie apenas 
 1.  **Inicie o banco de dados PostgreSQL:**
     A partir da raiz do projeto, execute:
     ```bash
-    docker-compose --env-file .env -f infra/docker-compose.yml up -d db
+    make db-up
     ```
 
     > **Nota para usuários MacOS (OrbStack/Docker Desktop):**
     > Para garantir a compatibilidade, defina a variável `ARCH` antes de subir o container, ou adicione ao seu `.env`:
     > ```bash
     > export ARCH=arm64
-    > docker-compose -f infra/docker-compose.yml up -d db
+    > make db-up
     > ```
     > Se não definido, o padrão será `amd64` (Linux/Intel).
 
 2.  **Execute os serviços manualmente:**
 
-    Em terminais separados, execute cada serviço:
+    Em terminais separados, você pode usar os seguintes comandos Makefile:
 
     *   **Finance API:**
         ```bash
-        uv run uvicorn finance_api.main:app --port 8000 --reload
+        make run-finance
         ```
 
     *   **Agent API:**
         ```bash
-        uv run uvicorn agent_api.main:app --port 8001 --reload
+        make run-agent
         ```
 
     *   **Telegram Bot:**
         ```bash
-        uv run python -m telegram_api.main
+        make run-telegram
         ```
 
     *   **Frontend:**
         ```bash
-        cd frontend
-        npm install
-        npm run dev
+        make run-frontend
         ```
 
 ### 3. Executando Toda a Stack via Docker
@@ -125,7 +124,7 @@ Se você deseja rodar tudo (Banco, APIs, Frontend) via Docker:
 
 1.  **Inicie tudo com um único comando:**
     ```bash
-    docker-compose --env-file .env -f infra/docker-compose.yml up -d --build
+    make docker-up
     ```
 
     Isso irá:
@@ -134,6 +133,11 @@ Se você deseja rodar tudo (Banco, APIs, Frontend) via Docker:
     - Construir e iniciar a `agent_api` na porta 8001.
     - Construir e iniciar o `frontend` na porta 5173.
     - Construir e iniciar o `telegram_bot` (se `TELEGRAM_BOT_TOKEN` estiver configurado).
+
+    Para parar todos os containers:
+    ```bash
+    make docker-down
+    ```
 
 2.  **Acesse a aplicação:**
     - Frontend: `http://localhost:5173`
@@ -152,21 +156,21 @@ O projeto utiliza `pytest` para testes unitários.
 1.  **Execute os testes:**
     A partir da raiz do projeto, execute:
     ```bash
-    uv run pytest
+    make test
     ```
 
 ## Formatação e Linting
 
 O projeto utiliza `black` para formatação de código (limite de 100 caracteres por linha) e `ruff` para linting.
 
-1.  **Para formatar o código:**
+1.  **Para formatar o código (aplica correções automaticamente):**
     ```bash
-    uv run black .
+    make format
     ```
 
-2.  **Para verificar problemas de linting:**
+2.  **Para verificar problemas de linting e formatação (check apenas):**
     ```bash
-    uv run ruff check .
+    make lint
     ```
 
 

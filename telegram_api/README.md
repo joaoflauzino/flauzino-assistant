@@ -14,19 +14,16 @@ Certifique-se de que o serviços estão rodando conforme descrito na seção "Ex
 
 - `/start` - Mensagem de boas-vindas e instruções
 - `/help` - Mostra como usar o bot com exemplos
+- `/gasto` - Inicia o fluxo interativo passo a passo para registrar um gasto
 
 ### Como Usar
 
-**Registrar gastos via mensagem de texto:**
-```
-gastei 50 reais no mercado com o cartão do itau do joao lucas
-```
+**Registrar gastos (Fluxo Interativo):**
+1. Envie `/gasto` para o bot.
+2. O bot guiará você com botões (para categorias, métodos de pagamento e donos) e com entrada de texto (para item, valor e local).
+3. Confirme os dados e o bot registrará diretamente na API Financeira.
 
-O bot irá:
-1. Processar sua mensagem
-2. Pedir informações faltantes (se houver)
-3. Confirmar os dados antes de registrar
-4. Salvar no banco de dados via `agent_api` → `finance_api`
+*(Nota: O registro de gastos via texto livre foi temporariamente desativado a favor do fluxo interativo. Se você enviar apenas texto sem usar o comando `/gasto`, o bot listará os comandos disponíveis).*
 
 **Enviar recibos via foto:**
 1. Tire uma foto do recibo
@@ -44,8 +41,6 @@ O bot irá:
 
 ### Sessões de Conversa
 
-- Cada chat do Telegram tem sua própria sessão
-- O bot lembra do contexto da conversa
-- Você pode corrigir ou adicionar informações a qualquer momento
-- Todas as sessões são armazenadas no banco de dados
+- As sessões de fotos e áudios mantêm contexto no banco de dados.
+- O fluxo de `/gasto` mantém o contexto em memória durante as etapas (Conversation Handler).
 
