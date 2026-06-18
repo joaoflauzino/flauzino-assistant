@@ -39,6 +39,13 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         
+      - name: Generate Production .env
+        run: |
+          echo "POSTGRES_USER=${{ secrets.DB_USER }}" > .env
+          echo "POSTGRES_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+          echo "POSTGRES_DB=assistant" >> .env
+          echo "DATABASE_URL=postgresql+asyncpg://${{ secrets.DB_USER }}:${{ secrets.DB_PASSWORD }}@db:5432/assistant" >> .env
+          
       - name: Deploy with Docker Compose
         # This will run natively on your Raspberry Pi.
         # It spins up the containers using the code pulled by actions/checkout.
