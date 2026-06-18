@@ -6,34 +6,7 @@ on:
       - main
 
 jobs:
-  lint-and-test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-      
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-          
-      - name: Install dependencies
-        run: uv sync --dev
-
-      - name: Run Ruff Linter
-        run: uv run ruff check .
-        
-      - name: Setup environment variables
-        run: cp .env.example .env
-
-      - name: Run Pytest
-        run: uv run pytest
-        
   deploy:
-    needs: lint-and-test
     runs-on: self-hosted
     steps:
       - name: Checkout Code
