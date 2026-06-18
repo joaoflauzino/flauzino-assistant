@@ -10,9 +10,10 @@ from telegram_api.core.logger import get_logger
 from telegram_api.core.http_client import close_http_client
 from telegram_api.core.database import init_db, close_db
 from telegram_api.handlers.command_handler import start_command, help_command
-from telegram_api.handlers.message_handler import handle_text_message
+from telegram_api.handlers.message_handler import handle_unknown_text_message
 from telegram_api.handlers.photo_handler import handle_photo_message
 from telegram_api.handlers.voice_handler import handle_voice_message
+from telegram_api.handlers.expense_handler import expense_conv_handler
 
 logger = get_logger(__name__)
 
@@ -28,6 +29,9 @@ def main() -> None:
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", help_command))
 
+    # Register the interactive expense conversation handler
+    application.add_handler(expense_conv_handler)
+
     # Register photo handler (before text handler to prioritize photos)
     application.add_handler(MessageHandler(filters.PHOTO, handle_photo_message))
 
@@ -35,7 +39,9 @@ def main() -> None:
     application.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, handle_voice_message))
 
     # Register text message handler
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text_message))
+    application.add_handler(
+        MessageHandler(filters.TEXT & ~filters.COMMAND, handle_unknown_text_message)
+    )
 
     logger.info("Handlers registered successfully")
 

@@ -8,6 +8,7 @@ class TelegramApiSettings(BaseSettings):
     AGENT_API_URL: str = "http://localhost:8001"
     DATABASE_URL: str
     REQUEST_TIMEOUT: int = 30
+    FINANCE_SERVICE_URL: str = "http://localhost:8000"
 
 
 settings = TelegramApiSettings()

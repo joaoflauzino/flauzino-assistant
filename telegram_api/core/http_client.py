@@ -151,3 +151,74 @@ async def send_audio_to_agent(
             if attempt == 2:
                 raise
             await asyncio.sleep(2**attempt)  # Exponential backoff
+
+
+async def get_valid_categories() -> list[str]:
+    """Fetch valid categories from finance API."""
+    try:
+        client = get_http_client()
+        response = await client.get(f"{settings.FINANCE_SERVICE_URL}/categories?size=100")
+        if response.status_code == 200:
+            data = response.json()
+            return [item["key"] for item in data.get("items", [])]
+    except Exception as e:
+        logger.warning(f"Failed to fetch categories: {e}")
+    return [
+        "alimentacao",
+        "comer_fora",
+        "farmacia",
+        "mercado",
+        "transporte",
+        "moradia",
+        "saude",
+        "lazer",
+        "educação",
+        "compras",
+        "vestuario",
+        "viagem",
+        "serviços",
+        "crianças",
+        "outros",
+    ]
+
+
+async def get_valid_payment_methods() -> list[str]:
+    """Fetch valid payment methods from finance API."""
+    try:
+        client = get_http_client()
+        response = await client.get(f"{settings.FINANCE_SERVICE_URL}/payment-methods?size=100")
+        if response.status_code == 200:
+            data = response.json()
+            return [item["key"] for item in data.get("items", [])]
+    except Exception as e:
+        logger.warning(f"Failed to fetch payment methods: {e}")
+    return ["itau", "nubank", "picpay", "xp", "c6"]
+
+
+async def get_valid_owners() -> list[str]:
+    """Fetch valid payment owners from finance API."""
+    try:
+        client = get_http_client()
+        response = await client.get(f"{settings.FINANCE_SERVICE_URL}/payment-owners?size=100")
+        if response.status_code == 200:
+            data = response.json()
+            return [item["key"] for item in data.get("items", [])]
+    except Exception as e:
+        logger.warning(f"Failed to fetch payment owners: {e}")
+    return ["joao_lucas", "lailla"]
+
+
+async def save_spent(details: dict) -> dict[str, Any]:
+    """Save a spent directly to finance API.
+
+    Args:
+        details: dict with category, amount, item_bought, payment_method, payment_owner, location
+    """
+    url = f"{settings.FINANCE_SERVICE_URL}/spents/"
+    logger.info(f"Sending POST request to {url}")
+    client = get_http_client()
+
+    response = await client.post(url, json=details)
+    response.raise_for_status()
+    logger.info("Finance API request successful")
+    return response.json()

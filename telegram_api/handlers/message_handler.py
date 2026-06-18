@@ -1,5 +1,7 @@
 from telegram import Update
 from telegram.ext import ContextTypes
+from telegram.error import BadRequest
+from telegram.constants import ParseMode
 import httpx
 
 from telegram_api.core.http_client import send_message_to_agent
@@ -10,8 +12,27 @@ from telegram_api.repositories.session_repository import SessionRepository
 logger = get_logger(__name__)
 
 
+async def handle_unknown_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle text messages from users when no specific command is given, showing available commands."""
+    if not update.message or not update.message.text:
+        return
+
+    chat_id = update.effective_chat.id
+    logger.info(f"Received fallback text message from chat {chat_id}")
+
+    commands_message = (
+        "🤖 Desculpe, no momento não aceito mensagens de texto livre.\n\n"
+        "Aqui estão os comandos disponíveis:\n"
+        "👉 /start - Iniciar o bot\n"
+        "👉 /help - Como usar o bot\n"
+        "👉 /gasto - Registrar um novo gasto passo a passo\n"
+    )
+
+    await update.message.reply_text(commands_message)
+
+
 async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle text messages from users."""
+    """Handle text messages from users using the AI agent."""
     if not update.message or not update.message.text:
         return
 
@@ -51,8 +72,6 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
                     await repo.save_session(chat_id, new_session_id)
 
         # Send response back to user
-        from telegram.error import BadRequest
-        from telegram.constants import ParseMode
 
         # Escape underscores to prevent Markdown parser from interpreting them as unclosed italics
         escaped_response = bot_response.replace("_", "\\_")
