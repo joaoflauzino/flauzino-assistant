@@ -1,6 +1,7 @@
 services:
   db:
     image: postgres:15-alpine
+    platform: linux/arm64
     restart: always
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
