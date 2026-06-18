@@ -1,0 +1,34 @@
+name: Auto Create PR
+
+on:
+  push:
+    branches:
+      - 'feature/**'
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Create PR
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Check if a PR already exists for this branch
+          PR_EXISTS=$(gh pr list --head "${{ github.ref_name }}" --base main --json number -q 'length')
+          
+          if [ "$PR_EXISTS" -eq "0" ]; then
+            echo "Creating a new PR..."
+            gh pr create \
+              -B main \
+              -H "${{ github.ref_name }}" \
+              --title "Feature: ${{ github.ref_name }}" \
+              --body "Automated Pull Request created by GitHub Actions. Please review the changes."
+          else
+            echo "PR already exists for this branch, skipping creation."
+          fi
