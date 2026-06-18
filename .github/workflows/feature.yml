@@ -1,9 +1,9 @@
 name: Feature Branch Checks
 
 on:
-  pull_request:
+  push:
     branches:
-      - main
+      - 'feature/**'
 
 jobs:
   lint-and-test:
