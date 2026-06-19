@@ -29,3 +29,6 @@ else
     echo "Backup failed!"
     exit 1
 fi
+
+# TODO: Understand why the crontab is not executing the script at 03:00 am. 
+## The script was executed manually and worked!

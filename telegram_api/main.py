@@ -3,16 +3,24 @@
 import signal
 import sys
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    MessageHandler,
+    TypeHandler,
+    ApplicationHandlerStop,
+    filters,
+)
 
 from telegram_api.settings import settings
 from telegram_api.core.logger import get_logger
 from telegram_api.core.http_client import close_http_client
 from telegram_api.core.database import init_db, close_db
 from telegram_api.handlers.command_handler import start_command, help_command
-from telegram_api.handlers.message_handler import handle_text_message
+from telegram_api.handlers.message_handler import handle_unknown_text_message
 from telegram_api.handlers.photo_handler import handle_photo_message
 from telegram_api.handlers.voice_handler import handle_voice_message
+from telegram_api.handlers.expense_handler import expense_conv_handler
 
 logger = get_logger(__name__)
 
@@ -21,12 +29,35 @@ def main() -> None:
     """Start the Telegram bot."""
     logger.info("Starting Telegram bot...")
 
+    async def auth_middleware(update: Update, context) -> None:
+        """Middleware to check if the user is allowed to use the bot."""
+        if not update.effective_user or not settings.ALLOWED_TELEGRAM_USERNAMES:
+            return
+
+        allowed_users = [
+            u.strip().lower() for u in settings.ALLOWED_TELEGRAM_USERNAMES.split(",") if u.strip()
+        ]
+        username = update.effective_user.username
+
+        if not username or username.lower() not in allowed_users:
+            if update.message:
+                await update.message.reply_text(
+                    "⛔️ Acesso Negado: Você não tem permissão para usar este bot."
+                )
+            raise ApplicationHandlerStop()
+
     # Create the Application
     application = Application.builder().token(settings.TELEGRAM_BOT_TOKEN).build()
+
+    # Register auth middleware
+    application.add_handler(TypeHandler(Update, auth_middleware), group=-1)
 
     # Register command handlers
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", help_command))
+
+    # Register the interactive expense conversation handler
+    application.add_handler(expense_conv_handler)
 
     # Register photo handler (before text handler to prioritize photos)
     application.add_handler(MessageHandler(filters.PHOTO, handle_photo_message))
@@ -35,7 +66,9 @@ def main() -> None:
     application.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, handle_voice_message))
 
     # Register text message handler
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text_message))
+    application.add_handler(
+        MessageHandler(filters.TEXT & ~filters.COMMAND, handle_unknown_text_message)
+    )
 
     logger.info("Handlers registered successfully")
 
