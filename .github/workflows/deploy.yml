@@ -18,7 +18,9 @@ jobs:
           echo "POSTGRES_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
           echo "POSTGRES_DB=assistant" >> .env
           echo "DATABASE_URL=postgresql+asyncpg://${{ secrets.DB_USER }}:${{ secrets.DB_PASSWORD }}@db:5432/assistant" >> .env
-          
+          echo "TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}" >> .env
+          echo "ALLOWED_TELEGRAM_USERNAMES=${{ secrets.ALLOWED_TELEGRAM_USERNAMES }}" >> .env
+
       - name: Deploy with Docker Compose
         # This will run natively on your Raspberry Pi.
         # It spins up the containers using the code pulled by actions/checkout.
