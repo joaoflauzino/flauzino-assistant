@@ -33,13 +33,17 @@ def main() -> None:
         """Middleware to check if the user is allowed to use the bot."""
         if not update.effective_user or not settings.ALLOWED_TELEGRAM_USERNAMES:
             return
-            
-        allowed_users = [u.strip().lower() for u in settings.ALLOWED_TELEGRAM_USERNAMES.split(",") if u.strip()]
+
+        allowed_users = [
+            u.strip().lower() for u in settings.ALLOWED_TELEGRAM_USERNAMES.split(",") if u.strip()
+        ]
         username = update.effective_user.username
-        
+
         if not username or username.lower() not in allowed_users:
             if update.message:
-                await update.message.reply_text("⛔️ Acesso Negado: Você não tem permissão para usar este bot.")
+                await update.message.reply_text(
+                    "⛔️ Acesso Negado: Você não tem permissão para usar este bot."
+                )
             raise ApplicationHandlerStop()
 
     # Create the Application

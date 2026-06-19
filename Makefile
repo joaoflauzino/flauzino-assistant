@@ -4,6 +4,9 @@ install:
 	uv sync
 	cd frontend && npm install
 
+setup:
+	git config core.hooksPath .githooks
+
 db-up:
 	docker-compose --env-file .env -f infra/docker-compose.yml up -d db
 

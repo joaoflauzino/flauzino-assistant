@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+# Exit immediately if a command exits with a non-zero status
+set -e
+
+echo "=============================="
+echo "Running pre-commit hooks..."
+echo "=============================="
+
+echo "1. Formatting code (make format)..."
+make format
+
+echo "2. Linting code (make lint)..."
+make lint
+
+echo "=============================="
+echo "✅ All checks passed! Committing..."
+echo "=============================="
