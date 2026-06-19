@@ -14,7 +14,8 @@ ENV UV_LINK_MODE=copy
 COPY pyproject.toml uv.lock ./
 
 # Install dependencies into a virtual environment
-RUN uv sync --frozen --no-install-project --no-dev --python /usr/local/bin/python
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-project --no-dev --python /usr/local/bin/python
 
 # Stage 2: Runtime
 FROM python:3.13-slim-bookworm
