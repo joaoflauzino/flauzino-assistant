@@ -43,7 +43,13 @@ Este projeto utiliza `uv` para gerenciamento de dependências e `Docker` para o 
     make install
     ```
 
-2.  **Crie as variáveis de ambiente:**
+2.  **Configure os hooks do Git (pre-commit):**
+    Para garantir que seu código seja sempre formatado e analisado antes de um commit, instale os hooks:
+    ```bash
+    make setup
+    ```
+
+3.  **Crie as variáveis de ambiente:**
     Crie um arquivo `.env` na raiz do projeto ou exporte as variáveis necessárias.
     
     | Variável | Descrição | Padrão | Obrigatório? |
@@ -69,7 +75,7 @@ Este projeto utiliza `uv` para gerenciamento de dependências e `Docker` para o 
     TELEGRAM_BOT_TOKEN="seu_token_do_telegram_aqui"
     ```
     
-3.  **Configure o bot do Telegram (opcional):**
+4.  **Configure o bot do Telegram (opcional):**
     Se você deseja usar o bot do Telegram:
     1. Acesse [@BotFather](https://t.me/botfather) no Telegram
     2. Envie o comando `/newbot`
@@ -93,6 +99,11 @@ Se você deseja rodar as APIs localmente (via Python ou VS Code), inicie apenas 
     > make db-up
     > ```
     > Se não definido, o padrão será `amd64` (Linux/Intel).
+
+    Para parar o banco de dados:
+    ```bash
+    make db-down
+    ```
 
 2.  **Execute os serviços manualmente:**
 
