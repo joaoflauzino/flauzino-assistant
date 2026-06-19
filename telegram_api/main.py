@@ -3,7 +3,14 @@
 import signal
 import sys
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    MessageHandler,
+    TypeHandler,
+    ApplicationHandlerStop,
+    filters,
+)
 
 from telegram_api.settings import settings
 from telegram_api.core.logger import get_logger
@@ -22,8 +29,24 @@ def main() -> None:
     """Start the Telegram bot."""
     logger.info("Starting Telegram bot...")
 
+    async def auth_middleware(update: Update, context) -> None:
+        """Middleware to check if the user is allowed to use the bot."""
+        if not update.effective_user or not settings.ALLOWED_TELEGRAM_USERNAMES:
+            return
+            
+        allowed_users = [u.strip().lower() for u in settings.ALLOWED_TELEGRAM_USERNAMES.split(",") if u.strip()]
+        username = update.effective_user.username
+        
+        if not username or username.lower() not in allowed_users:
+            if update.message:
+                await update.message.reply_text("⛔️ Acesso Negado: Você não tem permissão para usar este bot.")
+            raise ApplicationHandlerStop()
+
     # Create the Application
     application = Application.builder().token(settings.TELEGRAM_BOT_TOKEN).build()
+
+    # Register auth middleware
+    application.add_handler(TypeHandler(Update, auth_middleware), group=-1)
 
     # Register command handlers
     application.add_handler(CommandHandler("start", start_command))

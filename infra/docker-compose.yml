@@ -55,20 +55,22 @@ services:
       - finance_api
     networks:
       - default
-  # telegram_bot:
-  #   build:
-  #     context: ../
-  #     dockerfile: telegram_api/Dockerfile
-  #   environment:
-  #     - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-  #     - AGENT_API_URL=http://agent_api:8001
-  #     - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-flauzino}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-assistant}
-  #   depends_on:
-  #     - agent_api
-  #     - db
-  #   restart: unless-stopped
-  #   networks:
-  #     - default
+
+  telegram_bot:
+    build:
+      context: ../
+      dockerfile: telegram_api/Dockerfile
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - AGENT_API_URL=http://agent_api:8001
+      - FINANCE_SERVICE_URL=http://finance_api:8000
+      - ALLOWED_TELEGRAM_USERNAMES=${ALLOWED_TELEGRAM_USERNAMES}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-flauzino}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-assistant}
+    depends_on:
+      - db
+    restart: unless-stopped
+    networks:
+      - default
 
 volumes:
   postgres_data:
