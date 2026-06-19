@@ -21,3 +21,7 @@
 ## 5. Fluxo de Handlers (Refatoração para os Itens 3 e 4)
 - [ ] Desenhar a arquitetura de Handlers no `telegram_api` para acomodar as novas intenções (comandos e texto livre).
 - [ ] Avaliar como o Agente de IA lidará com requisições de texto livre ("Como estão meus gastos?") para decidir entre acionar o MCP de gráficos ou apenas consultar a API de saldo, mantendo a responsabilidade clara entre o bot e o Agente.
+
+## 6. Limpeza e Retenção de Dados (Data Retention)
+- [ ] Criar uma rotina agendada (ex: cron job diário ou script via Makefile) para limpar registros antigos do banco de dados (ex: gastos, recibos e áudios com mais de 2 anos).
+- [ ] Garantir que essa limpeza mantenha as faturas em aberto e apenas delete o histórico antigo seguro, evitando o acúmulo de dados desnecessários e protegendo o cartão de memória do Raspberry Pi contra lotação.
