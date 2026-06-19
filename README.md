@@ -185,6 +185,10 @@ O projeto utiliza `black` para formatação de código (limite de 100 caracteres
     ```
 
 
+## Próximos Passos (TODO)
+
+Consulte o arquivo [TODO.md](TODO.md) para visualizar a lista de futuras funcionalidades planejadas para o projeto, incluindo suporte a faturas de cartões, gastos recorrentes, geração de gráficos via MCP e correções na infraestrutura (como falhas no cron de backup do banco de dados).
+
 ## Documentação das APIs
 
 Consulte as documentações específicas de cada serviço nos seus respectivos diretórios:
