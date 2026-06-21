@@ -1,11 +1,12 @@
 # Lista de Próximos Passos (TODO)
 
 ## 1. Gastos Programados e Parcelamentos
-- [ ] Criar modelo/tabela na `finance_api` para suportar gastos recorrentes e parcelados.
-- [ ] Implementar endpoint para registrar compras parceladas (dividindo o valor total em parcelas com meses subsequentes).
-- [ ] Permitir o cadastro de **compras parceladas em andamento** (ex: cadastrar uma compra de 10x que já está na 5ª parcela).
-- [ ] Implementar suporte a **Assinaturas (Recorrência contínua)**: cadastrar serviços (ex: Amazon Prime, Netflix) com opção de ativar/desativar, diferentemente de parcelamentos que têm um fim pré-determinado.
-- [ ] Ajustar o `telegram_api` para perguntar (se aplicável) em quantas vezes a compra foi feita ao registrar um gasto, ou se é uma assinatura contínua.
+- [x] Criar modelo/tabela na `finance_api` para suportar gastos recorrentes e parcelados.
+- [x] Implementar endpoint para registrar compras parceladas (dividindo o valor total em parcelas com meses subsequentes).
+- [x] Permitir o cadastro de **compras parceladas em andamento** (ex: cadastrar uma compra de 10x que já está na 5ª parcela).
+- [x] Implementar suporte a **Assinaturas (Recorrência contínua)**: cadastrar serviços (ex: Amazon Prime, Netflix) com opção de ativar/desativar, diferentemente de parcelamentos que têm um fim pré-determinado.
+- [x] Ajustar o `telegram_api` para perguntar (se aplicável) em quantas vezes a compra foi feita ao registrar um gasto, ou se é uma assinatura contínua.
+- [x] Atualizar o `frontend` para listar assinaturas e visualizar adequadamente as compras parceladas no painel e na tela de gastos.
 
 ## 2. Fechamento de Faturas e Dashboards
 - [ ] Atualizar o esquema de "Métodos de Pagamento" / "Cartões" para incluir a data de fechamento e data de vencimento.
