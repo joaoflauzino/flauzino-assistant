@@ -1,9 +1,8 @@
 from datetime import date
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 from uuid import UUID
 
-if TYPE_CHECKING:
-    from finance_api.models.limits import SpendingLimit
+from finance_api.models.limits import SpendingLimit
 
 from finance_api.repositories.limits import SpendingLimitRepository
 from finance_api.repositories.categories import CategoryRepository

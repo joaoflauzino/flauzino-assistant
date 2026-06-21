@@ -3,12 +3,15 @@
 ## 1. Gastos Programados e Parcelamentos
 - [ ] Criar modelo/tabela na `finance_api` para suportar gastos recorrentes e parcelados.
 - [ ] Implementar endpoint para registrar compras parceladas (dividindo o valor total em parcelas com meses subsequentes).
-- [ ] Ajustar o `telegram_api` para perguntar (se aplicável) em quantas vezes a compra foi feita ao registrar um gasto.
+- [ ] Permitir o cadastro de **compras parceladas em andamento** (ex: cadastrar uma compra de 10x que já está na 5ª parcela).
+- [ ] Implementar suporte a **Assinaturas (Recorrência contínua)**: cadastrar serviços (ex: Amazon Prime, Netflix) com opção de ativar/desativar, diferentemente de parcelamentos que têm um fim pré-determinado.
+- [ ] Ajustar o `telegram_api` para perguntar (se aplicável) em quantas vezes a compra foi feita ao registrar um gasto, ou se é uma assinatura contínua.
 
 ## 2. Fechamento de Faturas e Dashboards
 - [ ] Atualizar o esquema de "Métodos de Pagamento" / "Cartões" para incluir a data de fechamento e data de vencimento.
-- [ ] Ajustar as consultas da `finance_api` para que a visualização de gastos "do mês" possa ser filtrada pela janela de fechamento de cada cartão.
-- [ ] Atualizar o `frontend` para exibir os dashboards baseados nas faturas dos cartões, e não apenas no mês civil.
+- [ ] Lidar com variações da **data de fechamento** (ex: dias não úteis), permitindo que o sistema tenha uma "prévia" configurada e a opção de alterar a data manualmente no fim do mês para uma visão 100% certeira.
+- [ ] Ajustar as consultas da `finance_api` para que a visualização de gastos de um "mês fechado" seja **sempre** o intervalo entre a data de fechamento do mês anterior e a data de fechamento do mês atual.
+- [ ] Atualizar o `frontend` para exibir os dashboards baseados nessas faturas e faturamentos dinâmicos, e não apenas no mês civil.
 
 ## 3. Consulta de Saldo e Limites por Categoria
 - [ ] **Síncrono (Comandos e Texto):** Criar comandos no Telegram (ex: `/limites` ou `/saldo`) e **também habilitar a consulta por texto livre** via Agente (ex: "quanto ainda posso gastar de mercado?").
@@ -19,8 +22,9 @@
 - [ ] Integrar esse servidor para que o assistente (Agent) consiga gerar visualizações de gastos e enviá-las ao Telegram em formato de imagem **tanto via comandos quanto por texto natural** ("Gere um gráfico de pizza dos gastos desse mês").
 
 ## 5. Fluxo de Handlers (Refatoração para os Itens 3 e 4)
-- [ ] Desenhar a arquitetura de Handlers no `telegram_api` para acomodar as novas intenções (comandos e texto livre).
-- [ ] Avaliar como o Agente de IA lidará com requisições de texto livre ("Como estão meus gastos?") para decidir entre acionar o MCP de gráficos ou apenas consultar a API de saldo, mantendo a responsabilidade clara entre o bot e o Agente.
+- [ ] Desenhar a arquitetura de Handlers no `telegram_api` para acomodar as novas intenções.
+- [ ] **Garantir suporte total a Linguagem Natural e Áudio:** Além dos comandos (ex: `/limites`), o bot deve permitir que o usuário cadastre gastos, consulte saldos e solicite gráficos conversando normalmente, seja por texto ou enviando áudios.
+- [ ] Avaliar como o Agente de IA tomará decisões com base nessa linguagem livre ("Como estão meus gastos?") para escolher a ferramenta certa (MCP de gráficos vs. API de saldo), mantendo o código limpo e a responsabilidade clara.
 
 ## 6. Limpeza e Retenção de Dados (Data Retention)
 - [ ] Criar uma rotina agendada (ex: cron job diário ou script via Makefile) para limpar registros antigos do banco de dados (ex: gastos, recibos e áudios com mais de 2 anos).
@@ -28,3 +32,8 @@
 
 ## 7. Infraestrutura e Backups
 - [ ] Descobrir porque o crontab com o backup do postgres não está executando todo dia as 03 da manhã.
+
+## 8. Processamento de Áudio e Recibos (OCR)
+- [ ] **Evolução do OCR:** Remover a dependência do *Tesseract*. Como você já usa a API do Gemini, vamos usar a capacidade **Multimodal do Gemini 2.5 Flash** dentro do `agent_api`. Ele lê a foto do recibo com perfeição e devolve os campos (valor, local, data) já estruturados em JSON, acabando com a dor de cabeça do OCR tradicional!
+- [ ] **Armazenamento:** Salvar a imagem original do comprovante (em base64 ou num bucket/storage local) vinculado ao registro no banco de dados da `finance_api`.
+- [ ] **Integração:** Revisar as rotas atuais de `/ocr/process-receipt` e `/audio/process-audio` no `agent_api` para unificá-las no novo fluxo do assistente.

@@ -67,7 +67,8 @@ async def test_create_spent_success(test_client, mock_spent_repository, mocker):
     }
     fake_id = uuid4()
     mock_spent_repository.create.return_value = MagicMock(
-        id=fake_id, created_at="2023-01-01T12:00:00", **payload
+        id=fake_id, created_at="2023-01-01T12:00:00", **payload,
+        is_installment=False, installment_id=None, current_installment=None, total_installments=None
     )
 
     # Act
@@ -110,6 +111,10 @@ async def test_list_spents_success(test_client, mock_spent_repository, mocker):
             payment_method="itau",
             payment_owner="joao_lucas",
             location="A",
+            is_installment=False,
+            installment_id=None,
+            current_installment=None,
+            total_installments=None,
         ),
         MagicMock(
             id=id2,
@@ -120,6 +125,10 @@ async def test_list_spents_success(test_client, mock_spent_repository, mocker):
             payment_method="c6",
             payment_owner="lailla",
             location="B",
+            is_installment=False,
+            installment_id=None,
+            current_installment=None,
+            total_installments=None,
         ),
     ]
     mock_spent_repository.list.return_value = (mock_return_data, 2)
@@ -165,6 +174,10 @@ async def test_get_spent_by_id_success(test_client, mock_spent_repository, mocke
         payment_method="itau",
         payment_owner="joao_lucas",
         location="A",
+        is_installment=False,
+        installment_id=None,
+        current_installment=None,
+        total_installments=None,
     )
     mock_spent_repository.get_by_id.return_value = mock_spent
 
@@ -222,6 +235,10 @@ async def test_update_spent_success(test_client, mock_spent_repository, mocker):
         payment_method="itau",
         payment_owner="joao_lucas",
         location="A",
+        is_installment=False,
+        installment_id=None,
+        current_installment=None,
+        total_installments=None,
     )
     mock_spent_repository.update.return_value = updated_mock
 
@@ -320,6 +337,10 @@ async def test_list_spents_pagination(test_client, mock_spent_repository, mocker
             payment_method="itau",
             payment_owner="joao_lucas",
             location="A",
+            is_installment=False,
+            installment_id=None,
+            current_installment=None,
+            total_installments=None,
         ),
         MagicMock(
             id=id2,
@@ -330,6 +351,10 @@ async def test_list_spents_pagination(test_client, mock_spent_repository, mocker
             payment_method="c6",
             payment_owner="lailla",
             location="B",
+            is_installment=False,
+            installment_id=None,
+            current_installment=None,
+            total_installments=None,
         ),
     ]
     # Simulate pagination returning only the first item, but total is 2

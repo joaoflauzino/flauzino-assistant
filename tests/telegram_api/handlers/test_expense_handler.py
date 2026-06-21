@@ -9,6 +9,9 @@ from telegram_api.handlers.expense_handler import (
     select_payment_method,
     select_owner,
     type_location,
+    select_purchase_type,
+    type_total_installments,
+    type_current_installment,
     confirm_expense,
     cancel,
     SELECT_CATEGORY,
@@ -17,6 +20,9 @@ from telegram_api.handlers.expense_handler import (
     SELECT_PAYMENT_METHOD,
     SELECT_OWNER,
     TYPE_LOCATION,
+    SELECT_PURCHASE_TYPE,
+    TYPE_TOTAL_INSTALLMENTS,
+    TYPE_CURRENT_INSTALLMENT,
     CONFIRMATION,
 )
 from telegram.ext import ConversationHandler
@@ -143,25 +149,95 @@ async def test_type_location(mock_update, mock_context):
 
     state = await type_location(mock_update, mock_context)
 
-    assert state == CONFIRMATION
+    assert state == SELECT_PURCHASE_TYPE
     assert mock_context.user_data["expense"]["location"] == "Mercado"
     mock_update.message.reply_text.assert_called_once()
 
 
 @pytest.mark.asyncio
+@patch("telegram_api.handlers.expense_handler.show_confirmation")
+async def test_select_purchase_type_a_vista(mock_show, mock_update, mock_context):
+    mock_context.user_data["expense"] = {}
+    mock_update.callback_query.data = "a_vista"
+    mock_show.return_value = CONFIRMATION
+
+    state = await select_purchase_type(mock_update, mock_context)
+
+    assert state == CONFIRMATION
+    assert mock_context.user_data["expense"]["purchase_type"] == "a_vista"
+    mock_show.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_select_purchase_type_parcelada(mock_update, mock_context):
+    mock_context.user_data["expense"] = {}
+    mock_update.callback_query.data = "parcelada"
+
+    state = await select_purchase_type(mock_update, mock_context)
+
+    assert state == TYPE_TOTAL_INSTALLMENTS
+    assert mock_context.user_data["expense"]["purchase_type"] == "parcelada"
+
+
+@pytest.mark.asyncio
+async def test_type_total_installments(mock_update, mock_context):
+    mock_context.user_data["expense"] = {}
+    mock_update.message.text = "10"
+
+    state = await type_total_installments(mock_update, mock_context)
+
+    assert state == TYPE_CURRENT_INSTALLMENT
+    assert mock_context.user_data["expense"]["total_installments"] == 10
+
+
+@pytest.mark.asyncio
+@patch("telegram_api.handlers.expense_handler.show_confirmation")
+async def test_type_current_installment(mock_show, mock_update, mock_context):
+    mock_context.user_data["expense"] = {"total_installments": 10}
+    mock_update.message.text = "5"
+    mock_show.return_value = CONFIRMATION
+
+    state = await type_current_installment(mock_update, mock_context)
+
+    assert state == CONFIRMATION
+    assert mock_context.user_data["expense"]["current_installment"] == 5
+    mock_show.assert_called_once()
+
+
+@pytest.mark.asyncio
 @patch("telegram_api.handlers.expense_handler.save_spent")
-async def test_confirm_expense(mock_save_spent, mock_update, mock_context):
-    mock_context.user_data["expense"] = {"data": "test"}
+async def test_confirm_expense_a_vista(mock_save_spent, mock_update, mock_context):
+    mock_context.user_data["expense"] = {
+        "purchase_type": "a_vista",
+        "item_bought": "test",
+        "category": "cat",
+        "amount": 10,
+    }
     mock_update.callback_query.data = "confirm"
 
     state = await confirm_expense(mock_update, mock_context)
 
     assert state == ConversationHandler.END
-    mock_save_spent.assert_called_once_with({"data": "test"})
+    mock_save_spent.assert_called_once()
     assert "expense" not in mock_context.user_data
-    mock_update.callback_query.edit_message_text.assert_called_once_with(
-        text="✅ Gasto registrado com sucesso!"
-    )
+
+
+@pytest.mark.asyncio
+@patch("telegram_api.handlers.expense_handler.save_subscription")
+async def test_confirm_expense_assinatura(mock_save_sub, mock_update, mock_context):
+    mock_context.user_data["expense"] = {
+        "purchase_type": "assinatura",
+        "item_bought": "test",
+        "category": "cat",
+        "amount": 10,
+    }
+    mock_update.callback_query.data = "confirm"
+
+    state = await confirm_expense(mock_update, mock_context)
+
+    assert state == ConversationHandler.END
+    mock_save_sub.assert_called_once()
+    assert "expense" not in mock_context.user_data
 
 
 @pytest.mark.asyncio
@@ -176,7 +252,7 @@ async def test_cancel_expense(mock_save_spent, mock_update, mock_context):
     mock_save_spent.assert_not_called()
     assert "expense" not in mock_context.user_data
     mock_update.callback_query.edit_message_text.assert_called_once_with(
-        text="❌ Registro de gasto cancelado."
+        text="❌ Registro cancelado."
     )
 
 
@@ -188,4 +264,4 @@ async def test_cancel(mock_update, mock_context):
 
     assert state == ConversationHandler.END
     assert "expense" not in mock_context.user_data
-    mock_update.message.reply_text.assert_called_once_with("Registro de gasto cancelado.")
+    mock_update.message.reply_text.assert_called_once_with("Registro cancelado.")

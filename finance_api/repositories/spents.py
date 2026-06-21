@@ -17,12 +17,20 @@ class SpentRepository:
         self.db = db
 
     async def create(self, spent: SpentCreate) -> Spent:
-        new_spent = Spent(**spent.model_dump())
+        new_spent = Spent(**spent.model_dump(exclude={"is_installment"}))
         self.db.add(new_spent)
         await self.db.commit()
         await self.db.refresh(new_spent)
         logger.info(f"Created spent: {new_spent.id}")
         return new_spent
+
+    async def create_many(self, spents: List[Spent]) -> List[Spent]:
+        self.db.add_all(spents)
+        await self.db.commit()
+        for s in spents:
+            await self.db.refresh(s)
+        logger.info(f"Created {len(spents)} spents")
+        return spents
 
     async def list(
         self,

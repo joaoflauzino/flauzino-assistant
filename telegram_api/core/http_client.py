@@ -222,3 +222,19 @@ async def save_spent(details: dict) -> dict[str, Any]:
     response.raise_for_status()
     logger.info("Finance API request successful")
     return response.json()
+
+
+async def save_subscription(details: dict) -> dict[str, Any]:
+    """Save a subscription directly to finance API.
+
+    Args:
+        details: dict with name, category, amount, payment_method, payment_owner
+    """
+    url = f"{settings.FINANCE_SERVICE_URL}/subscriptions/"
+    logger.info(f"Sending POST request to {url}")
+    client = get_http_client()
+
+    response = await client.post(url, json=details)
+    response.raise_for_status()
+    logger.info("Finance API request successful (subscription)")
+    return response.json()
