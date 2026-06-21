@@ -67,8 +67,13 @@ async def test_create_spent_success(test_client, mock_spent_repository, mocker):
     }
     fake_id = uuid4()
     mock_spent_repository.create.return_value = MagicMock(
-        id=fake_id, created_at="2023-01-01T12:00:00", **payload,
-        is_installment=False, installment_id=None, current_installment=None, total_installments=None
+        id=fake_id,
+        created_at="2023-01-01T12:00:00",
+        **payload,
+        is_installment=False,
+        installment_id=None,
+        current_installment=None,
+        total_installments=None,
     )
 
     # Act
