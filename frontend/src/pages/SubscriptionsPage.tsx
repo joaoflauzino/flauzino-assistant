@@ -1,63 +1,37 @@
 import { useEffect, useState } from 'react';
-import { Plus, Trash2, Edit2, ChevronLeft, ChevronRight, Wallet } from 'lucide-react';
+import { Plus, Trash2, Edit2, ChevronLeft, ChevronRight, Repeat, CheckCircle2, XCircle } from 'lucide-react';
 import api from '../services/api';
-import type { Spent, PaginatedResponse } from '../types';
+import type { Subscription, PaginatedResponse } from '../types';
 import { Modal } from '../components/Modal';
 
-export const SpentsPage = () => {
-    const [spents, setSpents] = useState<Spent[]>([]);
+export const SubscriptionsPage = () => {
+    const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingSpent, setEditingSpent] = useState<Spent | null>(null);
-    // Helper to get the first and last day de current month
-    const getCurrentMonthDates = () => {
-        const now = new Date();
-        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-        const formatDate = (date: Date) => {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        };
-
-        return {
-            start: formatDate(firstDay),
-            end: formatDate(today)
-        };
-    };
-
-    const monthDates = getCurrentMonthDates();
-    const [startDate, setStartDate] = useState(monthDates.start);
-    const [endDate, setEndDate] = useState(monthDates.end);
+    const [editingSubscription, setEditingSubscription] = useState<Subscription | null>(null);
 
     // Form State
     const [formData, setFormData] = useState({
+        name: '',
         category: '',
         amount: '',
-        item_bought: '',
         payment_method: '',
         payment_owner: '',
-        location: ''
+        is_active: true
     });
 
     const fetchData = async (p: number) => {
         setLoading(true);
         try {
-            let query = `/spents/?page=${p}&size=10`;
-            if (startDate) query += `&start_date=${startDate}`;
-            if (endDate) query += `&end_date=${endDate}`;
-
-            const response = await api.get<PaginatedResponse<Spent>>(query);
-            setSpents(response.data.items);
+            const response = await api.get<PaginatedResponse<Subscription>>(`/subscriptions/?page=${p}&size=10`);
+            setSubscriptions(response.data.items);
             setTotalPages(response.data.pages);
             setTotalItems(response.data.total);
         } catch (error) {
-            console.error("Failed to fetch spents", error);
+            console.error("Failed to fetch subscriptions", error);
         } finally {
             setLoading(false);
         }
@@ -75,122 +49,65 @@ export const SpentsPage = () => {
                 amount: parseFloat(formData.amount)
             };
 
-            if (editingSpent) {
-                await api.patch(`/spents/${editingSpent.id}`, payload);
+            if (editingSubscription) {
+                await api.patch(`/subscriptions/${editingSubscription.id}`, payload);
             } else {
-                await api.post('/spents/', payload);
+                await api.post('/subscriptions/', payload);
             }
             setIsModalOpen(false);
-            setEditingSpent(null);
-            setFormData({ category: '', amount: '', item_bought: '', payment_method: '', payment_owner: '', location: '' });
+            setEditingSubscription(null);
+            setFormData({ name: '', category: '', amount: '', payment_method: '', payment_owner: '', is_active: true });
             fetchData(page);
         } catch (error) {
-            console.error("Error saving spent", error);
-            alert("Failed to save spent");
+            console.error("Error saving subscription", error);
+            alert("Failed to save subscription");
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Tem certeza?")) return;
+        if (!confirm("Tem certeza que deseja excluir esta assinatura?")) return;
         try {
-            await api.delete(`/spents/${id}`);
+            await api.delete(`/subscriptions/${id}`);
             fetchData(page);
         } catch (error) {
-            console.error("Error deleting spent", error);
+            console.error("Error deleting subscription", error);
         }
     };
 
-    const openEdit = (spent: Spent) => {
-        setEditingSpent(spent);
+    const toggleStatus = async (subscription: Subscription) => {
+        try {
+            await api.patch(`/subscriptions/${subscription.id}`, { is_active: !subscription.is_active });
+            fetchData(page);
+        } catch (error) {
+            console.error("Error toggling subscription status", error);
+        }
+    };
+
+    const openEdit = (subscription: Subscription) => {
+        setEditingSubscription(subscription);
         setFormData({
-            category: spent.category,
-            amount: spent.amount.toString(),
-            item_bought: spent.item_bought,
-            payment_method: spent.payment_method,
-            payment_owner: spent.payment_owner,
-            location: spent.location
+            name: subscription.name,
+            category: subscription.category,
+            amount: subscription.amount.toString(),
+            payment_method: subscription.payment_method,
+            payment_owner: subscription.payment_owner,
+            is_active: subscription.is_active
         });
         setIsModalOpen(true);
     };
 
     const openCreate = () => {
-        setEditingSpent(null);
-        setFormData({ category: '', amount: '', item_bought: '', payment_method: '', payment_owner: '', location: '' });
+        setEditingSubscription(null);
+        setFormData({ name: '', category: '', amount: '', payment_method: '', payment_owner: '', is_active: true });
         setIsModalOpen(true);
-    };
-
-    const handleFilter = (e?: React.FormEvent) => {
-        e?.preventDefault();
-        setPage(1); // Reset to first page when filtering
-        fetchData(1);
     };
 
     return (
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <div>
-                    <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0 }}>Gastos</h1>
-                    <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>Acompanhe e gerencie suas despesas</p>
-                </div>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <form onSubmit={handleFilter} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
-                        <div>
-                            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.3rem', fontWeight: 500 }}>Data Inicial</label>
-                            <input
-                                type="date"
-                                value={startDate}
-                                onChange={e => setStartDate(e.target.value)}
-                                style={{
-                                    padding: '0.6rem 0.8rem',
-                                    borderRadius: '8px',
-                                    border: '1px solid var(--border-color)',
-                                    background: 'var(--bg-tertiary)',
-                                    color: 'white',
-                                    fontSize: '0.9rem',
-                                    transition: 'all 0.2s',
-                                    cursor: 'pointer'
-                                }}
-                            />
-                        </div>
-                        <div>
-                            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.3rem', fontWeight: 500 }}>Data Final</label>
-                            <input
-                                type="date"
-                                value={endDate}
-                                onChange={e => setEndDate(e.target.value)}
-                                style={{
-                                    padding: '0.6rem 0.8rem',
-                                    borderRadius: '8px',
-                                    border: '1px solid var(--border-color)',
-                                    background: 'var(--bg-tertiary)',
-                                    color: 'white',
-                                    fontSize: '0.9rem',
-                                    transition: 'all 0.2s',
-                                    cursor: 'pointer'
-                                }}
-                            />
-                        </div>
-                        <button
-                            type="submit"
-                            style={{
-                                backgroundColor: 'var(--accent-color)',
-                                color: 'white',
-                                height: '38px',
-                                padding: '0 1.5rem',
-                                borderRadius: '8px',
-                                border: 'none',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                transition: 'all 0.2s',
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
-                            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                        >
-                            Filtrar
-                        </button>
-                    </form>
-
+                    <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0 }}>Assinaturas</h1>
+                    <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>Acompanhe e gerencie seus gastos recorrentes</p>
                 </div>
             </div>
 
@@ -216,14 +133,13 @@ export const SpentsPage = () => {
                         padding: '1rem',
                         borderRadius: '12px'
                     }}>
-                        <Wallet size={24} color="var(--accent-color)" />
+                        <Repeat size={24} color="var(--accent-color)" />
                     </div>
                     <div>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0, marginBottom: '0.25rem' }}>Total de Gastos Encontrados</p>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0, marginBottom: '0.25rem' }}>Total de Assinaturas</p>
                         <h2 style={{ fontSize: '1.8rem', fontWeight: 700, margin: 0 }}>{totalItems}</h2>
                     </div>
                 </div>
-                {/* Optional: Add more stats here like "Total Amount" if we had that from API */}
             </div>
 
             <div style={{
@@ -234,11 +150,11 @@ export const SpentsPage = () => {
                 boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
                 display: 'flex',
                 flexDirection: 'column',
-                maxHeight: 'calc(100vh - 280px)' // Fixed height to enable scrolling
+                maxHeight: 'calc(100vh - 280px)'
             }}>
                 {loading ? (
                     <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                        Carregando gastos...
+                        Carregando assinaturas...
                     </div>
                 ) : (
                     <>
@@ -253,32 +169,27 @@ export const SpentsPage = () => {
                                         top: 0,
                                         zIndex: 10
                                     }}>
-                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>ITEM</th>
+                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>NOME</th>
                                         <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>CATEGORIA</th>
                                         <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>VALOR</th>
                                         <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>MÉTODO</th>
                                         <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>TITULAR</th>
-                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>LOCALIZAÇÃO</th>
-                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>DATA</th>
+                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>STATUS</th>
                                         <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem', textAlign: 'right' }}>AÇÕES</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {spents.map((s) => (
+                                    {subscriptions.map((s) => (
                                         <tr key={s.id} style={{
                                             borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-                                            transition: 'background-color 0.2s'
+                                            transition: 'background-color 0.2s',
+                                            opacity: s.is_active ? 1 : 0.6
                                         }}
                                             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.02)'}
                                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                         >
                                             <td style={{ padding: '1.25rem 1.5rem', fontWeight: 500, color: 'var(--text-primary)' }}>
-                                                {s.item_bought}
-                                                {s.is_installment && (
-                                                    <span style={{ color: 'var(--accent-color)', fontSize: '0.85rem', marginLeft: '0.5rem', fontWeight: 600 }}>
-                                                        (Parcela {s.current_installment}/{s.total_installments})
-                                                    </span>
-                                                )}
+                                                {s.name}
                                             </td>
                                             <td style={{ padding: '1.25rem 1.5rem' }}>
                                                 <span style={{
@@ -296,8 +207,29 @@ export const SpentsPage = () => {
                                             </td>
                                             <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)' }}>{s.payment_method}</td>
                                             <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)' }}>{s.payment_owner}</td>
-                                            <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)' }}>{s.location}</td>
-                                            <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)' }}>{new Date(s.created_at).toLocaleDateString()}</td>
+                                            <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)' }}>
+                                                <button
+                                                    onClick={() => toggleStatus(s)}
+                                                    style={{
+                                                        background: 'transparent',
+                                                        border: 'none',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '0.5rem',
+                                                        color: s.is_active ? '#22c55e' : '#ef4444',
+                                                        fontWeight: 500,
+                                                        padding: '0.25rem 0.5rem',
+                                                        borderRadius: '4px',
+                                                        transition: 'background-color 0.2s'
+                                                    }}
+                                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
+                                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                                >
+                                                    {s.is_active ? <CheckCircle2 size={18} /> : <XCircle size={18} />}
+                                                    {s.is_active ? 'Ativa' : 'Inativa'}
+                                                </button>
+                                            </td>
                                             <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
                                                 <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
                                                     <button
@@ -420,12 +352,31 @@ export const SpentsPage = () => {
                     onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
                     onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                 >
-                    <Plus size={22} /> Novo Gasto
+                    <Plus size={22} /> Nova Assinatura
                 </button>
             </div>
 
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingSpent ? "Editar Gasto" : "Novo Gasto"}>
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingSubscription ? "Editar Assinatura" : "Nova Assinatura"}>
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1rem' }}>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Nome da Assinatura</label>
+                        <input
+                            required
+                            className="form-input"
+                            value={formData.name}
+                            onChange={e => setFormData({ ...formData, name: e.target.value })}
+                            placeholder="e.g. Netflix"
+                            style={{
+                                width: '100%',
+                                padding: '0.9rem',
+                                borderRadius: '8px',
+                                border: '1px solid var(--border-color)',
+                                backgroundColor: 'var(--bg-primary)',
+                                color: 'white',
+                                fontSize: '1rem'
+                            }}
+                        />
+                    </div>
                     <div>
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Categoria</label>
                         <input
@@ -433,7 +384,7 @@ export const SpentsPage = () => {
                             className="form-input"
                             value={formData.category}
                             onChange={e => setFormData({ ...formData, category: e.target.value })}
-                            placeholder="e.g. food"
+                            placeholder="e.g. lazer"
                             style={{
                                 width: '100%',
                                 padding: '0.9rem',
@@ -446,26 +397,7 @@ export const SpentsPage = () => {
                         />
                     </div>
                     <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Item Comprado</label>
-                        <input
-                            required
-                            className="form-input"
-                            value={formData.item_bought}
-                            onChange={e => setFormData({ ...formData, item_bought: e.target.value })}
-                            placeholder="e.g. Almoço"
-                            style={{
-                                width: '100%',
-                                padding: '0.9rem',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                backgroundColor: 'var(--bg-primary)',
-                                color: 'white',
-                                fontSize: '1rem'
-                            }}
-                        />
-                    </div>
-                    <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Amount (R$)</label>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Valor Mensal (R$)</label>
                         <input
                             required
                             type="number"
@@ -493,7 +425,7 @@ export const SpentsPage = () => {
                                 required
                                 value={formData.payment_method}
                                 onChange={e => setFormData({ ...formData, payment_method: e.target.value })}
-                                placeholder="e.g. Credit Card"
+                                placeholder="e.g. nubank"
                                 style={{
                                     width: '100%',
                                     padding: '0.9rem',
@@ -511,7 +443,7 @@ export const SpentsPage = () => {
                                 required
                                 value={formData.payment_owner}
                                 onChange={e => setFormData({ ...formData, payment_owner: e.target.value })}
-                                placeholder="e.g. Joao"
+                                placeholder="e.g. joao_lucas"
                                 style={{
                                     width: '100%',
                                     padding: '0.9rem',
@@ -523,24 +455,6 @@ export const SpentsPage = () => {
                                 }}
                             />
                         </div>
-                    </div>
-                    <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Localização</label>
-                        <input
-                            required
-                            value={formData.location}
-                            onChange={e => setFormData({ ...formData, location: e.target.value })}
-                            placeholder="e.g. Supermarket"
-                            style={{
-                                width: '100%',
-                                padding: '0.9rem',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                backgroundColor: 'var(--bg-primary)',
-                                color: 'white',
-                                fontSize: '1rem'
-                            }}
-                        />
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
@@ -557,7 +471,7 @@ export const SpentsPage = () => {
                                 fontWeight: 500
                             }}
                         >
-                            Cancel
+                            Cancelar
                         </button>
                         <button
                             type="submit"
@@ -572,7 +486,7 @@ export const SpentsPage = () => {
                                 minWidth: '100px'
                             }}
                         >
-                            {editingSpent ? "Update" : "Create"}
+                            {editingSubscription ? "Atualizar" : "Criar"}
                         </button>
                     </div>
                 </form>
