@@ -406,7 +406,7 @@ async def test_get_installments_summary_success(test_client, mock_spent_reposito
             "item_bought": "Monitor",
             "amount": 100.0,
             "total_installments": 10,
-            "passed_installments": 2
+            "passed_installments": 2,
         }
     ]
 

@@ -77,6 +77,7 @@ async def test_list_spents(mock_db_session):
     assert total == 10
     assert len(items) == 2
 
+
 async def test_get_installments_summary(mock_db_session):
     """
     Test that the get_installments_summary method correctly retrieves and maps the summary.

@@ -82,23 +82,17 @@ class SpentRepository:
                 func.min(Spent.amount).label("amount"),
                 func.max(Spent.total_installments).label("total_installments"),
                 func.max(
-                    case(
-                        (Spent.created_at <= func.now(), Spent.current_installment),
-                        else_=0
-                    )
-                ).label("passed_installments")
+                    case((Spent.created_at <= func.now(), Spent.current_installment), else_=0)
+                ).label("passed_installments"),
             )
             .where(Spent.installment_id.is_not(None))
             .group_by(Spent.installment_id)
-            .order_by(
-                text("passed_installments DESC"),
-                text("total_installments DESC")
-            )
+            .order_by(text("passed_installments DESC"), text("total_installments DESC"))
         )
-        
+
         result = await self.db.execute(query)
         rows = result.fetchall()
-        
+
         return [
             {
                 "installment_id": row.installment_id,
@@ -106,7 +100,7 @@ class SpentRepository:
                 "item_bought": row.item_bought,
                 "amount": row.amount,
                 "total_installments": row.total_installments,
-                "passed_installments": row.passed_installments
+                "passed_installments": row.passed_installments,
             }
             for row in rows
         ]
