@@ -1,6 +1,6 @@
 from datetime import date, datetime
 import uuid
-from typing import Optional
+from typing import Optional, List
 from uuid import UUID
 from dateutil.relativedelta import relativedelta
 from zoneinfo import ZoneInfo
@@ -12,6 +12,7 @@ from finance_api.schemas.spents import SpentCreate, SpentUpdate
 from finance_api.core.decorators import handle_service_errors
 from finance_api.core.exceptions import EntityNotFoundError, ValidationError
 from finance_api.schemas.pagination import PaginatedResponse
+from finance_api.schemas.installments import InstallmentSummary
 from finance_api.core.logger import get_logger
 
 logger = get_logger(__name__)
@@ -102,3 +103,9 @@ class SpentService:
         if not deleted:
             raise EntityNotFoundError(f"Spent with id {spent_id} not found")
         return True
+
+    @handle_service_errors
+    async def get_installments_summary(self) -> List[InstallmentSummary]:
+        logger.info("Fetching installments summary")
+        summary_dicts = await self.repo.get_installments_summary()
+        return [InstallmentSummary(**s) for s in summary_dicts]

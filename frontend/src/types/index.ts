@@ -59,3 +59,12 @@ export interface PaymentOwner {
     display_name: string;
     created_at: string;
 }
+
+export interface InstallmentSummary {
+    installment_id: string;
+    category: string;
+    item_bought: string;
+    amount: number;
+    total_installments: number;
+    passed_installments: number;
+}

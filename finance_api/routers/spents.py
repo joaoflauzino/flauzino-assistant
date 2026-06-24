@@ -10,6 +10,7 @@ from finance_api.repositories.spents import SpentRepository
 from finance_api.services.spents import SpentService
 from finance_api.schemas.spents import SpentCreate, SpentResponse, SpentUpdate
 from finance_api.schemas.pagination import PaginatedResponse
+from finance_api.schemas.installments import InstallmentSummary
 
 router = APIRouter()
 
@@ -32,6 +33,13 @@ async def list_spents(
     repo = SpentRepository(db)
     service = SpentService(repo)
     return await service.list(page, size, start_date, end_date)
+
+
+@router.get("/installments-summary", response_model=list[InstallmentSummary])
+async def get_installments_summary(db: AsyncSession = Depends(get_db)) -> list[InstallmentSummary]:
+    repo = SpentRepository(db)
+    service = SpentService(repo)
+    return await service.get_installments_summary()
 
 
 @router.get("/{spent_id}", response_model=SpentResponse)

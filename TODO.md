@@ -10,6 +10,7 @@
 - [x] Mostrar número da parcela (`x/y`) ao lado do nome do gasto no painel do frontend para compras parceladas.
 - [x] Transformar os campos de `Categoria`, `Método` e `Titular` em opções de seleção (dropdowns dinâmicos) nos formulários do Frontend.
 - [x] Implementar fluxo no `telegram_api` para perguntar a data da compra (Hoje/Agora vs Data Específica), usando calendário interativo ou botões.
+- [x] **Seção de Compras Parceladas**: Criar página no painel (Frontend) e rota agregada na API para listar o progresso de compras parceladas agrupadas por categoria, mostrando visualmente quantas parcelas faltam para acabar.
 
 ## 2. Fechamento de Faturas e Dashboards
 - [ ] Atualizar o esquema de "Métodos de Pagamento" / "Cartões" para incluir a data de fechamento e data de vencimento.
