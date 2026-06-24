@@ -157,7 +157,7 @@ async def get_valid_categories() -> list[str]:
     """Fetch valid categories from finance API."""
     try:
         client = get_http_client()
-        response = await client.get(f"{settings.FINANCE_SERVICE_URL}/categories?size=100")
+        response = await client.get(f"{settings.FINANCE_SERVICE_URL}/categories/?size=100")
         if response.status_code == 200:
             data = response.json()
             return [item["key"] for item in data.get("items", [])]
@@ -186,7 +186,7 @@ async def get_valid_payment_methods() -> list[str]:
     """Fetch valid payment methods from finance API."""
     try:
         client = get_http_client()
-        response = await client.get(f"{settings.FINANCE_SERVICE_URL}/payment-methods?size=100")
+        response = await client.get(f"{settings.FINANCE_SERVICE_URL}/payment-methods/?size=100")
         if response.status_code == 200:
             data = response.json()
             return [item["key"] for item in data.get("items", [])]
@@ -199,7 +199,7 @@ async def get_valid_owners() -> list[str]:
     """Fetch valid payment owners from finance API."""
     try:
         client = get_http_client()
-        response = await client.get(f"{settings.FINANCE_SERVICE_URL}/payment-owners?size=100")
+        response = await client.get(f"{settings.FINANCE_SERVICE_URL}/payment-owners/?size=100")
         if response.status_code == 200:
             data = response.json()
             return [item["key"] for item in data.get("items", [])]
