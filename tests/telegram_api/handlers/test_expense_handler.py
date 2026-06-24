@@ -23,7 +23,7 @@ from telegram_api.handlers.expense_handler import (
     SELECT_PURCHASE_TYPE,
     TYPE_TOTAL_INSTALLMENTS,
     TYPE_CURRENT_INSTALLMENT,
-    CONFIRMATION,
+    SELECT_DATE_OPTION,
 )
 from telegram.ext import ConversationHandler
 
@@ -155,17 +155,17 @@ async def test_type_location(mock_update, mock_context):
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.handlers.expense_handler.show_confirmation")
-async def test_select_purchase_type_a_vista(mock_show, mock_update, mock_context):
+@patch("telegram_api.handlers.expense_handler.ask_for_date")
+async def test_select_purchase_type_a_vista(mock_ask, mock_update, mock_context):
     mock_context.user_data["expense"] = {}
     mock_update.callback_query.data = "a_vista"
-    mock_show.return_value = CONFIRMATION
+    mock_ask.return_value = SELECT_DATE_OPTION
 
     state = await select_purchase_type(mock_update, mock_context)
 
-    assert state == CONFIRMATION
+    assert state == SELECT_DATE_OPTION
     assert mock_context.user_data["expense"]["purchase_type"] == "a_vista"
-    mock_show.assert_called_once()
+    mock_ask.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -191,17 +191,17 @@ async def test_type_total_installments(mock_update, mock_context):
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.handlers.expense_handler.show_confirmation")
-async def test_type_current_installment(mock_show, mock_update, mock_context):
+@patch("telegram_api.handlers.expense_handler.ask_for_date")
+async def test_type_current_installment(mock_ask, mock_update, mock_context):
     mock_context.user_data["expense"] = {"total_installments": 10}
     mock_update.message.text = "5"
-    mock_show.return_value = CONFIRMATION
+    mock_ask.return_value = SELECT_DATE_OPTION
 
     state = await type_current_installment(mock_update, mock_context)
 
-    assert state == CONFIRMATION
+    assert state == SELECT_DATE_OPTION
     assert mock_context.user_data["expense"]["current_installment"] == 5
-    mock_show.assert_called_once()
+    mock_ask.assert_called_once()
 
 
 @pytest.mark.asyncio

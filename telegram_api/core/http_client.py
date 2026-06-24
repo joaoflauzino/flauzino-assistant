@@ -172,12 +172,12 @@ async def get_valid_categories() -> list[str]:
         "moradia",
         "saude",
         "lazer",
-        "educação",
+        "educacao",
         "compras",
         "vestuario",
         "viagem",
-        "serviços",
-        "crianças",
+        "servicos",
+        "criancas",
         "outros",
     ]
 

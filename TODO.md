@@ -7,6 +7,9 @@
 - [x] Implementar suporte a **Assinaturas (Recorrência contínua)**: cadastrar serviços (ex: Amazon Prime, Netflix) com opção de ativar/desativar, diferentemente de parcelamentos que têm um fim pré-determinado.
 - [x] Ajustar o `telegram_api` para perguntar (se aplicável) em quantas vezes a compra foi feita ao registrar um gasto, ou se é uma assinatura contínua.
 - [x] Atualizar o `frontend` para listar assinaturas e visualizar adequadamente as compras parceladas no painel e na tela de gastos.
+- [x] Mostrar número da parcela (`x/y`) ao lado do nome do gasto no painel do frontend para compras parceladas.
+- [x] Transformar os campos de `Categoria`, `Método` e `Titular` em opções de seleção (dropdowns dinâmicos) nos formulários do Frontend.
+- [x] Implementar fluxo no `telegram_api` para perguntar a data da compra (Hoje/Agora vs Data Específica), usando calendário interativo ou botões.
 
 ## 2. Fechamento de Faturas e Dashboards
 - [ ] Atualizar o esquema de "Métodos de Pagamento" / "Cartões" para incluir a data de fechamento e data de vencimento.

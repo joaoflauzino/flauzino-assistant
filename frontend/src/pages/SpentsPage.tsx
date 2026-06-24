@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Trash2, Edit2, ChevronLeft, ChevronRight, Wallet } from 'lucide-react';
 import api from '../services/api';
-import type { Spent, PaginatedResponse } from '../types';
+import type { Spent, PaginatedResponse, Category, PaymentMethod, PaymentOwner } from '../types';
 import { Modal } from '../components/Modal';
 
 export const SpentsPage = () => {
@@ -12,6 +12,11 @@ export const SpentsPage = () => {
     const [totalItems, setTotalItems] = useState(0);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingSpent, setEditingSpent] = useState<Spent | null>(null);
+
+    // Options States
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+    const [paymentOwners, setPaymentOwners] = useState<PaymentOwner[]>([]);
     // Helper to get the first and last day de current month
     const getCurrentMonthDates = () => {
         const now = new Date();
@@ -42,7 +47,11 @@ export const SpentsPage = () => {
         item_bought: '',
         payment_method: '',
         payment_owner: '',
-        location: ''
+        location: '',
+        created_at: monthDates.end,
+        is_installment: false,
+        current_installment: 1,
+        total_installments: 2
     });
 
     const fetchData = async (p: number) => {
@@ -64,16 +73,45 @@ export const SpentsPage = () => {
     };
 
     useEffect(() => {
+        const fetchOptions = async () => {
+            try {
+                const [catRes, pmRes, poRes] = await Promise.all([
+                    api.get<PaginatedResponse<Category>>('/categories/?size=1000'),
+                    api.get<PaginatedResponse<PaymentMethod>>('/payment-methods/?size=1000'),
+                    api.get<PaginatedResponse<PaymentOwner>>('/payment-owners/?size=1000')
+                ]);
+                setCategories(catRes.data.items);
+                setPaymentMethods(pmRes.data.items);
+                setPaymentOwners(poRes.data.items);
+            } catch (error) {
+                console.error("Failed to fetch options", error);
+            }
+        };
+        fetchOptions();
+    }, []);
+
+    useEffect(() => {
         fetchData(page);
     }, [page]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const payload = {
+            const payload: any = {
                 ...formData,
-                amount: parseFloat(formData.amount)
+                amount: parseFloat(formData.amount),
+                created_at: new Date(formData.created_at + 'T12:00:00Z').toISOString()
             };
+
+            if (formData.is_installment) {
+                payload.is_installment = true;
+                payload.current_installment = parseInt(formData.current_installment.toString());
+                payload.total_installments = parseInt(formData.total_installments.toString());
+            } else {
+                payload.is_installment = false;
+                payload.current_installment = null;
+                payload.total_installments = null;
+            }
 
             if (editingSpent) {
                 await api.patch(`/spents/${editingSpent.id}`, payload);
@@ -82,7 +120,7 @@ export const SpentsPage = () => {
             }
             setIsModalOpen(false);
             setEditingSpent(null);
-            setFormData({ category: '', amount: '', item_bought: '', payment_method: '', payment_owner: '', location: '' });
+            setFormData({ category: '', amount: '', item_bought: '', payment_method: '', payment_owner: '', location: '', created_at: monthDates.end, is_installment: false, current_installment: 1, total_installments: 2 });
             fetchData(page);
         } catch (error) {
             console.error("Error saving spent", error);
@@ -108,14 +146,18 @@ export const SpentsPage = () => {
             item_bought: spent.item_bought,
             payment_method: spent.payment_method,
             payment_owner: spent.payment_owner,
-            location: spent.location
+            location: spent.location,
+            created_at: spent.created_at ? spent.created_at.substring(0, 10) : monthDates.end,
+            is_installment: spent.is_installment || false,
+            current_installment: spent.current_installment || 1,
+            total_installments: spent.total_installments || 2
         });
         setIsModalOpen(true);
     };
 
     const openCreate = () => {
         setEditingSpent(null);
-        setFormData({ category: '', amount: '', item_bought: '', payment_method: '', payment_owner: '', location: '' });
+        setFormData({ category: '', amount: '', item_bought: '', payment_method: '', payment_owner: '', location: '', created_at: monthDates.end, is_installment: false, current_installment: 1, total_installments: 2 });
         setIsModalOpen(true);
     };
 
@@ -274,9 +316,9 @@ export const SpentsPage = () => {
                                         >
                                             <td style={{ padding: '1.25rem 1.5rem', fontWeight: 500, color: 'var(--text-primary)' }}>
                                                 {s.item_bought}
-                                                {s.is_installment && (
+                                                {s.current_installment && s.total_installments && (
                                                     <span style={{ color: 'var(--accent-color)', fontSize: '0.85rem', marginLeft: '0.5rem', fontWeight: 600 }}>
-                                                        (Parcela {s.current_installment}/{s.total_installments})
+                                                        ({s.current_installment}/{s.total_installments})
                                                     </span>
                                                 )}
                                             </td>
@@ -428,12 +470,11 @@ export const SpentsPage = () => {
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1rem' }}>
                     <div>
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Categoria</label>
-                        <input
+                        <select
                             required
                             className="form-input"
                             value={formData.category}
                             onChange={e => setFormData({ ...formData, category: e.target.value })}
-                            placeholder="e.g. food"
                             style={{
                                 width: '100%',
                                 padding: '0.9rem',
@@ -441,9 +482,15 @@ export const SpentsPage = () => {
                                 border: '1px solid var(--border-color)',
                                 backgroundColor: 'var(--bg-primary)',
                                 color: 'white',
-                                fontSize: '1rem'
+                                fontSize: '1rem',
+                                appearance: 'none'
                             }}
-                        />
+                        >
+                            <option value="" disabled>Selecione uma categoria...</option>
+                            {categories.map(c => (
+                                <option key={c.id} value={c.key}>{c.display_name}</option>
+                            ))}
+                        </select>
                     </div>
                     <div>
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Item Comprado</label>
@@ -489,11 +536,10 @@ export const SpentsPage = () => {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Método</label>
-                            <input
+                            <select
                                 required
                                 value={formData.payment_method}
                                 onChange={e => setFormData({ ...formData, payment_method: e.target.value })}
-                                placeholder="e.g. Credit Card"
                                 style={{
                                     width: '100%',
                                     padding: '0.9rem',
@@ -501,17 +547,22 @@ export const SpentsPage = () => {
                                     border: '1px solid var(--border-color)',
                                     backgroundColor: 'var(--bg-primary)',
                                     color: 'white',
-                                    fontSize: '1rem'
+                                    fontSize: '1rem',
+                                    appearance: 'none'
                                 }}
-                            />
+                            >
+                                <option value="" disabled>Selecione...</option>
+                                {paymentMethods.map(pm => (
+                                    <option key={pm.id} value={pm.key}>{pm.display_name}</option>
+                                ))}
+                            </select>
                         </div>
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Titular</label>
-                            <input
+                            <select
                                 required
                                 value={formData.payment_owner}
                                 onChange={e => setFormData({ ...formData, payment_owner: e.target.value })}
-                                placeholder="e.g. Joao"
                                 style={{
                                     width: '100%',
                                     padding: '0.9rem',
@@ -519,9 +570,15 @@ export const SpentsPage = () => {
                                     border: '1px solid var(--border-color)',
                                     backgroundColor: 'var(--bg-primary)',
                                     color: 'white',
-                                    fontSize: '1rem'
+                                    fontSize: '1rem',
+                                    appearance: 'none'
                                 }}
-                            />
+                            >
+                                <option value="" disabled>Selecione...</option>
+                                {paymentOwners.map(po => (
+                                    <option key={po.id} value={po.key}>{po.display_name}</option>
+                                ))}
+                            </select>
                         </div>
                     </div>
                     <div>
@@ -542,6 +599,83 @@ export const SpentsPage = () => {
                             }}
                         />
                     </div>
+
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Data da Compra</label>
+                        <input
+                            required
+                            type="date"
+                            className="form-input"
+                            value={formData.created_at}
+                            onChange={e => setFormData({ ...formData, created_at: e.target.value })}
+                            style={{
+                                width: '100%',
+                                padding: '0.9rem',
+                                borderRadius: '8px',
+                                border: '1px solid var(--border-color)',
+                                backgroundColor: 'var(--bg-primary)',
+                                color: 'white',
+                                fontSize: '1rem'
+                            }}
+                        />
+                    </div>
+
+                    <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center' }}>
+                        <input
+                            type="checkbox"
+                            id="is_installment"
+                            checked={formData.is_installment}
+                            onChange={e => setFormData({ ...formData, is_installment: e.target.checked })}
+                            style={{ marginRight: '0.5rem', width: '1.2rem', height: '1.2rem' }}
+                        />
+                        <label htmlFor="is_installment" style={{ fontSize: '0.95rem', color: 'var(--text-primary)', fontWeight: 500, cursor: 'pointer' }}>
+                            Compra Parcelada?
+                        </label>
+                    </div>
+
+                    {formData.is_installment && (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', padding: '1rem', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Total de Parcelas</label>
+                                <input
+                                    required
+                                    type="number"
+                                    min="2"
+                                    value={formData.total_installments}
+                                    onChange={e => setFormData({ ...formData, total_installments: parseInt(e.target.value) || 2 })}
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.9rem',
+                                        borderRadius: '8px',
+                                        border: '1px solid var(--border-color)',
+                                        backgroundColor: 'var(--bg-primary)',
+                                        color: 'white',
+                                        fontSize: '1rem'
+                                    }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Parcela Atual</label>
+                                <input
+                                    required
+                                    type="number"
+                                    min="1"
+                                    max={formData.total_installments}
+                                    value={formData.current_installment}
+                                    onChange={e => setFormData({ ...formData, current_installment: parseInt(e.target.value) || 1 })}
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.9rem',
+                                        borderRadius: '8px',
+                                        border: '1px solid var(--border-color)',
+                                        backgroundColor: 'var(--bg-primary)',
+                                        color: 'white',
+                                        fontSize: '1rem'
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    )}
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
                         <button

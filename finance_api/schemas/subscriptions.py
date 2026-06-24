@@ -20,7 +20,8 @@ class SubscriptionBase(BaseModel):
         return v.lower().strip()
 
 
-class SubscriptionCreate(SubscriptionBase): ...
+class SubscriptionCreate(SubscriptionBase):
+    created_at: Optional[datetime] = None
 
 
 class SubscriptionUpdate(BaseModel):

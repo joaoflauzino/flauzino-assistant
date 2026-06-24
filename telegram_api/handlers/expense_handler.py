@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ContextTypes,
@@ -29,8 +31,10 @@ logger = get_logger(__name__)
     SELECT_PURCHASE_TYPE,
     TYPE_TOTAL_INSTALLMENTS,
     TYPE_CURRENT_INSTALLMENT,
+    SELECT_DATE_OPTION,
+    TYPE_CUSTOM_DATE,
     CONFIRMATION,
-) = range(10)
+) = range(12)
 
 
 def build_inline_keyboard(options: list[str], columns: int = 2) -> InlineKeyboardMarkup:
@@ -152,6 +156,64 @@ async def type_location(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     return SELECT_PURCHASE_TYPE
 
 
+async def ask_for_date(message_target, context: ContextTypes.DEFAULT_TYPE) -> int:
+    keyboard = [
+        [
+            InlineKeyboardButton("📅 Hoje (Agora)", callback_data="date_hoje"),
+            InlineKeyboardButton("📅 Ontem", callback_data="date_ontem"),
+        ],
+        [
+            InlineKeyboardButton("⌨️ Outra Data (Digitar)", callback_data="date_custom"),
+        ],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    text = "Qual foi a data da compra?"
+
+    if hasattr(message_target, "edit_message_text"):
+        await message_target.edit_message_text(text=text, reply_markup=reply_markup)
+    else:
+        await message_target.reply_text(text=text, reply_markup=reply_markup)
+
+    return SELECT_DATE_OPTION
+
+
+async def select_date_option(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+
+    option = query.data
+    tz = ZoneInfo("America/Sao_Paulo")
+    if option == "date_hoje":
+        context.user_data["expense"]["created_at"] = datetime.now(tz)
+        return await show_confirmation(query, context)
+    elif option == "date_ontem":
+        context.user_data["expense"]["created_at"] = datetime.now(tz) - timedelta(days=1)
+        return await show_confirmation(query, context)
+    elif option == "date_custom":
+        await query.edit_message_text(
+            "Por favor, digite a data no formato DD/MM/AAAA (ex: 15/06/2026):"
+        )
+        return TYPE_CUSTOM_DATE
+    return SELECT_DATE_OPTION
+
+
+async def type_custom_date(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    text = update.message.text
+    try:
+        dt = datetime.strptime(text, "%d/%m/%Y")
+        tz = ZoneInfo("America/Sao_Paulo")
+        now = datetime.now(tz)
+        dt = dt.replace(hour=now.hour, minute=now.minute, second=now.second, tzinfo=tz)
+        context.user_data["expense"]["created_at"] = dt
+    except ValueError:
+        await update.message.reply_text(
+            "Formato inválido. Por favor, digite no formato DD/MM/AAAA (ex: 15/06/2026):"
+        )
+        return TYPE_CUSTOM_DATE
+
+    return await show_confirmation(update.message, context)
+
+
 async def show_confirmation(message_target, context: ContextTypes.DEFAULT_TYPE) -> int:
     expense = context.user_data["expense"]
 
@@ -162,6 +224,9 @@ async def show_confirmation(message_target, context: ContextTypes.DEFAULT_TYPE) 
     elif ptype == "assinatura":
         ptype_str = "Assinatura Contínua"
 
+    created_at_dt = expense.get("created_at")
+    date_str = created_at_dt.strftime("%d/%m/%Y") if created_at_dt else "Hoje (Agora)"
+
     summary = (
         "Confira os dados do seu gasto:\n"
         f"- Categoria: {expense.get('category')}\n"
@@ -170,6 +235,7 @@ async def show_confirmation(message_target, context: ContextTypes.DEFAULT_TYPE) 
         f"- Pagamento: {expense.get('payment_method')}\n"
         f"- Proprietário: {expense.get('payment_owner')}\n"
         f"- Local: {expense.get('location', 'N/A')}\n"
+        f"- Data: {date_str}\n"
         f"- Tipo: {ptype_str}\n\n"
         "Tudo correto?"
     )
@@ -202,7 +268,7 @@ async def select_purchase_type(update: Update, context: ContextTypes.DEFAULT_TYP
         await query.edit_message_text(text="Em quantas vezes foi dividido? (Ex: 10)")
         return TYPE_TOTAL_INSTALLMENTS
 
-    return await show_confirmation(query, context)
+    return await ask_for_date(query, context)
 
 
 async def type_total_installments(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -234,7 +300,7 @@ async def type_current_installment(update: Update, context: ContextTypes.DEFAULT
         await update.message.reply_text(f"Por favor, digite um número entre 1 e {total}.")
         return TYPE_CURRENT_INSTALLMENT
 
-    return await show_confirmation(update.message, context)
+    return await ask_for_date(update.message, context)
 
 
 async def confirm_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -254,6 +320,8 @@ async def confirm_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                     "payment_method": expense.get("payment_method"),
                     "payment_owner": expense.get("payment_owner"),
                 }
+                if "created_at" in expense:
+                    sub_data["created_at"] = expense["created_at"].isoformat()
                 await save_subscription(sub_data)
             else:
                 spent_data = {
@@ -264,6 +332,8 @@ async def confirm_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                     "payment_owner": expense.get("payment_owner"),
                     "location": expense.get("location", "N/A"),
                 }
+                if "created_at" in expense:
+                    spent_data["created_at"] = expense["created_at"].isoformat()
                 if ptype == "parcelada":
                     spent_data["is_installment"] = True
                     spent_data["current_installment"] = expense.get("current_installment", 1)
@@ -309,6 +379,8 @@ expense_conv_handler = ConversationHandler(
         TYPE_CURRENT_INSTALLMENT: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, type_current_installment)
         ],
+        SELECT_DATE_OPTION: [CallbackQueryHandler(select_date_option)],
+        TYPE_CUSTOM_DATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, type_custom_date)],
         CONFIRMATION: [CallbackQueryHandler(confirm_expense)],
     },
     fallbacks=[CommandHandler("cancel", cancel)],

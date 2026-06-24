@@ -24,6 +24,7 @@ class SpentCreate(SpentBase):
     is_installment: Optional[bool] = False
     current_installment: Optional[int] = Field(None, ge=1)
     total_installments: Optional[int] = Field(None, ge=2)
+    created_at: Optional[datetime] = None
 
 
 class SpentUpdate(BaseModel):

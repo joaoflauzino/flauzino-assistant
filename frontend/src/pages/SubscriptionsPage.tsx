@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Trash2, Edit2, ChevronLeft, ChevronRight, Repeat, CheckCircle2, XCircle } from 'lucide-react';
 import api from '../services/api';
-import type { Subscription, PaginatedResponse } from '../types';
+import type { Subscription, PaginatedResponse, Category, PaymentMethod, PaymentOwner } from '../types';
 import { Modal } from '../components/Modal';
 
 export const SubscriptionsPage = () => {
@@ -13,6 +13,13 @@ export const SubscriptionsPage = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingSubscription, setEditingSubscription] = useState<Subscription | null>(null);
 
+    // Options States
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+    const [paymentOwners, setPaymentOwners] = useState<PaymentOwner[]>([]);
+
+    const defaultDate = new Date().toISOString().split('T')[0];
+
     // Form State
     const [formData, setFormData] = useState({
         name: '',
@@ -20,7 +27,8 @@ export const SubscriptionsPage = () => {
         amount: '',
         payment_method: '',
         payment_owner: '',
-        is_active: true
+        is_active: true,
+        created_at: defaultDate
     });
 
     const fetchData = async (p: number) => {
@@ -38,6 +46,24 @@ export const SubscriptionsPage = () => {
     };
 
     useEffect(() => {
+        const fetchOptions = async () => {
+            try {
+                const [catRes, pmRes, poRes] = await Promise.all([
+                    api.get<PaginatedResponse<Category>>('/categories/?size=1000'),
+                    api.get<PaginatedResponse<PaymentMethod>>('/payment-methods/?size=1000'),
+                    api.get<PaginatedResponse<PaymentOwner>>('/payment-owners/?size=1000')
+                ]);
+                setCategories(catRes.data.items);
+                setPaymentMethods(pmRes.data.items);
+                setPaymentOwners(poRes.data.items);
+            } catch (error) {
+                console.error("Failed to fetch options", error);
+            }
+        };
+        fetchOptions();
+    }, []);
+
+    useEffect(() => {
         fetchData(page);
     }, [page]);
 
@@ -46,7 +72,8 @@ export const SubscriptionsPage = () => {
         try {
             const payload = {
                 ...formData,
-                amount: parseFloat(formData.amount)
+                amount: parseFloat(formData.amount),
+                created_at: new Date(formData.created_at + 'T12:00:00Z').toISOString()
             };
 
             if (editingSubscription) {
@@ -56,7 +83,7 @@ export const SubscriptionsPage = () => {
             }
             setIsModalOpen(false);
             setEditingSubscription(null);
-            setFormData({ name: '', category: '', amount: '', payment_method: '', payment_owner: '', is_active: true });
+            setFormData({ name: '', category: '', amount: '', payment_method: '', payment_owner: '', is_active: true, created_at: defaultDate });
             fetchData(page);
         } catch (error) {
             console.error("Error saving subscription", error);
@@ -91,14 +118,15 @@ export const SubscriptionsPage = () => {
             amount: subscription.amount.toString(),
             payment_method: subscription.payment_method,
             payment_owner: subscription.payment_owner,
-            is_active: subscription.is_active
+            is_active: subscription.is_active,
+            created_at: subscription.created_at ? subscription.created_at.substring(0, 10) : defaultDate
         });
         setIsModalOpen(true);
     };
 
     const openCreate = () => {
         setEditingSubscription(null);
-        setFormData({ name: '', category: '', amount: '', payment_method: '', payment_owner: '', is_active: true });
+        setFormData({ name: '', category: '', amount: '', payment_method: '', payment_owner: '', is_active: true, created_at: defaultDate });
         setIsModalOpen(true);
     };
 
@@ -379,12 +407,11 @@ export const SubscriptionsPage = () => {
                     </div>
                     <div>
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Categoria</label>
-                        <input
+                        <select
                             required
                             className="form-input"
                             value={formData.category}
                             onChange={e => setFormData({ ...formData, category: e.target.value })}
-                            placeholder="e.g. lazer"
                             style={{
                                 width: '100%',
                                 padding: '0.9rem',
@@ -392,9 +419,15 @@ export const SubscriptionsPage = () => {
                                 border: '1px solid var(--border-color)',
                                 backgroundColor: 'var(--bg-primary)',
                                 color: 'white',
-                                fontSize: '1rem'
+                                fontSize: '1rem',
+                                appearance: 'none'
                             }}
-                        />
+                        >
+                            <option value="" disabled>Selecione uma categoria...</option>
+                            {categories.map(c => (
+                                <option key={c.id} value={c.key}>{c.display_name}</option>
+                            ))}
+                        </select>
                     </div>
                     <div>
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Valor Mensal (R$)</label>
@@ -421,11 +454,10 @@ export const SubscriptionsPage = () => {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Método</label>
-                            <input
+                            <select
                                 required
                                 value={formData.payment_method}
                                 onChange={e => setFormData({ ...formData, payment_method: e.target.value })}
-                                placeholder="e.g. nubank"
                                 style={{
                                     width: '100%',
                                     padding: '0.9rem',
@@ -433,17 +465,22 @@ export const SubscriptionsPage = () => {
                                     border: '1px solid var(--border-color)',
                                     backgroundColor: 'var(--bg-primary)',
                                     color: 'white',
-                                    fontSize: '1rem'
+                                    fontSize: '1rem',
+                                    appearance: 'none'
                                 }}
-                            />
+                            >
+                                <option value="" disabled>Selecione...</option>
+                                {paymentMethods.map(pm => (
+                                    <option key={pm.id} value={pm.key}>{pm.display_name}</option>
+                                ))}
+                            </select>
                         </div>
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Titular</label>
-                            <input
+                            <select
                                 required
                                 value={formData.payment_owner}
                                 onChange={e => setFormData({ ...formData, payment_owner: e.target.value })}
-                                placeholder="e.g. joao_lucas"
                                 style={{
                                     width: '100%',
                                     padding: '0.9rem',
@@ -451,10 +488,36 @@ export const SubscriptionsPage = () => {
                                     border: '1px solid var(--border-color)',
                                     backgroundColor: 'var(--bg-primary)',
                                     color: 'white',
-                                    fontSize: '1rem'
+                                    fontSize: '1rem',
+                                    appearance: 'none'
                                 }}
-                            />
+                            >
+                                <option value="" disabled>Selecione...</option>
+                                {paymentOwners.map(po => (
+                                    <option key={po.id} value={po.key}>{po.display_name}</option>
+                                ))}
+                            </select>
                         </div>
+                    </div>
+
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Data Inicial</label>
+                        <input
+                            required
+                            type="date"
+                            className="form-input"
+                            value={formData.created_at}
+                            onChange={e => setFormData({ ...formData, created_at: e.target.value })}
+                            style={{
+                                width: '100%',
+                                padding: '0.9rem',
+                                borderRadius: '8px',
+                                border: '1px solid var(--border-color)',
+                                backgroundColor: 'var(--bg-primary)',
+                                color: 'white',
+                                fontSize: '1rem'
+                            }}
+                        />
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
