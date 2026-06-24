@@ -2,31 +2,26 @@ import uuid
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import DateTime, Float, String
+from sqlalchemy import Boolean, DateTime, Float, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from finance_api.core.database import Base
 
 
-class Spent(Base):
-    __tablename__ = "spents"
+class Subscription(Base):
+    __tablename__ = "subscriptions"
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True
     )
+    name: Mapped[str] = mapped_column(String, nullable=False)
     category: Mapped[str] = mapped_column(String, index=True)
     amount: Mapped[float] = mapped_column(Float)
-    item_bought: Mapped[str] = mapped_column(String, nullable=False)
     payment_method: Mapped[str] = mapped_column(String, nullable=False)
     payment_owner: Mapped[str] = mapped_column(String, nullable=False)
-    location: Mapped[str] = mapped_column(String, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
     )
-    installment_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), nullable=True, index=True
-    )
-    current_installment: Mapped[int | None] = mapped_column(nullable=True)
-    total_installments: Mapped[int | None] = mapped_column(nullable=True)

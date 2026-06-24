@@ -6,6 +6,21 @@ export interface Spent {
     payment_owner: string;
     item_bought: string;
     location: string;
+    is_installment?: boolean;
+    current_installment?: number;
+    total_installments?: number;
+    installment_id?: string;
+    created_at: string;
+}
+
+export interface Subscription {
+    id: string;
+    name: string;
+    category: string;
+    amount: number;
+    payment_method: string;
+    payment_owner: string;
+    is_active: boolean;
     created_at: string;
 }
 
@@ -43,4 +58,13 @@ export interface PaymentOwner {
     key: string;
     display_name: string;
     created_at: string;
+}
+
+export interface InstallmentSummary {
+    installment_id: string;
+    category: string;
+    item_bought: string;
+    amount: number;
+    total_installments: number;
+    passed_installments: number;
 }

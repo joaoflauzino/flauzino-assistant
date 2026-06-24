@@ -42,6 +42,7 @@ def mock_spent_repository():
     repo.get_by_id = AsyncMock()
     repo.update = AsyncMock()
     repo.delete = AsyncMock()
+    repo.get_installments_summary = AsyncMock()
     return repo
 
 
@@ -67,7 +68,13 @@ async def test_create_spent_success(test_client, mock_spent_repository, mocker):
     }
     fake_id = uuid4()
     mock_spent_repository.create.return_value = MagicMock(
-        id=fake_id, created_at="2023-01-01T12:00:00", **payload
+        id=fake_id,
+        created_at="2023-01-01T12:00:00",
+        **payload,
+        is_installment=False,
+        installment_id=None,
+        current_installment=None,
+        total_installments=None,
     )
 
     # Act
@@ -110,6 +117,10 @@ async def test_list_spents_success(test_client, mock_spent_repository, mocker):
             payment_method="itau",
             payment_owner="joao_lucas",
             location="A",
+            is_installment=False,
+            installment_id=None,
+            current_installment=None,
+            total_installments=None,
         ),
         MagicMock(
             id=id2,
@@ -120,6 +131,10 @@ async def test_list_spents_success(test_client, mock_spent_repository, mocker):
             payment_method="c6",
             payment_owner="lailla",
             location="B",
+            is_installment=False,
+            installment_id=None,
+            current_installment=None,
+            total_installments=None,
         ),
     ]
     mock_spent_repository.list.return_value = (mock_return_data, 2)
@@ -165,6 +180,10 @@ async def test_get_spent_by_id_success(test_client, mock_spent_repository, mocke
         payment_method="itau",
         payment_owner="joao_lucas",
         location="A",
+        is_installment=False,
+        installment_id=None,
+        current_installment=None,
+        total_installments=None,
     )
     mock_spent_repository.get_by_id.return_value = mock_spent
 
@@ -222,6 +241,10 @@ async def test_update_spent_success(test_client, mock_spent_repository, mocker):
         payment_method="itau",
         payment_owner="joao_lucas",
         location="A",
+        is_installment=False,
+        installment_id=None,
+        current_installment=None,
+        total_installments=None,
     )
     mock_spent_repository.update.return_value = updated_mock
 
@@ -320,6 +343,10 @@ async def test_list_spents_pagination(test_client, mock_spent_repository, mocker
             payment_method="itau",
             payment_owner="joao_lucas",
             location="A",
+            is_installment=False,
+            installment_id=None,
+            current_installment=None,
+            total_installments=None,
         ),
         MagicMock(
             id=id2,
@@ -330,6 +357,10 @@ async def test_list_spents_pagination(test_client, mock_spent_repository, mocker
             payment_method="c6",
             payment_owner="lailla",
             location="B",
+            is_installment=False,
+            installment_id=None,
+            current_installment=None,
+            total_installments=None,
         ),
     ]
     # Simulate pagination returning only the first item, but total is 2
@@ -352,4 +383,45 @@ async def test_list_spents_pagination(test_client, mock_spent_repository, mocker
     mock_spent_repository.list.assert_awaited_once_with(0, 1, None, None)
 
     # Cleanup
+    app.dependency_overrides.clear()
+
+
+async def test_get_installments_summary_success(test_client, mock_spent_repository, mocker):
+    """
+    Test successful fetching of installments summary.
+    """
+
+    # Arrange
+    async def override_get_db():
+        yield MagicMock()
+
+    app.dependency_overrides[get_db] = override_get_db
+    mocker.patch("finance_api.routers.spents.SpentRepository", return_value=mock_spent_repository)
+
+    fake_id = uuid4()
+    mock_spent_repository.get_installments_summary.return_value = [
+        {
+            "installment_id": fake_id,
+            "category": "tecnologia",
+            "item_bought": "Monitor",
+            "amount": 100.0,
+            "total_installments": 10,
+            "passed_installments": 2,
+        }
+    ]
+
+    # Act
+    response = await test_client.get("/spents/installments-summary")
+
+    # Assert
+    assert response.status_code == 200
+    response_data = response.json()
+    assert len(response_data) == 1
+    assert response_data[0]["installment_id"] == str(fake_id)
+    assert response_data[0]["category"] == "tecnologia"
+    assert response_data[0]["item_bought"] == "Monitor"
+    assert response_data[0]["passed_installments"] == 2
+    mock_spent_repository.get_installments_summary.assert_awaited_once()
+
+    # Cleanup dependency override
     app.dependency_overrides.clear()

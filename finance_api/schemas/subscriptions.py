@@ -5,13 +5,13 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
-class SpentBase(BaseModel):
+class SubscriptionBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
     category: str = Field(..., min_length=1, max_length=50, description="Category key")
     amount: float
-    item_bought: str = Field(..., min_length=1, max_length=50)
     payment_method: str = Field(..., min_length=1, max_length=50)
     payment_owner: str = Field(..., min_length=1, max_length=50)
-    location: str
+    is_active: bool = True
 
     @field_validator("category", "payment_method", "payment_owner")
     @classmethod
@@ -20,36 +20,26 @@ class SpentBase(BaseModel):
         return v.lower().strip()
 
 
-class SpentCreate(SpentBase):
-    is_installment: Optional[bool] = False
-    current_installment: Optional[int] = Field(None, ge=1)
-    total_installments: Optional[int] = Field(None, ge=2)
+class SubscriptionCreate(SubscriptionBase):
     created_at: Optional[datetime] = None
 
 
-class SpentUpdate(BaseModel):
+class SubscriptionUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
     category: Optional[str] = Field(None, min_length=1, max_length=50)
     amount: Optional[float] = None
-    item_bought: Optional[str] = Field(None, min_length=1, max_length=50)
     payment_method: Optional[str] = Field(None, min_length=1, max_length=50)
     payment_owner: Optional[str] = Field(None, min_length=1, max_length=50)
-    location: Optional[str] = None
-    installment_id: Optional[UUID] = None
-    current_installment: Optional[int] = None
-    total_installments: Optional[int] = None
+    is_active: Optional[bool] = None
 
     @field_validator("category", "payment_method", "payment_owner")
     @classmethod
     def validate_keys_update(cls, v: Optional[str]) -> Optional[str]:
-        """Normalize keys to lowercase if provided."""
         return v.lower().strip() if v else None
 
 
-class SpentResponse(SpentBase):
+class SubscriptionResponse(SubscriptionBase):
     id: UUID
     created_at: datetime
-    installment_id: Optional[UUID] = None
-    current_installment: Optional[int] = None
-    total_installments: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)

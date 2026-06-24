@@ -3,7 +3,7 @@ import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Toolti
 import { Bar } from 'react-chartjs-2';
 import { CheckSquare, Square } from 'lucide-react';
 import api from '../services/api';
-import type { Spent, SpendingLimit, PaymentMethod } from '../types';
+import type { Spent, SpendingLimit, PaymentMethod, Subscription } from '../types';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
@@ -37,6 +37,7 @@ const getCurrentMonthDates = () => {
 export const Dashboard = () => {
     const [spents, setSpents] = useState<Spent[]>([]);
     const [limits, setLimits] = useState<SpendingLimit[]>([]);
+    const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
     const [loading, setLoading] = useState(true);
 
     // Initialize with current month dates
@@ -59,18 +60,21 @@ export const Dashboard = () => {
             if (startDate) query += `&start_date=${startDate}`;
             if (endDate) query += `&end_date=${endDate}`;
 
-            const [spentsRes, limitsRes] = await Promise.all([
+            const [spentsRes, limitsRes, subscriptionsRes] = await Promise.all([
                 api.get(query),
-                api.get('/limits/?size=1000')
+                api.get('/limits/?size=1000'),
+                api.get('/subscriptions/?active_only=true&size=1000')
             ]);
             setSpents(spentsRes.data.items);
             setLimits(limitsRes.data.items);
+            setSubscriptions(subscriptionsRes.data.items);
 
             // Initialize selected categories with all available categories
             if (selectedCategories.size === 0) {
                 const allCategories = Array.from(new Set([
                     ...spentsRes.data.items.map((s: Spent) => s.category),
-                    ...limitsRes.data.items.map((l: SpendingLimit) => l.category)
+                    ...limitsRes.data.items.map((l: SpendingLimit) => l.category),
+                    ...subscriptionsRes.data.items.map((sub: Subscription) => sub.category)
                 ]));
                 setSelectedCategories(new Set(allCategories));
             }
@@ -144,7 +148,11 @@ export const Dashboard = () => {
     };
 
     const selectAllCategories = () => {
-        const allCategories = Array.from(new Set([...spents.map(s => s.category), ...limits.map(l => l.category)]));
+        const allCategories = Array.from(new Set([
+            ...spents.map(s => s.category), 
+            ...limits.map(l => l.category),
+            ...subscriptions.map(sub => sub.category)
+        ]));
         setSelectedCategories(new Set(allCategories));
     };
 
@@ -155,11 +163,17 @@ export const Dashboard = () => {
     if (loading) return <div style={{ color: 'white', fontSize: '1.2rem' }}>Carregando painel...</div>;
 
     // Process Data - filter by selected categories
-    const allCategories = Array.from(new Set([...spents.map(s => s.category), ...limits.map(l => l.category)]));
+    const allCategories = Array.from(new Set([
+        ...spents.map(s => s.category), 
+        ...limits.map(l => l.category),
+        ...subscriptions.map(sub => sub.category)
+    ]));
     const categories = allCategories.filter(cat => selectedCategories.has(cat));
 
     const spentByCategory = categories.map(cat => {
-        return spents.filter(s => s.category === cat).reduce((acc, curr) => acc + curr.amount, 0);
+        const spentSum = spents.filter(s => s.category === cat).reduce((acc, curr) => acc + curr.amount, 0);
+        const subSum = subscriptions.filter(sub => sub.category === cat).reduce((acc, curr) => acc + curr.amount, 0);
+        return spentSum + subSum;
     });
 
     const limitByCategory = categories.map(cat => {
@@ -179,9 +193,13 @@ export const Dashboard = () => {
     });
 
     // Payment Method Data Processing
-    // 1. Get unique payment methods from filtered spents
+    // 1. Get unique payment methods from filtered spents & subscriptions
     const filteredSpents = spents.filter(s => selectedCategories.has(s.category));
-    const uniquePaymentMethods = Array.from(new Set(filteredSpents.map(s => s.payment_method)));
+    const filteredSubscriptions = subscriptions.filter(sub => selectedCategories.has(sub.category));
+    const uniquePaymentMethods = Array.from(new Set([
+        ...filteredSpents.map(s => s.payment_method),
+        ...filteredSubscriptions.map(sub => sub.payment_method)
+    ]));
 
     // 2. Aggregate spent amount by payment method
 
@@ -326,12 +344,15 @@ export const Dashboard = () => {
 
     // Prepare Top 5 Payment Methods Data
     const paymentMethodDataList = uniquePaymentMethods.map(pm => {
-        const amount = filteredSpents
+        const amountSpents = filteredSpents
             .filter(s => s.payment_method === pm)
+            .reduce((acc, curr) => acc + curr.amount, 0);
+        const amountSubs = filteredSubscriptions
+            .filter(sub => sub.payment_method === pm)
             .reduce((acc, curr) => acc + curr.amount, 0);
         return {
             name: paymentMethodNames[pm] || pm,
-            amount
+            amount: amountSpents + amountSubs
         };
     });
 
@@ -355,13 +376,20 @@ export const Dashboard = () => {
     };
 
     // Prepare Top 10 Items Data
-    const itemDataList = Array.from(new Set(filteredSpents.map(s => s.item_bought))).map(item => {
-        const amount = filteredSpents
+    const allItemsSet = new Set([
+        ...filteredSpents.map(s => s.item_bought),
+        ...filteredSubscriptions.map(sub => sub.name)
+    ]);
+    const itemDataList = Array.from(allItemsSet).map(item => {
+        const amountSpents = filteredSpents
             .filter(s => s.item_bought === item)
+            .reduce((acc, curr) => acc + curr.amount, 0);
+        const amountSubs = filteredSubscriptions
+            .filter(sub => sub.name === item)
             .reduce((acc, curr) => acc + curr.amount, 0);
         return {
             name: item,
-            amount
+            amount: amountSpents + amountSubs
         };
     });
 

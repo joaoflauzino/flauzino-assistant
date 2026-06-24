@@ -6,10 +6,28 @@ CREATE TABLE IF NOT EXISTS spents (
     payment_method VARCHAR NOT NULL,
     payment_owner VARCHAR NOT NULL,
     location VARCHAR NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    installment_id UUID,
+    current_installment INT,
+    total_installments INT
 );
 
 CREATE INDEX IF NOT EXISTS ix_spents_category ON spents (category);
+CREATE INDEX IF NOT EXISTS ix_spents_installment_id ON spents (installment_id);
+
+CREATE TABLE IF NOT EXISTS subscriptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR NOT NULL,
+    category VARCHAR NOT NULL,
+    amount DOUBLE PRECISION NOT NULL,
+    payment_method VARCHAR NOT NULL,
+    payment_owner VARCHAR NOT NULL,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS ix_subscriptions_category ON subscriptions (category);
+CREATE INDEX IF NOT EXISTS ix_subscriptions_is_active ON subscriptions (is_active);
 
 CREATE TABLE IF NOT EXISTS spending_limits (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

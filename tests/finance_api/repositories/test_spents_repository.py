@@ -76,3 +76,35 @@ async def test_list_spents(mock_db_session):
     assert items == mock_spent_list
     assert total == 10
     assert len(items) == 2
+
+
+async def test_get_installments_summary(mock_db_session):
+    """
+    Test that the get_installments_summary method correctly retrieves and maps the summary.
+    """
+    # Arrange
+    repo = SpentRepository(mock_db_session)
+    mock_row = MagicMock()
+    mock_row.installment_id = "test-id"
+    mock_row.category = "tecnologia"
+    mock_row.item_bought = "Monitor"
+    mock_row.amount = 100.0
+    mock_row.total_installments = 10
+    mock_row.passed_installments = 2
+
+    mock_result = MagicMock()
+    mock_result.fetchall.return_value = [mock_row]
+    mock_db_session.execute.return_value = mock_result
+
+    # Act
+    result = await repo.get_installments_summary()
+
+    # Assert
+    mock_db_session.execute.assert_awaited_once()
+    assert len(result) == 1
+    assert result[0]["installment_id"] == "test-id"
+    assert result[0]["category"] == "tecnologia"
+    assert result[0]["item_bought"] == "Monitor"
+    assert result[0]["amount"] == 100.0
+    assert result[0]["total_installments"] == 10
+    assert result[0]["passed_installments"] == 2

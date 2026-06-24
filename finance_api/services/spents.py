@@ -1,16 +1,18 @@
-from datetime import date
-from typing import TYPE_CHECKING, Optional
+from datetime import date, datetime
+import uuid
+from typing import Optional, List
 from uuid import UUID
+from dateutil.relativedelta import relativedelta
+from zoneinfo import ZoneInfo
 
-if TYPE_CHECKING:
-    from finance_api.models.spents import Spent
-
+from finance_api.models.spents import Spent
 from finance_api.repositories.spents import SpentRepository
 from finance_api.repositories.categories import CategoryRepository
 from finance_api.schemas.spents import SpentCreate, SpentUpdate
 from finance_api.core.decorators import handle_service_errors
 from finance_api.core.exceptions import EntityNotFoundError, ValidationError
 from finance_api.schemas.pagination import PaginatedResponse
+from finance_api.schemas.installments import InstallmentSummary
 from finance_api.core.logger import get_logger
 
 logger = get_logger(__name__)
@@ -30,6 +32,29 @@ class SpentService:
             raise ValidationError(
                 f"Category '{spent.category}' does not exist. Please create it first."
             )
+
+        if spent.is_installment:
+            installment_id = uuid.uuid4()
+            current = spent.current_installment or 1
+            total = spent.total_installments or current
+
+            spents_to_create = []
+            base_date = datetime.now(ZoneInfo("America/Sao_Paulo"))
+
+            months_to_add = 0
+            for i in range(current, total + 1):
+                spent_data = spent.model_dump(exclude={"is_installment"})
+                spent_data["installment_id"] = installment_id
+                spent_data["current_installment"] = i
+                spent_data["total_installments"] = total
+
+                new_spent = Spent(**spent_data)
+                new_spent.created_at = base_date + relativedelta(months=months_to_add)
+                spents_to_create.append(new_spent)
+                months_to_add += 1
+
+            created_spents = await self.repo.create_many(spents_to_create)
+            return created_spents[0]
 
         return await self.repo.create(spent)
 
@@ -78,3 +103,9 @@ class SpentService:
         if not deleted:
             raise EntityNotFoundError(f"Spent with id {spent_id} not found")
         return True
+
+    @handle_service_errors
+    async def get_installments_summary(self) -> List[InstallmentSummary]:
+        logger.info("Fetching installments summary")
+        summary_dicts = await self.repo.get_installments_summary()
+        return [InstallmentSummary(**s) for s in summary_dicts]
