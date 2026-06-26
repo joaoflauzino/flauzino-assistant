@@ -1,5 +1,5 @@
 # Stage 1: Builder
-FROM python:3.13-slim-bookworm AS builder
+FROM python:3.13.14-slim-bookworm AS builder
 
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:0.9.26 /uv /bin/uv
@@ -18,7 +18,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-install-project --no-dev --python /usr/local/bin/python
 
 # Stage 2: Runtime
-FROM python:3.13-slim-bookworm
+FROM python:3.13.14-slim-bookworm
 
 # Install system dependencies for OCR and OpenCV (Runtime only)
 # --no-install-recommends reduces size
