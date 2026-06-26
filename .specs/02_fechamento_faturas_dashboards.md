@@ -23,10 +23,11 @@ O Backend fará uma consulta inteligente que monta o "Junho" de cada método de 
 - **Cartão Itaú (Fecha dia 15):** Pega os gastos de `16/05 a 15/06` (pois essa é a Fatura de Junho dele).
 Em seguida, ele soma tudo em um único Dashboard.
 
-**Alternando entre "Visão de Faturas" e "Visão de Mês Civil":**
-Para não perdermos a funcionalidade de "O que eu gastei entre 1 e 30?", eu adicionarei no topo do Dashboard do frontend um "Switch/Toggle" (botão de ligar/desligar).
+**Alternando entre Modos de Visualização no Dashboard:**
+Para termos controle total, teremos três modos no Dashboard:
 - **Modo Mês Civil:** Exibe exatamente como é hoje. Ignora as faturas e puxa tudo de 01/06 a 30/06, de todos os cartões, de forma puramente cronológica.
 - **Modo Faturas:** Aplica a nova lógica inteligente de fechamento dinâmico.
+- **Modo Intervalo Livre (Custom):** Permite selecionar manualmente uma "Data Inicial" e uma "Data Final" para visualizar os gastos exatos daquele intervalo.
 
 ---
 
@@ -78,6 +79,7 @@ Criar o endpoint `GET /spents/dashboard`. Ele aceitará os seguintes parâmetros
 - `reference_month` (ex: "2026-06")
 - `mode` (Enum: "CIVIL_MONTH" ou "INVOICES").
 Dependendo do modo, a query varre os gastos puxando as datas cronológicas simples (CIVIL_MONTH) ou fazendo a agregação dinâmica por faturas de cartões (INVOICES).
+*(Nota: O modo `CUSTOM` não usa a rota dashboard e bate direto na `/spents/` via frontend).*
 
 ---
 
@@ -94,5 +96,6 @@ O painel de controle receberá novas telas e modificações nas tabelas para hab
 - Vai listar todos os cartões cadastrados e suas datas de fechamento previstas/reais (já mostrando os ajustes automáticos de postergar para dias úteis), com um botão "Ajustar Data", permitindo override manual.
 
 #### [MODIFY] `frontend/src/pages/Dashboard.tsx`
-- No topo da página (ao lado de escolher o mês), teremos um "Toggle/Switch" para **Visão: Faturas** ou **Visão: Mês Civil**.
-- As requisições passarão o `mode` para o backend para trazer o dashboard customizado.
+- No topo da página, teremos um menu para escolher o modo de visualização entre **Visão: Faturas**, **Visão: Mês Civil** e **Visão: Intervalo Livre (Custom)**.
+- Dependendo do modo, o Dashboard exibe o seletor de "Mês de Referência" ou os seletores de "Data Inicial" e "Data Final".
+- As requisições são adaptadas de acordo com o modo selecionado para trazer os dados corretos.
