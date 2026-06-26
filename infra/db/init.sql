@@ -91,7 +91,8 @@ INSERT INTO payment_methods (key, display_name) VALUES
     ('itau', 'Itaú'),
     ('nubank', 'Nubank'),
     ('picpay', 'PicPay'),
-    ('c6', 'C6')
+    ('c6', 'C6'),
+    ('pix', 'Pix')
 ON CONFLICT (key) DO NOTHING;
 
 -- Seed payment_owners
