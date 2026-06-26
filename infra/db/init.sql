@@ -50,6 +50,9 @@ CREATE TABLE IF NOT EXISTS payment_methods (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     key VARCHAR(50) NOT NULL UNIQUE,
     display_name VARCHAR(100) NOT NULL,
+    is_credit_card BOOLEAN DEFAULT false,
+    closing_day INT,
+    due_day INT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -64,6 +67,24 @@ CREATE TABLE IF NOT EXISTS payment_owners (
 );
 
 CREATE INDEX IF NOT EXISTS ix_payment_owners_key ON payment_owners (key);
+
+-- Invoices table
+CREATE TABLE IF NOT EXISTS invoices (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    payment_method_key VARCHAR(50) NOT NULL,
+    reference_month VARCHAR(7) NOT NULL,
+    real_closing_date DATE NOT NULL,
+    real_due_date DATE NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'OPEN',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_payment_method
+        FOREIGN KEY(payment_method_key)
+        REFERENCES payment_methods(key)
+        ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ix_invoices_payment_method_month 
+    ON invoices (payment_method_key, reference_month);
 
 -- Seed payment_methods
 INSERT INTO payment_methods (key, display_name) VALUES

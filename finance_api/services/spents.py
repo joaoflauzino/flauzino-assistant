@@ -4,6 +4,7 @@ from typing import Optional, List
 from uuid import UUID
 from dateutil.relativedelta import relativedelta
 from zoneinfo import ZoneInfo
+import calendar
 
 from finance_api.models.spents import Spent
 from finance_api.repositories.spents import SpentRepository
@@ -70,6 +71,33 @@ class SpentService:
         skip = (page - 1) * size
         items, total = await self.repo.list(skip, size, start_date, end_date)
         return PaginatedResponse.create(items, total, page, size)
+
+    @handle_service_errors
+    async def get_dashboard(
+        self, reference_month: str, mode: str, page: int, size: int, inv_service, pm_repo
+    ) -> PaginatedResponse["Spent"]:
+        logger.info(f"Dashboard mode {mode} for {reference_month}")
+        skip = (page - 1) * size
+
+        if mode == "CIVIL_MONTH":
+            year, month = map(int, reference_month.split("-"))
+            _, last_day = calendar.monthrange(year, month)
+            start_date = date(year, month, 1)
+            end_date = date(year, month, last_day)
+            items, total = await self.repo.list(skip, size, start_date, end_date)
+            return PaginatedResponse.create(items, total, page, size)
+
+        elif mode == "INVOICES":
+            payment_methods, _ = await pm_repo.list(page=1, size=1000)
+            periods = []
+            for pm in payment_methods:
+                start_d, end_d = await inv_service.get_invoice_dates(pm, reference_month)
+                periods.append((pm.key, start_d, end_d))
+
+            items, total = await self.repo.list_by_multiple_periods(periods, skip, size)
+            return PaginatedResponse.create(items, total, page, size)
+        else:
+            raise ValidationError(f"Invalid mode: {mode}")
 
     @handle_service_errors
     async def get_by_id(self, spent_id: UUID) -> "Spent":

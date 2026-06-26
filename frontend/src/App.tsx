@@ -8,6 +8,8 @@ import { LimitsPage } from './pages/LimitsPage';
 import { CategoriesPage } from './pages/CategoriesPage';
 import { PaymentMethodsPage } from './pages/PaymentMethodsPage';
 import { PaymentOwnersPage } from './pages/PaymentOwnersPage';
+import { InvoicesPage } from './pages/InvoicesPage';
+import { CalendarDays } from 'lucide-react';
 import './index.css';
 
 const Navigation = () => {
@@ -23,6 +25,7 @@ const Navigation = () => {
     { path: '/limits', label: 'Limites', icon: <PiggyBank size={20} /> },
     { path: '/categories', label: 'Categorias', icon: <Tags size={20} /> },
     { path: '/payment-methods', label: 'Métodos de Pagamento', icon: <CreditCard size={20} /> },
+    { path: '/invoices', label: 'Faturas', icon: <CalendarDays size={20} /> },
     { path: '/payment-owners', label: 'Titulares de Pagamento', icon: <Users size={20} /> },
   ];
 
@@ -79,6 +82,7 @@ function App() {
             <Route path="/limits" element={<LimitsPage />} />
             <Route path="/categories" element={<CategoriesPage />} />
             <Route path="/payment-methods" element={<PaymentMethodsPage />} />
+            <Route path="/invoices" element={<InvoicesPage />} />
             <Route path="/payment-owners" element={<PaymentOwnersPage />} />
           </Routes>
         </main>

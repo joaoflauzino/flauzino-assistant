@@ -15,23 +15,12 @@ interface Category {
     created_at: string;
 }
 
-// Helper to get the first and last day de current month
-const getCurrentMonthDates = () => {
+// Helper to get the current reference month
+const getCurrentMonth = () => {
     const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-    const formatDate = (date: Date) => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    };
-
-    return {
-        start: formatDate(firstDay),
-        end: formatDate(today)
-    };
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
 };
 
 export const Dashboard = () => {
@@ -40,10 +29,9 @@ export const Dashboard = () => {
     const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // Initialize with current month dates
-    const monthDates = getCurrentMonthDates();
-    const [startDate, setStartDate] = useState(monthDates.start);
-    const [endDate, setEndDate] = useState(monthDates.end);
+    // Initialize with current month
+    const [referenceMonth, setReferenceMonth] = useState(getCurrentMonth());
+    const [mode, setMode] = useState<'CIVIL_MONTH' | 'INVOICES'>('CIVIL_MONTH');
 
     // Category selection state - all categories selected by default
     const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
@@ -56,9 +44,7 @@ export const Dashboard = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            let query = '/spents/?size=1000';
-            if (startDate) query += `&start_date=${startDate}`;
-            if (endDate) query += `&end_date=${endDate}`;
+            const query = `/spents/dashboard?reference_month=${referenceMonth}&mode=${mode}&size=1000`;
 
             const [spentsRes, limitsRes, subscriptionsRes] = await Promise.all([
                 api.get(query),
@@ -119,18 +105,16 @@ export const Dashboard = () => {
         fetchCategories();
         fetchPaymentMethods();
 
-        // Set dates to current month on initial mount
-        const monthDates = getCurrentMonthDates();
-        setStartDate(monthDates.start);
-        setEndDate(monthDates.end);
+        // Set default values on initial mount
+        setReferenceMonth(getCurrentMonth());
     }, []); // Run only once on mount
 
     useEffect(() => {
-        // Fetch data when dates are set or change
-        if (startDate && endDate) {
+        // Fetch data when filter changes
+        if (referenceMonth) {
             fetchData();
         }
-    }, [startDate, endDate]); // Re-fetch when dates change
+    }, [referenceMonth, mode]); // Re-fetch when dependencies change
 
     const handleFilter = (e: React.FormEvent) => {
         e.preventDefault();
@@ -422,11 +406,11 @@ export const Dashboard = () => {
 
                 <form onSubmit={handleFilter} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
                     <div>
-                        <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.3rem', fontWeight: 500 }}>Data Inicial</label>
+                        <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.3rem', fontWeight: 500 }}>Mês de Referência</label>
                         <input
-                            type="date"
-                            value={startDate}
-                            onChange={e => setStartDate(e.target.value)}
+                            type="month"
+                            value={referenceMonth}
+                            onChange={e => setReferenceMonth(e.target.value)}
                             style={{
                                 padding: '0.6rem 0.8rem',
                                 borderRadius: '8px',
@@ -440,11 +424,10 @@ export const Dashboard = () => {
                         />
                     </div>
                     <div>
-                        <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.3rem', fontWeight: 500 }}>Data Final</label>
-                        <input
-                            type="date"
-                            value={endDate}
-                            onChange={e => setEndDate(e.target.value)}
+                        <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.3rem', fontWeight: 500 }}>Modo de Visualização</label>
+                        <select
+                            value={mode}
+                            onChange={e => setMode(e.target.value as 'CIVIL_MONTH' | 'INVOICES')}
                             style={{
                                 padding: '0.6rem 0.8rem',
                                 borderRadius: '8px',
@@ -452,10 +435,13 @@ export const Dashboard = () => {
                                 background: 'var(--bg-tertiary)',
                                 color: 'white',
                                 fontSize: '0.9rem',
-                                transition: 'all 0.2s',
-                                cursor: 'pointer'
+                                cursor: 'pointer',
+                                outline: 'none'
                             }}
-                        />
+                        >
+                            <option value="CIVIL_MONTH">Mês Civil</option>
+                            <option value="INVOICES">Fechamento de Faturas</option>
+                        </select>
                     </div>
                     <button
                         type="submit"

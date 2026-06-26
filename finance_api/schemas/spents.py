@@ -2,7 +2,13 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
+from enum import Enum
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+
+class DashboardMode(str, Enum):
+    CIVIL_MONTH = "CIVIL_MONTH"
+    INVOICES = "INVOICES"
 
 
 class SpentBase(BaseModel):

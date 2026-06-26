@@ -50,6 +50,19 @@ export interface PaymentMethod {
     id: string;
     key: string;
     display_name: string;
+    is_credit_card: boolean;
+    closing_day?: number;
+    due_day?: number;
+    created_at: string;
+}
+
+export interface Invoice {
+    id: string;
+    payment_method_key: string;
+    reference_month: string;
+    real_closing_date: string;
+    real_due_date: string;
+    status: string;
     created_at: string;
 }
 
