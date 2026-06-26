@@ -36,7 +36,7 @@ async def get_valid_payment_methods() -> str:
                 return ", ".join(methods)
     except Exception as e:
         logger.warning(f"Failed to fetch payment methods: {e}")
-    return "itau, nubank, picpay, xp, c6"
+    return "itau, nubank, picpay, xp, c6, pix"
 
 
 async def get_valid_owners() -> str:
