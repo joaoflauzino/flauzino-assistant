@@ -41,7 +41,7 @@ O tratamento de exceções não deve ter blocos `try/except` espalhados com trat
 
 Para qualquer solicitação de nova feature:
 
-1. Criar specs/<feature-name>.md
+1. Criar .specs/<feature-name>.md
 2. Analisar o código existente
 3. Produzir especificação completa
 4. Aguardar aprovação humana
