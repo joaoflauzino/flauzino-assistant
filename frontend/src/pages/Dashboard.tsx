@@ -15,7 +15,15 @@ interface Category {
     created_at: string;
 }
 
-// Helper to get the first and last day de current month
+// Helper to get the current reference month
+const getCurrentMonth = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
+};
+
+// Helper to get current month start and end dates
 const getCurrentMonthDates = () => {
     const now = new Date();
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -40,10 +48,13 @@ export const Dashboard = () => {
     const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // Initialize with current month dates
-    const monthDates = getCurrentMonthDates();
-    const [startDate, setStartDate] = useState(monthDates.start);
-    const [endDate, setEndDate] = useState(monthDates.end);
+    // Initialize with current month
+    const [referenceMonth, setReferenceMonth] = useState(getCurrentMonth());
+    const [mode, setMode] = useState<'CIVIL_MONTH' | 'INVOICES' | 'CUSTOM'>('CIVIL_MONTH');
+    
+    // Dates for CUSTOM mode
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
 
     // Category selection state - all categories selected by default
     const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
@@ -56,9 +67,14 @@ export const Dashboard = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            let query = '/spents/?size=1000';
-            if (startDate) query += `&start_date=${startDate}`;
-            if (endDate) query += `&end_date=${endDate}`;
+            let query = '';
+            if (mode === 'CUSTOM') {
+                query = '/spents/?size=1000';
+                if (startDate) query += `&start_date=${startDate}`;
+                if (endDate) query += `&end_date=${endDate}`;
+            } else {
+                query = `/spents/dashboard?reference_month=${referenceMonth}&mode=${mode}&size=1000`;
+            }
 
             const [spentsRes, limitsRes, subscriptionsRes] = await Promise.all([
                 api.get(query),
@@ -119,18 +135,21 @@ export const Dashboard = () => {
         fetchCategories();
         fetchPaymentMethods();
 
-        // Set dates to current month on initial mount
+        // Set default values on initial mount
         const monthDates = getCurrentMonthDates();
+        setReferenceMonth(getCurrentMonth());
         setStartDate(monthDates.start);
         setEndDate(monthDates.end);
     }, []); // Run only once on mount
 
     useEffect(() => {
-        // Fetch data when dates are set or change
-        if (startDate && endDate) {
+        // Fetch data when filter changes
+        if (mode === 'CUSTOM') {
+            if (startDate && endDate) fetchData();
+        } else if (referenceMonth) {
             fetchData();
         }
-    }, [startDate, endDate]); // Re-fetch when dates change
+    }, [referenceMonth, mode, startDate, endDate]); // Re-fetch when dependencies change
 
     const handleFilter = (e: React.FormEvent) => {
         e.preventDefault();
@@ -421,12 +440,70 @@ export const Dashboard = () => {
                 <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 700 }}>Painel</h1>
 
                 <form onSubmit={handleFilter} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+                    {mode === 'CUSTOM' ? (
+                        <>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.3rem', fontWeight: 500 }}>Data Inicial</label>
+                                <input
+                                    type="date"
+                                    value={startDate}
+                                    onChange={e => setStartDate(e.target.value)}
+                                    style={{
+                                        padding: '0.6rem 0.8rem',
+                                        borderRadius: '8px',
+                                        border: '1px solid var(--border-color)',
+                                        background: 'var(--bg-tertiary)',
+                                        color: 'white',
+                                        fontSize: '0.9rem',
+                                        transition: 'all 0.2s',
+                                        cursor: 'pointer'
+                                    }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.3rem', fontWeight: 500 }}>Data Final</label>
+                                <input
+                                    type="date"
+                                    value={endDate}
+                                    onChange={e => setEndDate(e.target.value)}
+                                    style={{
+                                        padding: '0.6rem 0.8rem',
+                                        borderRadius: '8px',
+                                        border: '1px solid var(--border-color)',
+                                        background: 'var(--bg-tertiary)',
+                                        color: 'white',
+                                        fontSize: '0.9rem',
+                                        transition: 'all 0.2s',
+                                        cursor: 'pointer'
+                                    }}
+                                />
+                            </div>
+                        </>
+                    ) : (
+                        <div>
+                            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.3rem', fontWeight: 500 }}>Mês de Referência</label>
+                            <input
+                                type="month"
+                                value={referenceMonth}
+                                onChange={e => setReferenceMonth(e.target.value)}
+                                style={{
+                                    padding: '0.6rem 0.8rem',
+                                    borderRadius: '8px',
+                                    border: '1px solid var(--border-color)',
+                                    background: 'var(--bg-tertiary)',
+                                    color: 'white',
+                                    fontSize: '0.9rem',
+                                    transition: 'all 0.2s',
+                                    cursor: 'pointer'
+                                }}
+                            />
+                        </div>
+                    )}
                     <div>
-                        <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.3rem', fontWeight: 500 }}>Data Inicial</label>
-                        <input
-                            type="date"
-                            value={startDate}
-                            onChange={e => setStartDate(e.target.value)}
+                        <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.3rem', fontWeight: 500 }}>Modo de Visualização</label>
+                        <select
+                            value={mode}
+                            onChange={e => setMode(e.target.value as 'CIVIL_MONTH' | 'INVOICES' | 'CUSTOM')}
                             style={{
                                 padding: '0.6rem 0.8rem',
                                 borderRadius: '8px',
@@ -434,28 +511,14 @@ export const Dashboard = () => {
                                 background: 'var(--bg-tertiary)',
                                 color: 'white',
                                 fontSize: '0.9rem',
-                                transition: 'all 0.2s',
-                                cursor: 'pointer'
+                                cursor: 'pointer',
+                                outline: 'none'
                             }}
-                        />
-                    </div>
-                    <div>
-                        <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.3rem', fontWeight: 500 }}>Data Final</label>
-                        <input
-                            type="date"
-                            value={endDate}
-                            onChange={e => setEndDate(e.target.value)}
-                            style={{
-                                padding: '0.6rem 0.8rem',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                background: 'var(--bg-tertiary)',
-                                color: 'white',
-                                fontSize: '0.9rem',
-                                transition: 'all 0.2s',
-                                cursor: 'pointer'
-                            }}
-                        />
+                        >
+                            <option value="CIVIL_MONTH">Mês Civil</option>
+                            <option value="INVOICES">Fechamento de Faturas</option>
+                            <option value="CUSTOM">Intervalo Livre</option>
+                        </select>
                     </div>
                     <button
                         type="submit"

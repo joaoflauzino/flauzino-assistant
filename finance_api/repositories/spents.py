@@ -2,7 +2,7 @@ from datetime import date
 from typing import List, Optional
 from uuid import UUID
 
-from sqlalchemy import select, update, delete, func, text, case
+from sqlalchemy import select, update, delete, func, text, case, or_, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from finance_api.models.spents import Spent
@@ -63,6 +63,37 @@ class SpentRepository:
         result = await self.db.execute(query)
         items = list(result.scalars().all())
         logger.info(f"Listed {len(items)} spents")
+        return items, total
+
+    async def list_by_multiple_periods(
+        self,
+        periods: List[tuple[str, date, date]],
+        skip: int = 0,
+        limit: int = 100,
+    ) -> tuple[List[Spent], int]:
+        query = select(Spent)
+
+        conditions = []
+        for pm_key, start_d, end_d in periods:
+            condition = and_(
+                Spent.payment_method == pm_key,
+                func.date(Spent.created_at.op("AT TIME ZONE")("America/Sao_Paulo")) >= start_d,
+                func.date(Spent.created_at.op("AT TIME ZONE")("America/Sao_Paulo")) <= end_d,
+            )
+            conditions.append(condition)
+
+        if conditions:
+            query = query.where(or_(*conditions))
+        else:
+            return [], 0
+
+        count_query = select(func.count()).select_from(query.subquery())
+        count_result = await self.db.execute(count_query)
+        total = count_result.scalar() or 0
+
+        query = query.offset(skip).limit(limit)
+        result = await self.db.execute(query)
+        items = list(result.scalars().all())
         return items, total
 
     async def get_by_id(self, spent_id: UUID) -> Optional[Spent]:

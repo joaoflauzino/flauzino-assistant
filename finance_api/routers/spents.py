@@ -8,7 +8,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from finance_api.core.database import get_db
 from finance_api.repositories.spents import SpentRepository
 from finance_api.services.spents import SpentService
-from finance_api.schemas.spents import SpentCreate, SpentResponse, SpentUpdate
+from finance_api.repositories.invoices import InvoiceRepository
+from finance_api.repositories.payment_methods import PaymentMethodRepository
+from finance_api.services.invoices import InvoiceService
+from finance_api.schemas.spents import SpentCreate, SpentResponse, SpentUpdate, DashboardMode
 from finance_api.schemas.pagination import PaginatedResponse
 from finance_api.schemas.installments import InstallmentSummary
 
@@ -33,6 +36,26 @@ async def list_spents(
     repo = SpentRepository(db)
     service = SpentService(repo)
     return await service.list(page, size, start_date, end_date)
+
+
+@router.get("/dashboard", response_model=PaginatedResponse[SpentResponse])
+async def get_dashboard(
+    reference_month: str,
+    mode: DashboardMode = DashboardMode.CIVIL_MONTH,
+    page: int = 1,
+    size: int = 100,
+    db: AsyncSession = Depends(get_db),
+) -> PaginatedResponse[SpentResponse]:
+    repo = SpentRepository(db)
+    service = SpentService(repo)
+
+    inv_repo = InvoiceRepository(db)
+    pm_repo = PaymentMethodRepository(db)
+    inv_service = InvoiceService(inv_repo, pm_repo)
+
+    return await service.get_dashboard(
+        reference_month, mode.value, page, size, inv_service, pm_repo
+    )
 
 
 @router.get("/installments-summary", response_model=list[InstallmentSummary])

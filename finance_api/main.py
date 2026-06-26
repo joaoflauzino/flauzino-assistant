@@ -22,6 +22,7 @@ from finance_api.routers import (
     payment_owners,
     spents,
     subscriptions,
+    invoices,
 )
 
 app = FastAPI(title="Flauzino Assistant API")
@@ -48,3 +49,4 @@ app.include_router(categories.router, prefix="/categories", tags=["categories"])
 app.include_router(payment_methods.router, prefix="/payment-methods", tags=["payment-methods"])
 app.include_router(payment_owners.router, prefix="/payment-owners", tags=["payment-owners"])
 app.include_router(subscriptions.router, prefix="/subscriptions", tags=["subscriptions"])
+app.include_router(invoices.router, prefix="/invoices", tags=["invoices"])

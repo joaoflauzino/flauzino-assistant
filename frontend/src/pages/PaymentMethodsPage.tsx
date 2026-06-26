@@ -16,7 +16,10 @@ export const PaymentMethodsPage = () => {
     // Form State
     const [formData, setFormData] = useState({
         key: '',
-        display_name: ''
+        display_name: '',
+        is_credit_card: false,
+        closing_day: '',
+        due_day: ''
     });
 
     const fetchData = async (p: number) => {
@@ -46,9 +49,8 @@ export const PaymentMethodsPage = () => {
             } else {
                 await api.post('/payment-methods/', formData);
             }
-            setIsModalOpen(false);
             setEditingMethod(null);
-            setFormData({ key: '', display_name: '' });
+            setFormData({ key: '', display_name: '', is_credit_card: false, closing_day: '', due_day: '' });
             fetchData(page);
         } catch (error) {
             console.error("Error saving payment method", error);
@@ -71,14 +73,17 @@ export const PaymentMethodsPage = () => {
         setEditingMethod(method);
         setFormData({
             key: method.key,
-            display_name: method.display_name
+            display_name: method.display_name,
+            is_credit_card: method.is_credit_card || false,
+            closing_day: method.closing_day?.toString() || '',
+            due_day: method.due_day?.toString() || ''
         });
         setIsModalOpen(true);
     };
 
     const openCreate = () => {
         setEditingMethod(null);
-        setFormData({ key: '', display_name: '' });
+        setFormData({ key: '', display_name: '', is_credit_card: false, closing_day: '', due_day: '' });
         setIsModalOpen(true);
     };
 
@@ -174,6 +179,7 @@ export const PaymentMethodsPage = () => {
                                     }}>
                                         <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>KEY IDENTIFIER</th>
                                         <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>NOME DE EXIBIÇÃO</th>
+                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>CARTÃO DE CRÉDITO</th>
                                         <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem', textAlign: 'right' }}>AÇÕES</th>
                                     </tr>
                                 </thead>
@@ -205,6 +211,13 @@ export const PaymentMethodsPage = () => {
                                                     </span>
                                                 </td>
                                                 <td style={{ padding: '1.25rem 1.5rem', fontWeight: 500, fontSize: '1rem' }}>{pm.display_name}</td>
+                                                <td style={{ padding: '1.25rem 1.5rem', fontSize: '0.9rem' }}>
+                                                    {pm.is_credit_card ? (
+                                                        <span style={{ color: 'var(--accent-color)', fontWeight: 600 }}>Sim (Fecha: {pm.closing_day})</span>
+                                                    ) : (
+                                                        <span style={{ color: 'var(--text-secondary)' }}>Não</span>
+                                                    )}
+                                                </td>
                                                 <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
                                                     <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
                                                         <button
@@ -355,6 +368,52 @@ export const PaymentMethodsPage = () => {
                             }}
                         />
                     </div>
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <input
+                            type="checkbox"
+                            id="is_credit_card"
+                            checked={formData.is_credit_card}
+                            onChange={e => setFormData({ ...formData, is_credit_card: e.target.checked })}
+                            style={{ width: '1.2rem', height: '1.2rem', cursor: 'pointer' }}
+                        />
+                        <label htmlFor="is_credit_card" style={{ fontSize: '1rem', color: 'var(--text-primary)', cursor: 'pointer' }}>
+                            É um cartão de crédito?
+                        </label>
+                    </div>
+
+                    {formData.is_credit_card && (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Dia de Fechamento</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="31"
+                                    required={formData.is_credit_card}
+                                    className="form-input"
+                                    value={formData.closing_day}
+                                    onChange={e => setFormData({ ...formData, closing_day: e.target.value })}
+                                    placeholder="ex: 25"
+                                    style={{ width: '100%', padding: '0.9rem', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'white' }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Dia de Vencimento</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="31"
+                                    required={formData.is_credit_card}
+                                    className="form-input"
+                                    value={formData.due_day}
+                                    onChange={e => setFormData({ ...formData, due_day: e.target.value })}
+                                    placeholder="ex: 5"
+                                    style={{ width: '100%', padding: '0.9rem', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'white' }}
+                                />
+                            </div>
+                        </div>
+                    )}
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
                         <button
