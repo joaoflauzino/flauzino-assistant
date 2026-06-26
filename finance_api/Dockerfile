@@ -1,8 +1,8 @@
 # Stage 1: Builder
-FROM python:3.13-slim-bookworm AS builder
+FROM python:3.13.14-slim-bookworm AS builder
 
 # Install uv
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.9.26 /uv /bin/uv
 
 WORKDIR /app
 
@@ -19,7 +19,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-install-project --no-dev --python /usr/local/bin/python
 
 # Stage 2: Runtime
-FROM python:3.13-slim-bookworm
+FROM python:3.13.14-slim-bookworm
 
 WORKDIR /app
 
