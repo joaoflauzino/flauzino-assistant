@@ -19,7 +19,6 @@ class Spent(Base):
     amount: Mapped[float] = mapped_column(Float)
     item_bought: Mapped[str] = mapped_column(String, nullable=False)
     payment_method: Mapped[str] = mapped_column(String, nullable=False)
-    payment_owner: Mapped[str] = mapped_column(String, nullable=False)
     location: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

@@ -4,7 +4,6 @@ CREATE TABLE IF NOT EXISTS spents (
     amount DOUBLE PRECISION NOT NULL,
     item_bought VARCHAR NOT NULL,
     payment_method VARCHAR NOT NULL,
-    payment_owner VARCHAR NOT NULL,
     location VARCHAR NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     installment_id UUID,
@@ -21,7 +20,6 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     category VARCHAR NOT NULL,
     amount DOUBLE PRECISION NOT NULL,
     payment_method VARCHAR NOT NULL,
-    payment_owner VARCHAR NOT NULL,
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -58,15 +56,7 @@ CREATE TABLE IF NOT EXISTS payment_methods (
 
 CREATE INDEX IF NOT EXISTS ix_payment_methods_key ON payment_methods (key);
 
--- Payment Owners table
-CREATE TABLE IF NOT EXISTS payment_owners (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    key VARCHAR(50) NOT NULL UNIQUE,
-    display_name VARCHAR(100) NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
 
-CREATE INDEX IF NOT EXISTS ix_payment_owners_key ON payment_owners (key);
 
 -- Invoices table
 CREATE TABLE IF NOT EXISTS invoices (
@@ -87,18 +77,14 @@ CREATE UNIQUE INDEX IF NOT EXISTS ix_invoices_payment_method_month
     ON invoices (payment_method_key, reference_month);
 
 -- Seed payment_methods
-INSERT INTO payment_methods (key, display_name) VALUES
-    ('itau', 'Itaú'),
-    ('nubank', 'Nubank'),
-    ('picpay', 'PicPay'),
-    ('c6', 'C6'),
-    ('pix', 'Pix')
-ON CONFLICT (key) DO NOTHING;
-
--- Seed payment_owners
-INSERT INTO payment_owners (key, display_name) VALUES
-    ('joao_lucas', 'João Lucas'),
-    ('lailla', 'Lailla')
+INSERT INTO payment_methods (key, display_name, is_credit_card, closing_day, due_day) VALUES
+    ('itau_joao', 'Itaú (João Lucas)', true, 2, 10),
+    ('nubank_joao', 'Nubank (João Lucas)', true, 2, 10),
+    ('nubank_lailla', 'Nubank (Lailla)', true, 2, 10),
+    ('picpay_joao', 'PicPay (João Lucas)', true, 2, 10),
+    ('c6_joao', 'C6 (João Lucas)', true, 2, 10),
+    ('pix_joao', 'Pix (João Lucas)', false, null, null),
+    ('pix_lailla', 'Pix (Lailla)', false, null, null)
 ON CONFLICT (key) DO NOTHING;
 
 -- Seed categories with existing category mappings

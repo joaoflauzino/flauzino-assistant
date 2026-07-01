@@ -59,6 +59,10 @@ class SubscriptionService:
                     f"Category '{update_data.category}' does not exist. Please create it first."
                 )
 
+        current_subscription = await self.repo.get_by_id(subscription_id)
+        if not current_subscription:
+            raise EntityNotFoundError(f"Subscription with id {subscription_id} not found")
+
         updated_subscription = await self.repo.update(subscription_id, update_data)
         if not updated_subscription:
             raise EntityNotFoundError(f"Subscription with id {subscription_id} not found")

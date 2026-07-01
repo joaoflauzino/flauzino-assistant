@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Trash2, Edit2, ChevronLeft, ChevronRight, Wallet } from 'lucide-react';
 import api from '../services/api';
-import type { Spent, PaginatedResponse, Category, PaymentMethod, PaymentOwner } from '../types';
+import type { Spent, PaginatedResponse, Category, PaymentMethod } from '../types';
 import { Modal } from '../components/Modal';
 
 export const SpentsPage = () => {
@@ -12,11 +12,11 @@ export const SpentsPage = () => {
     const [totalItems, setTotalItems] = useState(0);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingSpent, setEditingSpent] = useState<Spent | null>(null);
+    const [spentToDelete, setSpentToDelete] = useState<string | null>(null);
 
     // Options States
     const [categories, setCategories] = useState<Category[]>([]);
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-    const [paymentOwners, setPaymentOwners] = useState<PaymentOwner[]>([]);
     // Helper to get the first and last day de current month
     const getCurrentMonthDates = () => {
         const now = new Date();
@@ -46,7 +46,6 @@ export const SpentsPage = () => {
         amount: '',
         item_bought: '',
         payment_method: '',
-        payment_owner: '',
         location: '',
         created_at: monthDates.end,
         is_installment: false,
@@ -75,14 +74,12 @@ export const SpentsPage = () => {
     useEffect(() => {
         const fetchOptions = async () => {
             try {
-                const [catRes, pmRes, poRes] = await Promise.all([
+                const [catRes, pmRes] = await Promise.all([
                     api.get<PaginatedResponse<Category>>('/categories/?size=1000'),
-                    api.get<PaginatedResponse<PaymentMethod>>('/payment-methods/?size=1000'),
-                    api.get<PaginatedResponse<PaymentOwner>>('/payment-owners/?size=1000')
+                    api.get<PaginatedResponse<PaymentMethod>>('/payment-methods/?size=1000')
                 ]);
                 setCategories(catRes.data.items);
                 setPaymentMethods(pmRes.data.items);
-                setPaymentOwners(poRes.data.items);
             } catch (error) {
                 console.error("Failed to fetch options", error);
             }
@@ -120,7 +117,7 @@ export const SpentsPage = () => {
             }
             setIsModalOpen(false);
             setEditingSpent(null);
-            setFormData({ category: '', amount: '', item_bought: '', payment_method: '', payment_owner: '', location: '', created_at: monthDates.end, is_installment: false, current_installment: 1, total_installments: 2 });
+            setFormData({ category: '', amount: '', item_bought: '', payment_method: '', location: '', created_at: monthDates.end, is_installment: false, current_installment: 1, total_installments: 2 });
             fetchData(page);
         } catch (error) {
             console.error("Error saving spent", error);
@@ -128,10 +125,15 @@ export const SpentsPage = () => {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("Tem certeza?")) return;
+    const handleDelete = (id: string) => {
+        setSpentToDelete(id);
+    };
+
+    const confirmDelete = async () => {
+        if (!spentToDelete) return;
         try {
-            await api.delete(`/spents/${id}`);
+            await api.delete(`/spents/${spentToDelete}`);
+            setSpentToDelete(null);
             fetchData(page);
         } catch (error) {
             console.error("Error deleting spent", error);
@@ -145,7 +147,6 @@ export const SpentsPage = () => {
             amount: spent.amount.toString(),
             item_bought: spent.item_bought,
             payment_method: spent.payment_method,
-            payment_owner: spent.payment_owner,
             location: spent.location,
             created_at: spent.created_at ? spent.created_at.substring(0, 10) : monthDates.end,
             is_installment: spent.is_installment || false,
@@ -157,7 +158,7 @@ export const SpentsPage = () => {
 
     const openCreate = () => {
         setEditingSpent(null);
-        setFormData({ category: '', amount: '', item_bought: '', payment_method: '', payment_owner: '', location: '', created_at: monthDates.end, is_installment: false, current_installment: 1, total_installments: 2 });
+        setFormData({ category: '', amount: '', item_bought: '', payment_method: '', location: '', created_at: monthDates.end, is_installment: false, current_installment: 1, total_installments: 2 });
         setIsModalOpen(true);
     };
 
@@ -299,7 +300,6 @@ export const SpentsPage = () => {
                                         <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>CATEGORIA</th>
                                         <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>VALOR</th>
                                         <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>MÉTODO</th>
-                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>TITULAR</th>
                                         <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>LOCALIZAÇÃO</th>
                                         <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>DATA</th>
                                         <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem', textAlign: 'right' }}>AÇÕES</th>
@@ -337,13 +337,13 @@ export const SpentsPage = () => {
                                                 R$ {s.amount.toFixed(2)}
                                             </td>
                                             <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)' }}>{s.payment_method}</td>
-                                            <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)' }}>{s.payment_owner}</td>
                                             <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)' }}>{s.location}</td>
                                             <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)' }}>{new Date(s.created_at).toLocaleDateString()}</td>
                                             <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
                                                 <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
                                                     <button
-                                                        onClick={() => openEdit(s)}
+                                                        type="button"
+                                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); openEdit(s); }}
                                                         style={{
                                                             padding: '0.5rem',
                                                             backgroundColor: 'rgba(245, 158, 11, 0.1)',
@@ -359,7 +359,8 @@ export const SpentsPage = () => {
                                                         <Edit2 size={16} color="#f59e0b" />
                                                     </button>
                                                     <button
-                                                        onClick={() => handleDelete(s.id)}
+                                                        type="button"
+                                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(s.id); }}
                                                         style={{
                                                             padding: '0.5rem',
                                                             backgroundColor: 'rgba(239, 68, 68, 0.1)',
@@ -557,29 +558,6 @@ export const SpentsPage = () => {
                                 ))}
                             </select>
                         </div>
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Titular</label>
-                            <select
-                                required
-                                value={formData.payment_owner}
-                                onChange={e => setFormData({ ...formData, payment_owner: e.target.value })}
-                                style={{
-                                    width: '100%',
-                                    padding: '0.9rem',
-                                    borderRadius: '8px',
-                                    border: '1px solid var(--border-color)',
-                                    backgroundColor: 'var(--bg-primary)',
-                                    color: 'white',
-                                    fontSize: '1rem',
-                                    appearance: 'none'
-                                }}
-                            >
-                                <option value="" disabled>Selecione...</option>
-                                {paymentOwners.map(po => (
-                                    <option key={po.id} value={po.key}>{po.display_name}</option>
-                                ))}
-                            </select>
-                        </div>
                     </div>
                     <div>
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Localização</label>
@@ -710,6 +688,47 @@ export const SpentsPage = () => {
                         </button>
                     </div>
                 </form>
+            </Modal>
+
+            <Modal isOpen={!!spentToDelete} onClose={() => setSpentToDelete(null)} title="Confirmar Exclusão">
+                <div style={{ padding: '1rem 0' }}>
+                    <p style={{ color: 'var(--text-primary)', fontSize: '1rem', marginBottom: '2rem' }}>
+                        Tem certeza que deseja excluir este gasto? Essa ação não pode ser desfeita.
+                    </p>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                        <button
+                            type="button"
+                            onClick={() => setSpentToDelete(null)}
+                            style={{
+                                padding: '0.75rem 1.5rem',
+                                backgroundColor: 'transparent',
+                                color: 'var(--text-secondary)',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontWeight: 500
+                            }}
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="button"
+                            onClick={confirmDelete}
+                            style={{
+                                padding: '0.75rem 1.5rem',
+                                backgroundColor: '#ef4444',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontWeight: 600,
+                                minWidth: '100px'
+                            }}
+                        >
+                            Excluir
+                        </button>
+                    </div>
+                </div>
             </Modal>
         </div>
     );

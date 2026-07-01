@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Trash2, Edit2, ChevronLeft, ChevronRight, Repeat, CheckCircle2, XCircle } from 'lucide-react';
 import api from '../services/api';
-import type { Subscription, PaginatedResponse, Category, PaymentMethod, PaymentOwner } from '../types';
+import type { Subscription, PaginatedResponse, Category, PaymentMethod } from '../types';
 import { Modal } from '../components/Modal';
 
 export const SubscriptionsPage = () => {
@@ -16,7 +16,6 @@ export const SubscriptionsPage = () => {
     // Options States
     const [categories, setCategories] = useState<Category[]>([]);
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-    const [paymentOwners, setPaymentOwners] = useState<PaymentOwner[]>([]);
 
     const defaultDate = new Date().toISOString().split('T')[0];
 
@@ -26,7 +25,6 @@ export const SubscriptionsPage = () => {
         category: '',
         amount: '',
         payment_method: '',
-        payment_owner: '',
         is_active: true,
         created_at: defaultDate
     });
@@ -48,14 +46,12 @@ export const SubscriptionsPage = () => {
     useEffect(() => {
         const fetchOptions = async () => {
             try {
-                const [catRes, pmRes, poRes] = await Promise.all([
+                const [catRes, pmRes] = await Promise.all([
                     api.get<PaginatedResponse<Category>>('/categories/?size=1000'),
-                    api.get<PaginatedResponse<PaymentMethod>>('/payment-methods/?size=1000'),
-                    api.get<PaginatedResponse<PaymentOwner>>('/payment-owners/?size=1000')
+                    api.get<PaginatedResponse<PaymentMethod>>('/payment-methods/?size=1000')
                 ]);
                 setCategories(catRes.data.items);
                 setPaymentMethods(pmRes.data.items);
-                setPaymentOwners(poRes.data.items);
             } catch (error) {
                 console.error("Failed to fetch options", error);
             }
@@ -83,7 +79,7 @@ export const SubscriptionsPage = () => {
             }
             setIsModalOpen(false);
             setEditingSubscription(null);
-            setFormData({ name: '', category: '', amount: '', payment_method: '', payment_owner: '', is_active: true, created_at: defaultDate });
+            setFormData({ name: '', category: '', amount: '', payment_method: '', is_active: true, created_at: defaultDate });
             fetchData(page);
         } catch (error) {
             console.error("Error saving subscription", error);
@@ -117,7 +113,6 @@ export const SubscriptionsPage = () => {
             category: subscription.category,
             amount: subscription.amount.toString(),
             payment_method: subscription.payment_method,
-            payment_owner: subscription.payment_owner,
             is_active: subscription.is_active,
             created_at: subscription.created_at ? subscription.created_at.substring(0, 10) : defaultDate
         });
@@ -126,7 +121,7 @@ export const SubscriptionsPage = () => {
 
     const openCreate = () => {
         setEditingSubscription(null);
-        setFormData({ name: '', category: '', amount: '', payment_method: '', payment_owner: '', is_active: true, created_at: defaultDate });
+        setFormData({ name: '', category: '', amount: '', payment_method: '', is_active: true, created_at: defaultDate });
         setIsModalOpen(true);
     };
 
@@ -201,8 +196,7 @@ export const SubscriptionsPage = () => {
                                         <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>CATEGORIA</th>
                                         <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>VALOR</th>
                                         <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>MÉTODO</th>
-                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>TITULAR</th>
-                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>STATUS</th>
+                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>DATA INÍCIO</th>
                                         <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem', textAlign: 'right' }}>AÇÕES</th>
                                     </tr>
                                 </thead>
@@ -234,7 +228,7 @@ export const SubscriptionsPage = () => {
                                                 R$ {s.amount.toFixed(2)}
                                             </td>
                                             <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)' }}>{s.payment_method}</td>
-                                            <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)' }}>{s.payment_owner}</td>
+                                            <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)' }}>{new Date(s.created_at).toLocaleDateString()}</td>
                                             <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)' }}>
                                                 <button
                                                     onClick={() => toggleStatus(s)}
@@ -472,29 +466,6 @@ export const SubscriptionsPage = () => {
                                 <option value="" disabled>Selecione...</option>
                                 {paymentMethods.map(pm => (
                                     <option key={pm.id} value={pm.key}>{pm.display_name}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Titular</label>
-                            <select
-                                required
-                                value={formData.payment_owner}
-                                onChange={e => setFormData({ ...formData, payment_owner: e.target.value })}
-                                style={{
-                                    width: '100%',
-                                    padding: '0.9rem',
-                                    borderRadius: '8px',
-                                    border: '1px solid var(--border-color)',
-                                    backgroundColor: 'var(--bg-primary)',
-                                    color: 'white',
-                                    fontSize: '1rem',
-                                    appearance: 'none'
-                                }}
-                            >
-                                <option value="" disabled>Selecione...</option>
-                                {paymentOwners.map(po => (
-                                    <option key={po.id} value={po.key}>{po.display_name}</option>
                                 ))}
                             </select>
                         </div>

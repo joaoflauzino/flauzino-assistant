@@ -19,7 +19,6 @@ from finance_api.routers import (
     categories,
     limits,
     payment_methods,
-    payment_owners,
     spents,
     subscriptions,
     invoices,
@@ -47,6 +46,5 @@ app.include_router(spents.router, prefix="/spents", tags=["spents"])
 app.include_router(limits.router, prefix="/limits", tags=["limits"])
 app.include_router(categories.router, prefix="/categories", tags=["categories"])
 app.include_router(payment_methods.router, prefix="/payment-methods", tags=["payment-methods"])
-app.include_router(payment_owners.router, prefix="/payment-owners", tags=["payment-owners"])
 app.include_router(subscriptions.router, prefix="/subscriptions", tags=["subscriptions"])
 app.include_router(invoices.router, prefix="/invoices", tags=["invoices"])

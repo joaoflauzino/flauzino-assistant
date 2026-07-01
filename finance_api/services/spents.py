@@ -119,6 +119,10 @@ class SpentService:
                     f"Category '{update_data.category}' does not exist. Please create it first."
                 )
 
+        current_spent = await self.repo.get_by_id(spent_id)
+        if not current_spent:
+            raise EntityNotFoundError(f"Spent with id {spent_id} not found")
+
         updated_spent = await self.repo.update(spent_id, update_data)
         if not updated_spent:
             raise EntityNotFoundError(f"Spent with id {spent_id} not found")
