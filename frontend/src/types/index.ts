@@ -3,7 +3,6 @@ export interface Spent {
     category: string;
     amount: number;
     payment_method: string;
-    payment_owner: string;
     item_bought: string;
     location: string;
     is_installment?: boolean;
@@ -19,7 +18,6 @@ export interface Subscription {
     category: string;
     amount: number;
     payment_method: string;
-    payment_owner: string;
     is_active: boolean;
     created_at: string;
 }

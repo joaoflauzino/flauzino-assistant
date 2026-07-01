@@ -17,10 +17,20 @@
 - [x] Lidar com variações da **data de fechamento** (ex: dias não úteis), permitindo que o sistema tenha uma "prévia" configurada e a opção de alterar a data manualmente no fim do mês para uma visão 100% certeira.
 - [x] Ajustar as consultas da `finance_api` para que a visualização de gastos de um "mês fechado" seja **sempre** o intervalo entre a data de fechamento do mês anterior e a data de fechamento do mês atual.
 - [x] Atualizar o `frontend` para exibir os dashboards baseados nessas faturas e faturamentos dinâmicos, e não apenas no mês civil.
+- [ ] Adicionar filtro no Dashboard para permitir a seleção de um, múltiplos ou todos os cartões/métodos de pagamento.
+- [ ] Implementar um gráfico no Dashboard mostrando o gasto total por cartão de acordo com os filtros aplicados.
 
-## 3. Consulta de Saldo e Limites por Categoria
+## 3. Regras de Validação e Melhoria de Erros
+- [x] Atualizar os cartões no `init.sql` para crédito e com datas de vencimento/fechamento.
+- [x] Criar validação bloqueando a titular `lailla` de utilizar outro cartão que não seja `nubank`.
+- [ ] Configurar um interceptador de erros no frontend para exibir as validações da API claramente na interface.
+- [ ] Padronizar a funcionalidade de "Excluir" no frontend (demais seções) usando o Modal React, para ficar idêntico à seção de gastos.
+- [ ] Validar a criação de categorias na seção de categorias (frontend/backend) para impedir duplicidades de chaves que já existem.
+
+## 4. Consulta de Saldo e Limites por Categoria
 - [ ] **Síncrono (Comandos e Texto):** Criar comandos no Telegram (ex: `/limites` ou `/saldo`) e **também habilitar a consulta por texto livre** via Agente (ex: "quanto ainda posso gastar de mercado?").
 - [ ] **Assíncrono:** Configurar um *cron job* ou serviço agendado (ex: toda sexta-feira) para enviar proativamente uma mensagem ao Telegram resumindo a saúde financeira e os limites.
+- [ ] O campo de `mês referência` (reference_month) deve ser um seletor (dropdown/opções) e não um campo de texto livre, para evitar erros de formatação ao editar.
 
 ## 4. Geração de Gráficos sob Demanda (Integração com MCP)
 - [ ] Implementar um servidor MCP (Model Context Protocol) capaz de consultar a `finance_api` e desenhar gráficos (ex: bibliotecas de plotagem).

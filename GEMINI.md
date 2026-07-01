@@ -56,7 +56,7 @@ Toda nova feature ou modificação precisa estar acompanhada de **testes unitár
 ## 6. Workflow de Desenvolvimento (Development Workflow)
 Para qualquer solicitação de nova feature:
 1. **Analisar**: Verificar se as alterações afetam a `finance_api`, `agent_api` e/ou `frontend`.
-2. **Especificar**: Criar o arquivo de especificação `.specs/<feature-name>.md` e planejar Models -> Repositories -> Services -> Routers.
+2. **Especificar**: Criar o arquivo de especificação `.specs/<feature-name>.md` e planejar Models -> Repositories -> Services -> Routers. Sempre salvar todos os detalhes de planejamento e detalhes de implementação técnica com exemplos de código e desenhos (formato mermaid) se necessário.
 3. **Aprovação**: Aguardar a aprovação humana do plano de implementação/especificação.
 4. **Implementar**: Somente após aprovação, iniciar a escrita do código respeitando os padrões descritos neste documento.
 5. **Testar**: Gerar o plano de testes e escrever/executar os testes automatizados.

@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Wallet, PiggyBank, Tags, CreditCard, Users, Repeat, Layers } from 'lucide-react';
+import { LayoutDashboard, Wallet, PiggyBank, Tags, CreditCard, Repeat, Layers } from 'lucide-react';
 import { Dashboard } from './pages/Dashboard';
 import { SpentsPage } from './pages/SpentsPage';
 import { SubscriptionsPage } from './pages/SubscriptionsPage';
@@ -7,7 +7,6 @@ import { InstallmentsPage } from './pages/InstallmentsPage';
 import { LimitsPage } from './pages/LimitsPage';
 import { CategoriesPage } from './pages/CategoriesPage';
 import { PaymentMethodsPage } from './pages/PaymentMethodsPage';
-import { PaymentOwnersPage } from './pages/PaymentOwnersPage';
 import { InvoicesPage } from './pages/InvoicesPage';
 import { CalendarDays } from 'lucide-react';
 import './index.css';
@@ -26,7 +25,6 @@ const Navigation = () => {
     { path: '/categories', label: 'Categorias', icon: <Tags size={20} /> },
     { path: '/payment-methods', label: 'Métodos de Pagamento', icon: <CreditCard size={20} /> },
     { path: '/invoices', label: 'Faturas', icon: <CalendarDays size={20} /> },
-    { path: '/payment-owners', label: 'Titulares de Pagamento', icon: <Users size={20} /> },
   ];
 
   return (
@@ -83,7 +81,6 @@ function App() {
             <Route path="/categories" element={<CategoriesPage />} />
             <Route path="/payment-methods" element={<PaymentMethodsPage />} />
             <Route path="/invoices" element={<InvoicesPage />} />
-            <Route path="/payment-owners" element={<PaymentOwnersPage />} />
           </Routes>
         </main>
       </div>

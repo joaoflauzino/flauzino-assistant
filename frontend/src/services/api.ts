@@ -7,7 +7,18 @@ const api = axios.create({
     },
 });
 
-console.log('API Base URL:', api.defaults.baseURL);
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response && error.response.data && error.response.data.detail) {
+            alert(`Erro: ${error.response.data.detail}`);
+        } else {
+            alert("Um erro inesperado ocorreu. Tente novamente.");
+        }
+        return Promise.reject(error);
+    }
+);
 
+console.log('API Base URL:', api.defaults.baseURL);
 
 export default api;

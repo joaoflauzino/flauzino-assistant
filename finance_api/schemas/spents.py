@@ -16,10 +16,9 @@ class SpentBase(BaseModel):
     amount: float
     item_bought: str = Field(..., min_length=1, max_length=50)
     payment_method: str = Field(..., min_length=1, max_length=50)
-    payment_owner: str = Field(..., min_length=1, max_length=50)
     location: str
 
-    @field_validator("category", "payment_method", "payment_owner")
+    @field_validator("category", "payment_method")
     @classmethod
     def validate_keys(cls, v: str) -> str:
         """Normalize keys to lowercase."""
@@ -38,13 +37,12 @@ class SpentUpdate(BaseModel):
     amount: Optional[float] = None
     item_bought: Optional[str] = Field(None, min_length=1, max_length=50)
     payment_method: Optional[str] = Field(None, min_length=1, max_length=50)
-    payment_owner: Optional[str] = Field(None, min_length=1, max_length=50)
     location: Optional[str] = None
     installment_id: Optional[UUID] = None
     current_installment: Optional[int] = None
     total_installments: Optional[int] = None
 
-    @field_validator("category", "payment_method", "payment_owner")
+    @field_validator("category", "payment_method")
     @classmethod
     def validate_keys_update(cls, v: Optional[str]) -> Optional[str]:
         """Normalize keys to lowercase if provided."""
