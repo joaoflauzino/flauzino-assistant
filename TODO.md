@@ -30,6 +30,7 @@
 ## 4. Consulta de Saldo e Limites por Categoria
 - [ ] **Síncrono (Comandos e Texto):** Criar comandos no Telegram (ex: `/limites` ou `/saldo`) e **também habilitar a consulta por texto livre** via Agente (ex: "quanto ainda posso gastar de mercado?").
 - [ ] **Assíncrono:** Configurar um *cron job* ou serviço agendado (ex: toda sexta-feira) para enviar proativamente uma mensagem ao Telegram resumindo a saúde financeira e os limites.
+- [ ] O campo de `mês referência` (reference_month) deve ser um seletor (dropdown/opções) e não um campo de texto livre, para evitar erros de formatação ao editar.
 
 ## 4. Geração de Gráficos sob Demanda (Integração com MCP)
 - [ ] Implementar um servidor MCP (Model Context Protocol) capaz de consultar a `finance_api` e desenhar gráficos (ex: bibliotecas de plotagem).
