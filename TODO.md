@@ -17,8 +17,8 @@
 - [x] Lidar com variações da **data de fechamento** (ex: dias não úteis), permitindo que o sistema tenha uma "prévia" configurada e a opção de alterar a data manualmente no fim do mês para uma visão 100% certeira.
 - [x] Ajustar as consultas da `finance_api` para que a visualização de gastos de um "mês fechado" seja **sempre** o intervalo entre a data de fechamento do mês anterior e a data de fechamento do mês atual.
 - [x] Atualizar o `frontend` para exibir os dashboards baseados nessas faturas e faturamentos dinâmicos, e não apenas no mês civil.
-- [ ] Adicionar filtro no Dashboard para permitir a seleção de um, múltiplos ou todos os cartões/métodos de pagamento.
-- [ ] Implementar um gráfico no Dashboard mostrando o gasto total por cartão de acordo com os filtros aplicados.
+- [x] Adicionar filtro no Dashboard para permitir a seleção de um, múltiplos ou todos os cartões/métodos de pagamento.
+- [x] Implementar um gráfico no Dashboard mostrando o gasto total por cartão de acordo com os filtros aplicados.
 
 ## 3. Regras de Validação e Melhoria de Erros
 - [x] Atualizar os cartões no `init.sql` para crédito e com datas de vencimento/fechamento.
