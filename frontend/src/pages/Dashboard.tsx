@@ -58,6 +58,8 @@ export const Dashboard = () => {
 
     // Category selection state - all categories selected by default
     const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
+    // Payment method selection state - all selected by default
+    const [selectedPaymentMethods, setSelectedPaymentMethods] = useState<Set<string>>(new Set());
 
     // Dynamic categories from API
     const [categoryNames, setCategoryNames] = useState<Record<string, string>>({});
@@ -93,6 +95,14 @@ export const Dashboard = () => {
                     ...subscriptionsRes.data.items.map((sub: Subscription) => sub.category)
                 ]));
                 setSelectedCategories(new Set(allCategories));
+            }
+            // Initialize selected payment methods with all available
+            if (selectedPaymentMethods.size === 0) {
+                const allPMs = Array.from(new Set([
+                    ...spentsRes.data.items.map((s: Spent) => s.payment_method),
+                    ...subscriptionsRes.data.items.map((sub: Subscription) => sub.payment_method)
+                ]));
+                setSelectedPaymentMethods(new Set(allPMs));
             }
         } catch (error) {
             console.error("Error fetching dashboard data", error);
@@ -179,6 +189,29 @@ export const Dashboard = () => {
         setSelectedCategories(new Set());
     };
 
+    // Payment method toggle/select/deselect functions
+    const togglePaymentMethod = (pm: string) => {
+        const newSelected = new Set(selectedPaymentMethods);
+        if (newSelected.has(pm)) {
+            newSelected.delete(pm);
+        } else {
+            newSelected.add(pm);
+        }
+        setSelectedPaymentMethods(newSelected);
+    };
+
+    const selectAllPaymentMethods = () => {
+        const allPMs = Array.from(new Set([
+            ...spents.map(s => s.payment_method),
+            ...subscriptions.map(sub => sub.payment_method)
+        ]));
+        setSelectedPaymentMethods(new Set(allPMs));
+    };
+
+    const deselectAllPaymentMethods = () => {
+        setSelectedPaymentMethods(new Set());
+    };
+
     if (loading) return <div style={{ color: 'white', fontSize: '1.2rem' }}>Carregando painel...</div>;
 
     // Process Data - filter by selected categories
@@ -189,9 +222,13 @@ export const Dashboard = () => {
     ]));
     const categories = allCategories.filter(cat => selectedCategories.has(cat));
 
+    // Filter data by selected payment methods for category-level aggregation
+    const pmFilteredSpents = spents.filter(s => selectedPaymentMethods.has(s.payment_method));
+    const pmFilteredSubscriptions = subscriptions.filter(sub => selectedPaymentMethods.has(sub.payment_method));
+
     const spentByCategory = categories.map(cat => {
-        const spentSum = spents.filter(s => s.category === cat).reduce((acc, curr) => acc + curr.amount, 0);
-        const subSum = subscriptions.filter(sub => sub.category === cat).reduce((acc, curr) => acc + curr.amount, 0);
+        const spentSum = pmFilteredSpents.filter(s => s.category === cat).reduce((acc, curr) => acc + curr.amount, 0);
+        const subSum = pmFilteredSubscriptions.filter(sub => sub.category === cat).reduce((acc, curr) => acc + curr.amount, 0);
         return spentSum + subSum;
     });
 
@@ -211,10 +248,16 @@ export const Dashboard = () => {
         return spent;
     });
 
+    // All unique payment methods from the data (for selection panel)
+    const allPaymentMethods = Array.from(new Set([
+        ...spents.map(s => s.payment_method),
+        ...subscriptions.map(sub => sub.payment_method)
+    ]));
+
     // Payment Method Data Processing
-    // 1. Get unique payment methods from filtered spents & subscriptions
-    const filteredSpents = spents.filter(s => selectedCategories.has(s.category));
-    const filteredSubscriptions = subscriptions.filter(sub => selectedCategories.has(sub.category));
+    // Filter by BOTH selected categories AND selected payment methods
+    const filteredSpents = spents.filter(s => selectedCategories.has(s.category) && selectedPaymentMethods.has(s.payment_method));
+    const filteredSubscriptions = subscriptions.filter(sub => selectedCategories.has(sub.category) && selectedPaymentMethods.has(sub.payment_method));
     const uniquePaymentMethods = Array.from(new Set([
         ...filteredSpents.map(s => s.payment_method),
         ...filteredSubscriptions.map(sub => sub.payment_method)
@@ -649,6 +692,122 @@ export const Dashboard = () => {
                                     fontWeight: isSelected ? 500 : 400
                                 }}>
                                     {categoryNames[category] || category}
+                                </span>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* Payment Method Selection Panel */}
+            <div style={{
+                backgroundColor: 'var(--bg-secondary)',
+                padding: '1.5rem',
+                borderRadius: '12px',
+                marginBottom: '2rem',
+                border: '1px solid rgba(59, 130, 246, 0.1)'
+            }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Selecionar Cartões / Métodos de Pagamento</h3>
+                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        <button
+                            type="button"
+                            onClick={selectAllPaymentMethods}
+                            style={{
+                                padding: '0.4rem 1rem',
+                                borderRadius: '6px',
+                                border: '1px solid #3b82f6',
+                                background: 'transparent',
+                                color: '#3b82f6',
+                                fontSize: '0.85rem',
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.background = '#3b82f6';
+                                e.currentTarget.style.color = 'white';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'transparent';
+                                e.currentTarget.style.color = '#3b82f6';
+                            }}
+                        >
+                            Selecionar Todos
+                        </button>
+                        <button
+                            type="button"
+                            onClick={deselectAllPaymentMethods}
+                            style={{
+                                padding: '0.4rem 1rem',
+                                borderRadius: '6px',
+                                border: '1px solid #ef4444',
+                                background: 'transparent',
+                                color: '#ef4444',
+                                fontSize: '0.85rem',
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.background = '#ef4444';
+                                e.currentTarget.style.color = 'white';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'transparent';
+                                e.currentTarget.style.color = '#ef4444';
+                            }}
+                        >
+                            Desselecionar Todos
+                        </button>
+                    </div>
+                </div>
+
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                    gap: '0.75rem'
+                }}>
+                    {allPaymentMethods.map(pm => {
+                        const isSelected = selectedPaymentMethods.has(pm);
+                        return (
+                            <div
+                                key={pm}
+                                onClick={() => togglePaymentMethod(pm)}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.6rem',
+                                    padding: '0.75rem 1rem',
+                                    borderRadius: '8px',
+                                    background: isSelected ? 'rgba(59, 130, 246, 0.15)' : 'var(--bg-tertiary)',
+                                    border: `1.5px solid ${isSelected ? '#3b82f6' : 'transparent'}`,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s',
+                                    userSelect: 'none'
+                                }}
+                                onMouseEnter={(e) => {
+                                    if (!isSelected) {
+                                        e.currentTarget.style.background = 'rgba(59, 130, 246, 0.08)';
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (!isSelected) {
+                                        e.currentTarget.style.background = 'var(--bg-tertiary)';
+                                    }
+                                }}
+                            >
+                                {isSelected ? (
+                                    <CheckSquare size={18} color="#3b82f6" />
+                                ) : (
+                                    <Square size={18} color="var(--text-secondary)" />
+                                )}
+                                <span style={{
+                                    fontSize: '0.9rem',
+                                    color: isSelected ? 'white' : 'var(--text-secondary)',
+                                    fontWeight: isSelected ? 500 : 400
+                                }}>
+                                    {paymentMethodNames[pm] || pm}
                                 </span>
                             </div>
                         );
