@@ -24,7 +24,7 @@ class SubscriptionService:
         category_repo = CategoryRepository(self.repo.db)
         if not await category_repo.get_by_key(subscription.category):
             raise ValidationError(
-                f"Category '{subscription.category}' does not exist. Please create it first."
+                f"Categoria '{subscription.category}' não existe. Por favor, crie-a primeiro."
             )
 
         return await self.repo.create(subscription)
@@ -43,7 +43,7 @@ class SubscriptionService:
         logger.info(f"Getting subscription by id: {subscription_id}")
         subscription = await self.repo.get_by_id(subscription_id)
         if not subscription:
-            raise EntityNotFoundError(f"Subscription with id {subscription_id} not found")
+            raise EntityNotFoundError(f"Assinatura com ID {subscription_id} não encontrada")
         return subscription
 
     @handle_service_errors
@@ -56,16 +56,16 @@ class SubscriptionService:
             category_repo = CategoryRepository(self.repo.db)
             if not await category_repo.get_by_key(update_data.category):
                 raise ValidationError(
-                    f"Category '{update_data.category}' does not exist. Please create it first."
+                    f"Categoria '{update_data.category}' não existe. Por favor, crie-a primeiro."
                 )
 
         current_subscription = await self.repo.get_by_id(subscription_id)
         if not current_subscription:
-            raise EntityNotFoundError(f"Subscription with id {subscription_id} not found")
+            raise EntityNotFoundError(f"Assinatura com ID {subscription_id} não encontrada")
 
         updated_subscription = await self.repo.update(subscription_id, update_data)
         if not updated_subscription:
-            raise EntityNotFoundError(f"Subscription with id {subscription_id} not found")
+            raise EntityNotFoundError(f"Assinatura com ID {subscription_id} não encontrada")
         return updated_subscription
 
     @handle_service_errors
@@ -73,5 +73,5 @@ class SubscriptionService:
         logger.info(f"Deleting subscription: {subscription_id}")
         deleted = await self.repo.delete(subscription_id)
         if not deleted:
-            raise EntityNotFoundError(f"Subscription with id {subscription_id} not found")
+            raise EntityNotFoundError(f"Assinatura com ID {subscription_id} não encontrada")
         return True

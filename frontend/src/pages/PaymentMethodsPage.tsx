@@ -12,6 +12,7 @@ export const PaymentMethodsPage = () => {
     const [totalItems, setTotalItems] = useState(0);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingMethod, setEditingMethod] = useState<PaymentMethod | null>(null);
+    const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -54,18 +55,21 @@ export const PaymentMethodsPage = () => {
             fetchData(page);
         } catch (error) {
             console.error("Error saving payment method", error);
-            alert("Failed to save payment method. Ensure the key is unique.");
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("Tem certeza? This might affect existing spents linked to this payment method.")) return;
+    const handleDelete = (id: string) => {
+        setItemToDelete(id);
+    };
+
+    const confirmDelete = async () => {
+        if (!itemToDelete) return;
         try {
-            await api.delete(`/payment-methods/${id}`);
+            await api.delete(`/payment-methods/${itemToDelete}`);
+            setItemToDelete(null);
             fetchData(page);
         } catch (error) {
             console.error("Error deleting payment method", error);
-            alert("Failed to delete payment method.");
         }
     };
 
@@ -240,7 +244,8 @@ export const PaymentMethodsPage = () => {
                                                             <Edit2 size={16} color="#f59e0b" />
                                                         </button>
                                                         <button
-                                                            onClick={() => handleDelete(pm.id)}
+                                                            type="button"
+                                                            onClick={(e) => { e.stopPropagation(); handleDelete(pm.id); }}
                                                             title="Delete"
                                                             style={{
                                                                 padding: '0.5rem',
@@ -448,6 +453,18 @@ export const PaymentMethodsPage = () => {
                         </button>
                     </div>
                 </form>
+            </Modal>
+
+            <Modal isOpen={!!itemToDelete} onClose={() => setItemToDelete(null)} title="Confirmar Exclusão">
+                <div style={{ padding: '1rem 0' }}>
+                    <p style={{ color: 'var(--text-primary)', fontSize: '1rem', marginBottom: '2rem' }}>
+                        Tem certeza que deseja excluir este método de pagamento? Gastos vinculados a ele podem ser afetados.
+                    </p>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                        <button type="button" onClick={() => setItemToDelete(null)} style={{ padding: '0.75rem 1.5rem', backgroundColor: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', fontWeight: 500 }}>Cancelar</button>
+                        <button type="button" onClick={confirmDelete} style={{ padding: '0.75rem 1.5rem', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, minWidth: '100px' }}>Excluir</button>
+                    </div>
+                </div>
             </Modal>
         </div>
     );

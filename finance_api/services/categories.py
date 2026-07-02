@@ -22,7 +22,7 @@ class CategoryService:
         # Check if category with this key already exists
         existing = await self.repo.get_by_key(category_data.key)
         if existing:
-            raise ValidationError(f"Category with key '{category_data.key}' already exists")
+            raise ValidationError(f"Categoria com a chave '{category_data.key}' já existe")
 
         logger.info(f"Creating category: {category_data.key}")
         category = await self.repo.create(category_data)
@@ -40,7 +40,7 @@ class CategoryService:
         logger.info(f"Getting category: {category_id}")
         category = await self.repo.get_by_id(category_id)
         if not category:
-            raise EntityNotFoundError(f"Category {category_id} not found")
+            raise EntityNotFoundError(f"Categoria {category_id} não encontrada")
         return CategoryResponse.model_validate(category)
 
     @handle_service_errors
@@ -49,12 +49,12 @@ class CategoryService:
         if update_data.key:
             existing = await self.repo.get_by_key(update_data.key)
             if existing and existing.id != category_id:
-                raise ValidationError(f"Category with key '{update_data.key}' already exists")
+                raise ValidationError(f"Categoria com a chave '{update_data.key}' já existe")
 
         logger.info(f"Updating category: {category_id}")
         category = await self.repo.update(category_id, update_data)
         if not category:
-            raise EntityNotFoundError(f"Category {category_id} not found")
+            raise EntityNotFoundError(f"Categoria {category_id} não encontrada")
         return CategoryResponse.model_validate(category)
 
     @handle_service_errors
@@ -62,5 +62,5 @@ class CategoryService:
         logger.info(f"Deleting category: {category_id}")
         success = await self.repo.delete(category_id)
         if not success:
-            raise EntityNotFoundError(f"Category {category_id} not found")
+            raise EntityNotFoundError(f"Categoria {category_id} não encontrada")
         return success

@@ -8,6 +8,7 @@ import { LimitsPage } from './pages/LimitsPage';
 import { CategoriesPage } from './pages/CategoriesPage';
 import { PaymentMethodsPage } from './pages/PaymentMethodsPage';
 import { InvoicesPage } from './pages/InvoicesPage';
+import { ToastContainer } from './components/Toast';
 import { CalendarDays } from 'lucide-react';
 import './index.css';
 
@@ -83,6 +84,7 @@ function App() {
             <Route path="/invoices" element={<InvoicesPage />} />
           </Routes>
         </main>
+        <ToastContainer />
       </div>
     </BrowserRouter>
   );

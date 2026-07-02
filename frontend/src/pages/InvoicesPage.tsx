@@ -55,7 +55,6 @@ export const InvoicesPage = () => {
             fetchData();
         } catch (error) {
             console.error("Error updating closing date", error);
-            alert("Failed to update closing date.");
         }
     };
 

@@ -121,7 +121,6 @@ export const SpentsPage = () => {
             fetchData(page);
         } catch (error) {
             console.error("Error saving spent", error);
-            alert("Failed to save spent");
         }
     };
 
