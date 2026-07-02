@@ -114,7 +114,7 @@ class InvoiceService:
 
         pm = await self.pm_repo.get_by_key(payment_method_key)
         if not pm or not pm.is_credit_card:
-            raise EntityNotFoundError(f"Credit card {payment_method_key} not found")
+            raise EntityNotFoundError(f"Cartão de crédito {payment_method_key} não encontrado")
 
         real_due = compute_real_date(reference_month, pm.due_day or 1)
 

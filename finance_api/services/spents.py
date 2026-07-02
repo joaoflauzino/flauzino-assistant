@@ -31,7 +31,7 @@ class SpentService:
         category_repo = CategoryRepository(self.repo.db)
         if not await category_repo.get_by_key(spent.category):
             raise ValidationError(
-                f"Category '{spent.category}' does not exist. Please create it first."
+                f"Categoria '{spent.category}' não existe. Por favor, crie-a primeiro."
             )
 
         if spent.is_installment:
@@ -97,14 +97,14 @@ class SpentService:
             items, total = await self.repo.list_by_multiple_periods(periods, skip, size)
             return PaginatedResponse.create(items, total, page, size)
         else:
-            raise ValidationError(f"Invalid mode: {mode}")
+            raise ValidationError(f"Modo inválido: {mode}")
 
     @handle_service_errors
     async def get_by_id(self, spent_id: UUID) -> "Spent":
         logger.info(f"Getting spent by id: {spent_id}")
         spent = await self.repo.get_by_id(spent_id)
         if not spent:
-            raise EntityNotFoundError(f"Spent with id {spent_id} not found")
+            raise EntityNotFoundError(f"Gasto com ID {spent_id} não encontrado")
         return spent
 
     @handle_service_errors
@@ -116,16 +116,16 @@ class SpentService:
             category_repo = CategoryRepository(self.repo.db)
             if not await category_repo.get_by_key(update_data.category):
                 raise ValidationError(
-                    f"Category '{update_data.category}' does not exist. Please create it first."
+                    f"Categoria '{update_data.category}' não existe. Por favor, crie-a primeiro."
                 )
 
         current_spent = await self.repo.get_by_id(spent_id)
         if not current_spent:
-            raise EntityNotFoundError(f"Spent with id {spent_id} not found")
+            raise EntityNotFoundError(f"Gasto com ID {spent_id} não encontrado")
 
         updated_spent = await self.repo.update(spent_id, update_data)
         if not updated_spent:
-            raise EntityNotFoundError(f"Spent with id {spent_id} not found")
+            raise EntityNotFoundError(f"Gasto com ID {spent_id} não encontrado")
         return updated_spent
 
     @handle_service_errors
@@ -133,7 +133,7 @@ class SpentService:
         logger.info(f"Deleting spent: {spent_id}")
         deleted = await self.repo.delete(spent_id)
         if not deleted:
-            raise EntityNotFoundError(f"Spent with id {spent_id} not found")
+            raise EntityNotFoundError(f"Gasto com ID {spent_id} não encontrado")
         return True
 
     @handle_service_errors

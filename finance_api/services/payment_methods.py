@@ -25,7 +25,7 @@ class PaymentMethodService:
         logger.info(f"Getting payment method: {method_id}")
         method = await self.repository.get_by_id(method_id)
         if not method:
-            raise EntityNotFoundError(f"Payment method with ID {method_id} not found")
+            raise EntityNotFoundError(f"Método de pagamento com ID {method_id} não encontrado")
         return method
 
     @handle_service_errors
@@ -35,7 +35,7 @@ class PaymentMethodService:
         existing = await self.repository.get_by_key(method_data.key)
         if existing:
             raise EntityConflictError(
-                f"Payment method with key '{method_data.key}' already exists."
+                f"Método de pagamento com a chave '{method_data.key}' já existe."
             )
 
         return await self.repository.create(method_data)
@@ -47,12 +47,12 @@ class PaymentMethodService:
             existing = await self.repository.get_by_key(update_data.key)
             if existing and existing.id != method_id:
                 raise EntityConflictError(
-                    f"Payment method with key '{update_data.key}' already exists."
+                    f"Método de pagamento com a chave '{update_data.key}' já existe."
                 )
 
         method = await self.repository.update(method_id, update_data)
         if not method:
-            raise EntityNotFoundError(f"Payment method with ID {method_id} not found")
+            raise EntityNotFoundError(f"Método de pagamento com ID {method_id} não encontrado")
         return method
 
     @handle_service_errors
@@ -60,4 +60,4 @@ class PaymentMethodService:
         logger.info(f"Deleting payment method: {method_id}")
         success = await self.repository.delete(method_id)
         if not success:
-            raise EntityNotFoundError(f"Payment method with ID {method_id} not found")
+            raise EntityNotFoundError(f"Método de pagamento com ID {method_id} não encontrado")

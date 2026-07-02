@@ -12,6 +12,7 @@ export const SubscriptionsPage = () => {
     const [totalItems, setTotalItems] = useState(0);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingSubscription, setEditingSubscription] = useState<Subscription | null>(null);
+    const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
     // Options States
     const [categories, setCategories] = useState<Category[]>([]);
@@ -83,14 +84,18 @@ export const SubscriptionsPage = () => {
             fetchData(page);
         } catch (error) {
             console.error("Error saving subscription", error);
-            alert("Failed to save subscription");
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("Tem certeza que deseja excluir esta assinatura?")) return;
+    const handleDelete = (id: string) => {
+        setItemToDelete(id);
+    };
+
+    const confirmDelete = async () => {
+        if (!itemToDelete) return;
         try {
-            await api.delete(`/subscriptions/${id}`);
+            await api.delete(`/subscriptions/${itemToDelete}`);
+            setItemToDelete(null);
             fetchData(page);
         } catch (error) {
             console.error("Error deleting subscription", error);
@@ -271,7 +276,8 @@ export const SubscriptionsPage = () => {
                                                         <Edit2 size={16} color="#f59e0b" />
                                                     </button>
                                                     <button
-                                                        onClick={() => handleDelete(s.id)}
+                                                        type="button"
+                                                        onClick={(e) => { e.stopPropagation(); handleDelete(s.id); }}
                                                         style={{
                                                             padding: '0.5rem',
                                                             backgroundColor: 'rgba(239, 68, 68, 0.1)',
@@ -524,6 +530,18 @@ export const SubscriptionsPage = () => {
                         </button>
                     </div>
                 </form>
+            </Modal>
+
+            <Modal isOpen={!!itemToDelete} onClose={() => setItemToDelete(null)} title="Confirmar Exclusão">
+                <div style={{ padding: '1rem 0' }}>
+                    <p style={{ color: 'var(--text-primary)', fontSize: '1rem', marginBottom: '2rem' }}>
+                        Tem certeza que deseja excluir esta assinatura? Essa ação não pode ser desfeita.
+                    </p>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                        <button type="button" onClick={() => setItemToDelete(null)} style={{ padding: '0.75rem 1.5rem', backgroundColor: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', fontWeight: 500 }}>Cancelar</button>
+                        <button type="button" onClick={confirmDelete} style={{ padding: '0.75rem 1.5rem', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, minWidth: '100px' }}>Excluir</button>
+                    </div>
+                </div>
             </Modal>
         </div>
     );

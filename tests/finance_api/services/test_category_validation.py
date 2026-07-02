@@ -24,7 +24,7 @@ async def test_spent_creation_validates_category(mocker):
     )
 
     # Should raise ValidationError
-    with pytest.raises(ValidationError, match="does not exist"):
+    with pytest.raises(ValidationError, match="não existe"):
         await service.create(
             SpentCreate(
                 category="nonexistent_category",
@@ -92,5 +92,5 @@ async def test_spent_update_validates_category(mocker):
     )
 
     # Try to update with invalid category - should raise ValidationError
-    with pytest.raises(ValidationError, match="does not exist"):
+    with pytest.raises(ValidationError, match="não existe"):
         await service.update("some-uuid", SpentUpdate(category="nonexistent"))

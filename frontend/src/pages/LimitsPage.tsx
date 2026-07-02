@@ -12,6 +12,7 @@ export const LimitsPage = () => {
     const [totalItems, setTotalItems] = useState(0);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingLimit, setEditingLimit] = useState<SpendingLimit | null>(null);
+    const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
     const [formData, setFormData] = useState({
         category: '',
@@ -57,14 +58,18 @@ export const LimitsPage = () => {
             fetchData(page);
         } catch (error) {
             console.error("Error saving limit", error);
-            alert("Failed to save limit");
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("Tem certeza?")) return;
+    const handleDelete = (id: string) => {
+        setItemToDelete(id);
+    };
+
+    const confirmDelete = async () => {
+        if (!itemToDelete) return;
         try {
-            await api.delete(`/limits/${id}`);
+            await api.delete(`/limits/${itemToDelete}`);
+            setItemToDelete(null);
             fetchData(page);
         } catch (error) {
             console.error("Error deleting limit", error);
@@ -210,7 +215,8 @@ export const LimitsPage = () => {
                                             <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
                                                 <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
                                                     <button
-                                                        onClick={() => openEdit(l)}
+                                                        type="button"
+                                                        onClick={(e) => { e.stopPropagation(); openEdit(l); }}
                                                         style={{
                                                             padding: '0.5rem',
                                                             backgroundColor: 'rgba(245, 158, 11, 0.1)',
@@ -226,7 +232,8 @@ export const LimitsPage = () => {
                                                         <Edit2 size={16} color="#f59e0b" />
                                                     </button>
                                                     <button
-                                                        onClick={() => handleDelete(l.id)}
+                                                        type="button"
+                                                        onClick={(e) => { e.stopPropagation(); handleDelete(l.id); }}
                                                         style={{
                                                             padding: '0.5rem',
                                                             backgroundColor: 'rgba(239, 68, 68, 0.1)',
@@ -383,6 +390,18 @@ export const LimitsPage = () => {
                         </button>
                     </div>
                 </form>
+            </Modal>
+
+            <Modal isOpen={!!itemToDelete} onClose={() => setItemToDelete(null)} title="Confirmar Exclusão">
+                <div style={{ padding: '1rem 0' }}>
+                    <p style={{ color: 'var(--text-primary)', fontSize: '1rem', marginBottom: '2rem' }}>
+                        Tem certeza que deseja excluir este limite? Essa ação não pode ser desfeita.
+                    </p>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                        <button type="button" onClick={() => setItemToDelete(null)} style={{ padding: '0.75rem 1.5rem', backgroundColor: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', fontWeight: 500 }}>Cancelar</button>
+                        <button type="button" onClick={confirmDelete} style={{ padding: '0.75rem 1.5rem', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, minWidth: '100px' }}>Excluir</button>
+                    </div>
+                </div>
             </Modal>
         </div>
     );

@@ -27,7 +27,7 @@ class SpendingLimitService:
         category_repo = CategoryRepository(self.repo.db)
         if not await category_repo.get_by_key(limit_data.category):
             raise ValidationError(
-                f"Category '{limit_data.category}' does not exist. Please create it first."
+                f"Categoria '{limit_data.category}' não existe. Por favor, crie-a primeiro."
             )
 
         return await self.repo.create(limit_data)
@@ -57,7 +57,7 @@ class SpendingLimitService:
         logger.info(f"Getting spending limit by id: {limit_id}")
         limit = await self.repo.get_by_id(limit_id)
         if not limit:
-            raise EntityNotFoundError(f"Spending limit with id {limit_id} not found")
+            raise EntityNotFoundError(f"Limite de gastos com ID {limit_id} não encontrado")
         return limit
 
     @handle_service_errors
@@ -65,7 +65,7 @@ class SpendingLimitService:
         logger.info(f"Updating spending limit: {limit_id}")
         updated_limit = await self.repo.update(limit_id, update_data)
         if not updated_limit:
-            raise EntityNotFoundError(f"Spending limit with id {limit_id} not found")
+            raise EntityNotFoundError(f"Limite de gastos com ID {limit_id} não encontrado")
         return updated_limit
 
     @handle_service_errors
@@ -73,5 +73,5 @@ class SpendingLimitService:
         logger.info(f"Deleting spending limit: {limit_id}")
         deleted = await self.repo.delete(limit_id)
         if not deleted:
-            raise EntityNotFoundError(f"Spending limit with id {limit_id} not found")
+            raise EntityNotFoundError(f"Limite de gastos com ID {limit_id} não encontrado")
         return True

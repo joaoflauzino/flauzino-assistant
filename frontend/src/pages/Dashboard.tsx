@@ -23,6 +23,22 @@ const getCurrentMonth = () => {
     return `${year}-${month}`;
 };
 
+const generateMonthOptions = () => {
+    const options = [];
+    const now = new Date();
+    for (let i = -12; i <= 12; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const label = d.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+        options.push({
+            value: `${year}-${month}`,
+            label: label.charAt(0).toUpperCase() + label.slice(1)
+        });
+    }
+    return options;
+};
+
 // Helper to get current month start and end dates
 const getCurrentMonthDates = () => {
     const now = new Date();
@@ -525,8 +541,7 @@ export const Dashboard = () => {
                     ) : (
                         <div>
                             <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.3rem', fontWeight: 500 }}>Mês de Referência</label>
-                            <input
-                                type="month"
+                            <select
                                 value={referenceMonth}
                                 onChange={e => setReferenceMonth(e.target.value)}
                                 style={{
@@ -539,7 +554,13 @@ export const Dashboard = () => {
                                     transition: 'all 0.2s',
                                     cursor: 'pointer'
                                 }}
-                            />
+                            >
+                                {generateMonthOptions().map(opt => (
+                                    <option key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                     )}
                     <div>
