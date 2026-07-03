@@ -28,4 +28,5 @@ async def test():
 
     print(f"For today {today}, open invoice is {start_d} to {end_d}")
 
+
 asyncio.run(test())
