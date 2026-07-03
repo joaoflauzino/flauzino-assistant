@@ -19,3 +19,5 @@ class ChatResponse(BaseModel):
     session_id: str
     history: List[ChatMessage]
     is_complete: bool = False
+    suggested_options: list[str] | None = None
+    image_base64: str | None = None

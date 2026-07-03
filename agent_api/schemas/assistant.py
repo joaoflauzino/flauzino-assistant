@@ -25,3 +25,23 @@ class AssistantResponse(BaseModel):
         False,
         description="True apenas se o usuário confirmar que os dados estão corretos.",
     )
+    is_balance_query: bool = Field(
+        False,
+        description="True se o usuário estiver perguntando sobre o saldo, limite ou o quanto ainda pode gastar de categorias. NUNCA peça para o usuário especificar a categoria. Se ele não especificar, assuma que é para todas e defina como True imediatamente.",
+    )
+    suggested_options: list[str] | None = Field(
+        None,
+        description="Lista de opções de botões a serem apresentadas ao usuário, caso o assistente queira que ele escolha. NUNCA use isso para pedir para o usuário escolher categorias de saldo ou limite; se ele não especificar, assuma que ele quer ver todas automaticamente.",
+    )
+    requested_graph_type: str | None = Field(
+        None,
+        description="Pode ser 'plot_category_balance' ou 'plot_expense_pie_chart'. Preencha isso APENAS se o usuário pedir explicitamente para gerar um gráfico ou visualização.",
+    )
+    requested_graph_categories: list[str] | None = Field(
+        None,
+        description="Lista de categorias a serem passadas para o gráfico, se o usuário tiver pedido um gráfico de categorias específicas. Deixe nulo para todas.",
+    )
+    requested_graph_mode: str | None = Field(
+        None,
+        description="Pode ser 'saldo' ou 'limites'. Opcional.",
+    )

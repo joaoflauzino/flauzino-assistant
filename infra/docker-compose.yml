@@ -28,22 +28,36 @@ services:
     networks:
       - default
 
-  # agent_api:
-  #   build:
-  #     context: ../
-  #     dockerfile: agent_api/Dockerfile
-  #   ports:
-  #     - "8001:8001"
-  #   environment:
-  #     - FINANCE_SERVICE_URL=http://finance_api:8000
-  #     - GEMINI_API_KEY=${GOOGLE_API_KEY}
-  #     - MODEL_NAME=${MODEL_NAME:-gemini-2.0-flash-exp}
-  #     - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-flauzino}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-assistant}
-  #   depends_on:
-  #     - db
-  #     - finance_api
-  #   networks:
-  #     - default
+  agent_api:
+    build:
+      context: ../
+      dockerfile: agent_api/Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - FINANCE_SERVICE_URL=http://finance_api:8000
+      - MCP_SERVER_URL=http://mcp_server:8002
+      - GEMINI_API_KEY=${GOOGLE_API_KEY}
+      - MODEL_NAME=${MODEL_NAME:-gemini-2.0-flash-exp}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-flauzino}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-assistant}
+    depends_on:
+      - db
+      - finance_api
+    networks:
+      - default
+
+  mcp_server:
+    build:
+      context: ../mcp_server
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      - FINANCE_SERVICE_URL=http://finance_api:8000
+    depends_on:
+      - finance_api
+    networks:
+      - default
 
   frontend:
     build:
@@ -64,6 +78,7 @@ services:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - AGENT_API_URL=http://agent_api:8001
       - FINANCE_SERVICE_URL=http://finance_api:8000
+      - MCP_SERVER_URL=http://mcp_server:8002
       - ALLOWED_TELEGRAM_USERNAMES=${ALLOWED_TELEGRAM_USERNAMES}
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-flauzino}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-assistant}
     depends_on:

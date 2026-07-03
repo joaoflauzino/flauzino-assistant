@@ -12,6 +12,9 @@ from agent_api.schemas.dtos import ChatMessage, ChatResponse
 from agent_api.services.finance import FinanceService
 from agent_api.services.llm import get_llm_response
 from agent_api.core.logger import get_logger
+import os
+from mcp.client.sse import sse_client
+from mcp.client.session import ClientSession
 
 logger = get_logger(__name__)
 
@@ -34,6 +37,69 @@ class ChatService:
 
         response = await get_llm_response(history_dicts, platform)
 
+        # Intercept balance query for text response
+        if getattr(response, "is_balance_query", False) and not getattr(
+            response, "requested_graph_type", None
+        ):
+            from agent_api.settings import settings
+
+            url = f"{settings.FINANCE_SERVICE_URL}/limits/balance"
+            api_resp = await self.http_client.get(url)
+            balances = api_resp.json() if api_resp.status_code == 200 else []
+
+            # Feed the data back to the LLM to formulate a natural response
+            sys_msg = f"DADOS DO SISTEMA (Saldos Atuais): {balances}. Ação Obrigatória: Usando apenas os dados fornecidos, escreva a resposta final para o usuário agora mesmo. NÃO diga frases como 'Vou verificar', 'Um momento', etc. Dê a resposta direta com os valores. Se não houver limites ou saldo na categoria pedida, avise o usuário explicitamente."
+            history_dicts.append({"role": "system", "content": sys_msg})
+
+            try:
+                response = await get_llm_response(history_dicts, platform)
+            except Exception as e:
+                logger.error(f"Error on second LLM call for balance query: {e}")
+                fallback_msg = "Aqui estão os seus saldos (resposta direta do sistema devido a uma lentidão na IA):\n"
+                if not balances:
+                    fallback_msg = "Não há limites cadastrados ou dados suficientes para calcular o saldo atual."
+                else:
+                    for b in balances:
+                        fallback_msg += f"- {b.get('category_display_name', 'Categoria')}: Limite R$ {b.get('limit', 0):.2f} / Restante R$ {b.get('available', 0):.2f}\n"
+                response.response_message = fallback_msg
+
+            response.is_complete = True
+            response.is_confirmed = True
+
+        # Handle MCP Graph Generation
+        image_base64 = None
+        if getattr(response, "requested_graph_type", None):
+            logger.info(f"LLM requested graph via MCP: {response.requested_graph_type}")
+            try:
+                mcp_url = os.getenv("MCP_SERVER_URL", "http://mcp_server:8002") + "/sse"
+                async with sse_client(mcp_url) as (read_stream, write_stream):
+                    async with ClientSession(read_stream, write_stream) as session:
+                        await session.initialize()
+                        # Call the tool on the MCP server
+                        arguments = {}
+                        if getattr(response, "requested_graph_categories", None):
+                            arguments["categories"] = response.requested_graph_categories
+                        if getattr(response, "requested_graph_mode", None):
+                            arguments["mode"] = response.requested_graph_mode
+
+                        result = await session.call_tool(
+                            response.requested_graph_type, arguments=arguments
+                        )
+
+                        # Extract the base64 image from the MCP response
+                        if result and result.content:
+                            for content_item in result.content:
+                                if getattr(content_item, "type", "") == "image":
+                                    image_base64 = content_item.data
+                                    break
+
+                response.response_message = "Aqui está o gráfico que você pediu!"
+                response.is_complete = True
+                response.is_confirmed = True
+            except Exception as e:
+                logger.error(f"Error calling MCP server: {e}")
+                response.response_message = "Desculpe, ocorreu um erro ao gerar o gráfico."
+
         await self._save_message(session_id, "assistant", response.response_message)
 
         await self._handle_finance_action(response)
@@ -46,7 +112,12 @@ class ChatService:
         is_flow_complete = response.is_complete and response.is_confirmed
 
         return self._build_response(
-            session_id, response.response_message, messages, is_flow_complete
+            session_id,
+            response.response_message,
+            messages,
+            is_flow_complete,
+            response.suggested_options,
+            image_base64,
         )
 
     async def _get_or_create_session(self, session_id_str: str | None) -> uuid.UUID:
@@ -86,6 +157,8 @@ class ChatService:
         response_text: str,
         previous_messages: list[ChatMessage],
         is_complete: bool = False,
+        suggested_options: list[str] | None = None,
+        image_base64: str | None = None,
     ) -> ChatResponse:
         updated_history_dtos = [
             ChatMessage(role=m.role, content=m.content) for m in previous_messages
@@ -97,4 +170,6 @@ class ChatService:
             session_id=str(session_id),
             history=updated_history_dtos,
             is_complete=is_complete,
+            suggested_options=suggested_options,
+            image_base64=image_base64,
         )

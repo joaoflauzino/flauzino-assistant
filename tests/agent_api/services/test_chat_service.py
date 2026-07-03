@@ -65,3 +65,29 @@ async def test_process_message_existing_session_not_found(chat_service):
     with pytest.raises(HTTPException) as exc:
         await chat_service.process_message("Hi", fake_id)
     assert exc.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_process_message_suggested_options(chat_service, mocker):
+    # Arrange
+    message = "saldo"
+    fake_session_id = uuid.uuid4()
+
+    mock_session = ChatSession(id=fake_session_id)
+    chat_service.repository.create_session.return_value = mock_session
+    chat_service.repository.get_messages.return_value = [ChatMessage(role="user", content="saldo")]
+
+    # Mock LLM
+    mock_get_llm = mocker.patch("agent_api.services.chat.get_llm_response", new_callable=AsyncMock)
+    mock_get_llm.return_value = AssistantResponse(
+        response_message="Qual categoria?",
+        is_complete=False,
+        suggested_options=["mercado", "comer_fora", "Todas as categorias"],
+    )
+
+    # Act
+    response = await chat_service.process_message(message, None)
+
+    # Assert
+    assert response.response == "Qual categoria?"
+    assert response.suggested_options == ["mercado", "comer_fora", "Todas as categorias"]

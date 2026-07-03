@@ -7,7 +7,6 @@ from telegram_api.handlers.expense_handler import (
     type_item_bought,
     type_value,
     select_payment_method,
-    select_owner,
     type_location,
     select_purchase_type,
     type_total_installments,
@@ -18,7 +17,6 @@ from telegram_api.handlers.expense_handler import (
     TYPE_ITEM_BOUGHT,
     TYPE_VALUE,
     SELECT_PAYMENT_METHOD,
-    SELECT_OWNER,
     TYPE_LOCATION,
     SELECT_PURCHASE_TYPE,
     TYPE_TOTAL_INSTALLMENTS,
@@ -111,28 +109,14 @@ async def test_type_value_invalid(mock_update, mock_context):
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.handlers.expense_handler.get_valid_owners")
-async def test_select_payment_method(mock_get_owners, mock_update, mock_context):
-    mock_get_owners.return_value = ["joao", "maria"]
+async def test_select_payment_method(mock_update, mock_context):
     mock_context.user_data["expense"] = {}
     mock_update.callback_query.data = "nubank"
 
     state = await select_payment_method(mock_update, mock_context)
 
-    assert state == SELECT_OWNER
-    assert mock_context.user_data["expense"]["payment_method"] == "nubank"
-    mock_update.callback_query.edit_message_text.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_select_owner(mock_update, mock_context):
-    mock_context.user_data["expense"] = {}
-    mock_update.callback_query.data = "joao"
-
-    state = await select_owner(mock_update, mock_context)
-
     assert state == TYPE_LOCATION
-    assert mock_context.user_data["expense"]["payment_owner"] == "joao"
+    assert mock_context.user_data["expense"]["payment_method"] == "nubank"
     mock_update.callback_query.edit_message_text.assert_called_once()
 
 
@@ -143,7 +127,6 @@ async def test_type_location(mock_update, mock_context):
         "item_bought": "item",
         "amount": 10.0,
         "payment_method": "method",
-        "payment_owner": "owner",
     }
     mock_update.message.text = "Mercado"
 

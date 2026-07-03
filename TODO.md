@@ -28,13 +28,14 @@
 - [x] Validar a criação de categorias na seção de categorias (frontend/backend) para impedir duplicidades de chaves que já existem.
 
 ## 4. Consulta de Saldo e Limites por Categoria
-- [ ] **Síncrono (Comandos e Texto):** Criar comandos no Telegram (ex: `/limites` ou `/saldo`) e **também habilitar a consulta por texto livre** via Agente (ex: "quanto ainda posso gastar de mercado?").
-- [ ] **Assíncrono:** Configurar um *cron job* ou serviço agendado (ex: toda sexta-feira) para enviar proativamente uma mensagem ao Telegram resumindo a saúde financeira e os limites.
+- [x] **Síncrono (Comandos e Texto):** Criar comandos no Telegram (ex: `/limites` ou `/saldo`) e **também habilitar a consulta por texto livre** via Agente (ex: "quanto ainda posso gastar de mercado?").
+- [x] Deixar de retornar texto em `/limites` e `/saldo` e passar a retornar gráficos.
+- [x] **Assíncrono:** Configurar um *cron job* ou serviço agendado (ex: toda sexta-feira) para enviar proativamente uma mensagem ao Telegram resumindo a saúde financeira e os limites.
 - [x] O campo de `mês referência` (reference_month) deve ser um seletor (dropdown/opções) e não um campo de texto livre, para evitar erros de formatação ao editar.
 
 ## 4. Geração de Gráficos sob Demanda (Integração com MCP)
-- [ ] Implementar um servidor MCP (Model Context Protocol) capaz de consultar a `finance_api` e desenhar gráficos (ex: bibliotecas de plotagem).
-- [ ] Integrar esse servidor para que o assistente (Agent) consiga gerar visualizações de gastos e enviá-las ao Telegram em formato de imagem **tanto via comandos quanto por texto natural** ("Gere um gráfico de pizza dos gastos desse mês").
+- [x] Implementar um servidor MCP (Model Context Protocol) capaz de consultar a `finance_api` e desenhar gráficos (ex: bibliotecas de plotagem).
+- [x] Integrar esse servidor para que o assistente (Agent) consiga gerar visualizações de gastos e enviá-las ao Telegram em formato de imagem **tanto via comandos quanto por texto natural** ("Gere um gráfico de pizza dos gastos desse mês").
 
 ## 5. Fluxo de Handlers (Refatoração para os Itens 3 e 4)
 - [ ] Desenhar a arquitetura de Handlers no `telegram_api` para acomodar as novas intenções.

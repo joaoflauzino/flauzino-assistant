@@ -33,3 +33,14 @@ class SpendingLimitResponse(SpendingLimitBase):
     id: UUID
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class CategoryBalance(BaseModel):
+    category: str
+    category_display_name: str
+    limit: float
+    spent: float
+    available: float
+    percentage_used: float
+
+    model_config = ConfigDict(from_attributes=True)

@@ -28,7 +28,6 @@ def finance_service(mock_client):
             valor=100.0,
             metodo_pagamento="nubank",
             item_comprado="Test Item",
-            proprietário="joao_lucas",
             local_compra="Test Location",
         ),
     )
