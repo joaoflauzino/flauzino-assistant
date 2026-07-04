@@ -15,6 +15,7 @@ from agent_api.core.logger import get_logger
 import os
 from mcp.client.sse import sse_client
 from mcp.client.session import ClientSession
+from agent_api.settings import settings
 
 logger = get_logger(__name__)
 
@@ -41,8 +42,6 @@ class ChatService:
         if getattr(response, "is_balance_query", False) and not getattr(
             response, "requested_graph_type", None
         ):
-            from agent_api.settings import settings
-
             url = f"{settings.FINANCE_SERVICE_URL}/limits/balance"
             api_resp = await self.http_client.get(url)
             balances = api_resp.json() if api_resp.status_code == 200 else []
@@ -68,6 +67,7 @@ class ChatService:
 
         # Handle MCP Graph Generation
         image_base64 = None
+        graph_context = None
         if getattr(response, "requested_graph_type", None):
             logger.info(f"LLM requested graph via MCP: {response.requested_graph_type}")
             try:
@@ -93,14 +93,27 @@ class ChatService:
                                     image_base64 = content_item.data
                                     break
 
+                graph_context = f"[Gráfico gerado: {response.requested_graph_type}"
+                if getattr(response, "requested_graph_categories", None):
+                    graph_context += (
+                        f", categorias: {', '.join(response.requested_graph_categories)}"
+                    )
+                if getattr(response, "requested_graph_mode", None):
+                    graph_context += f", modo: {response.requested_graph_mode}"
+                graph_context += "]"
                 response.response_message = "Aqui está o gráfico que você pediu!"
-                response.is_complete = True
-                response.is_confirmed = True
+                response.is_complete = False
+                response.is_confirmed = False
             except Exception as e:
                 logger.error(f"Error calling MCP server: {e}")
                 response.response_message = "Desculpe, ocorreu um erro ao gerar o gráfico."
+                graph_context = None
 
-        await self._save_message(session_id, "assistant", response.response_message)
+        # Save history message: enrich with graph context for LLM follow-ups
+        history_message = response.response_message
+        if graph_context:
+            history_message = f"{response.response_message} {graph_context}"
+        await self._save_message(session_id, "assistant", history_message)
 
         await self._handle_finance_action(response)
 

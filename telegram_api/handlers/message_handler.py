@@ -3,6 +3,8 @@ from telegram.ext import ContextTypes, CallbackQueryHandler
 from telegram.error import BadRequest
 from telegram.constants import ParseMode
 import httpx
+import base64
+import io
 
 from telegram_api.core.http_client import send_message_to_agent
 from telegram_api.core.logger import get_logger
@@ -62,6 +64,7 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
             # Check if flow is complete
             is_complete = response_data.get("is_complete", False)
             suggested_options = response_data.get("suggested_options")
+            image_base64 = response_data.get("image_base64")
 
             if is_complete:
                 await repo.delete_session(chat_id)
@@ -86,16 +89,31 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
                 keyboard.append(row)
             reply_markup = InlineKeyboardMarkup(keyboard)
 
-        # Escape underscores to prevent Markdown parser from interpreting them as unclosed italics
         escaped_response = bot_response.replace("_", "\\_")
 
         try:
-            if reply_markup:
-                await update.message.reply_text(
-                    escaped_response, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup
-                )
+            if image_base64:
+                image_data = base64.b64decode(image_base64)
+                if reply_markup:
+                    await update.message.reply_photo(
+                        photo=io.BytesIO(image_data),
+                        caption=escaped_response,
+                        parse_mode=ParseMode.MARKDOWN,
+                        reply_markup=reply_markup,
+                    )
+                else:
+                    await update.message.reply_photo(
+                        photo=io.BytesIO(image_data),
+                        caption=escaped_response,
+                        parse_mode=ParseMode.MARKDOWN,
+                    )
             else:
-                await update.message.reply_text(escaped_response, parse_mode=ParseMode.MARKDOWN)
+                if reply_markup:
+                    await update.message.reply_text(
+                        escaped_response, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup
+                    )
+                else:
+                    await update.message.reply_text(escaped_response, parse_mode=ParseMode.MARKDOWN)
         except BadRequest as e:
             if "parse" in str(e).lower() or "entities" in str(e).lower():
                 logger.warning(f"Markdown parsing failed, falling back to plain text: {e}")
@@ -159,6 +177,7 @@ async def handle_agent_callback(update: Update, context: ContextTypes.DEFAULT_TY
             )
             is_complete = response_data.get("is_complete", False)
             suggested_options = response_data.get("suggested_options")
+            image_base64 = response_data.get("image_base64")
 
             if is_complete:
                 await repo.delete_session(chat_id)
@@ -183,12 +202,28 @@ async def handle_agent_callback(update: Update, context: ContextTypes.DEFAULT_TY
         escaped_response = bot_response.replace("_", "\\_")
 
         try:
-            if reply_markup:
-                await query.message.reply_text(
-                    escaped_response, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup
-                )
+            if image_base64:
+                image_data = base64.b64decode(image_base64)
+                if reply_markup:
+                    await query.message.reply_photo(
+                        photo=io.BytesIO(image_data),
+                        caption=escaped_response,
+                        parse_mode=ParseMode.MARKDOWN,
+                        reply_markup=reply_markup,
+                    )
+                else:
+                    await query.message.reply_photo(
+                        photo=io.BytesIO(image_data),
+                        caption=escaped_response,
+                        parse_mode=ParseMode.MARKDOWN,
+                    )
             else:
-                await query.message.reply_text(escaped_response, parse_mode=ParseMode.MARKDOWN)
+                if reply_markup:
+                    await query.message.reply_text(
+                        escaped_response, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup
+                    )
+                else:
+                    await query.message.reply_text(escaped_response, parse_mode=ParseMode.MARKDOWN)
         except BadRequest as e:
             if "parse" in str(e).lower() or "entities" in str(e).lower():
                 logger.warning(f"Markdown parsing failed: {e}")

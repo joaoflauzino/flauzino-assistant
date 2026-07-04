@@ -11,6 +11,7 @@ from mcp.server import Server
 from mcp.types import Tool, ImageContent, TextContent
 from mcp.server.sse import SseServerTransport
 from starlette.requests import Request
+from starlette.responses import Response
 
 FINANCE_SERVICE_URL = os.getenv("FINANCE_SERVICE_URL", "http://finance_api:8000")
 
@@ -74,16 +75,18 @@ def generate_balance_bar_chart(balances: list[dict], title: str, mode: str = "sa
                     x=categories,
                     y=spents,
                     marker_color="tomato",
-                    text=[f"R$ {v:.2f}" for v in spents],
-                    textposition="auto",
+                    text=[f"R$ {v:.2f}" if v > 0 else "" for v in spents],
+                    textposition="inside",
+                    insidetextanchor="middle",
                 ),
                 go.Bar(
                     name="Saldo Disponível",
                     x=categories,
                     y=availables,
                     marker_color="lightgreen",
-                    text=[f"R$ {v:.2f}" for v in availables],
-                    textposition="auto",
+                    text=[f"R$ {v:.2f}" if v > 0 else "" for v in availables],
+                    textposition="inside",
+                    insidetextanchor="middle",
                 ),
             ]
         )
@@ -93,6 +96,8 @@ def generate_balance_bar_chart(balances: list[dict], title: str, mode: str = "sa
             yaxis_title="Valor (R$)",
             xaxis_title="Categoria",
             template="plotly_white",
+            uniformtext_minsize=10,
+            uniformtext_mode="show",
         )
 
     # Needs kaleido
@@ -242,18 +247,17 @@ async def get_balance_graph(
 
 
 # Full correct implementation of MCP Server-Sent Events with standard library
-sse = SseServerTransport("/messages")
+sse = SseServerTransport("/messages/")
 
 
 @app.get("/sse")
 async def handle_sse(request: Request):
     async with sse.connect_sse(request.scope, request.receive, request._send) as streams:
         await mcp_server.run(streams[0], streams[1], mcp_server.create_initialization_options())
+    return Response()
 
 
-@app.post("/messages")
-async def handle_messages(request: Request):
-    await sse.handle_post_message(request.scope, request.receive, request._send)
+app.mount("/messages/", sse.handle_post_message)
 
 
 if __name__ == "__main__":

@@ -94,6 +94,7 @@ async def get_system_prompt(platform: str | None = None) -> str:
         - Se todas as informações estiverem presentes, sua `response_message` deve confirmar o registro com todos os dados extraídos, também usando lista com hífens (nunca tags html).
         - Marque `is_complete` como True apenas se tiver todos os 4 campos preenchidos corretamente.
         - Confirme com o usuário se os dados estão corretos usando uma lista clara e após confirmação marque `is_confirmed` como True.
+        - JAMAIS FAÇA ALGUMA INFERÊNCIA DE CATEGORIA, CONFIRME COM O USUÁRIO
 
         2. **Cadastro de Limites de Gastos**:
         Se o usuário estiver tentando cadastrar um limite de gastos, você deve extrair as seguintes informações:
@@ -123,7 +124,15 @@ async def get_system_prompt(platform: str | None = None) -> str:
 
         5. **Histórico**:
         Use o histórico da conversa para entender correções ou adições de informações anteriores (ex: se o usuário disse o valor antes e agora disse o local).
-        
+
+        6. **Encerramento de Consultas e Gráficos**:
+        Se o histórico mostra que um gráfico ou consulta de saldo já foi entregue (mensagens com "[Gráfico gerado: ...]") e o usuário:
+        - Agradecer (ex: "obrigado", "valeu", "ok", "beleza")
+        - Enviar uma mensagem que claramente encerra o contexto anterior (ex: "era isso", "só isso")
+        Então marque `is_complete` como True e `is_confirmed` como True para que a sessão seja encerrada.
+        Se o usuário pedir um follow-up de gráfico (ex: "agora mostra só mercado", "faz um de pizza", "e de barras?"), NÃO marque is_complete — o sistema gerará o novo gráfico dentro da mesma sessão.
+        Se o usuário mudar de assunto (ex: começar a registrar um gasto), continue naturalmente no novo fluxo sem encerrar a sessão.
+
         {platform_instructions}
     """
 
