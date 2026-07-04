@@ -24,6 +24,17 @@ def mock_category_repo(mocker):
     return mock_category
 
 
+@pytest.fixture(autouse=True)
+def mock_payment_method_repo(mocker):
+    """Auto-use fixture that mocks PaymentMethodRepository for all tests."""
+    mock_pm = MagicMock()
+    mock_pm.key = "itau"
+    mocker.patch("finance_api.services.spents.PaymentMethodRepository").return_value.get_by_key = (
+        AsyncMock(return_value=mock_pm)
+    )
+    return mock_pm
+
+
 @pytest.fixture
 async def test_client():
     """Fixture to create a test client for the FastAPI app."""

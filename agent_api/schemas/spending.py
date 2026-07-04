@@ -5,7 +5,8 @@ class SpendingDetails(BaseModel):
     categoria: str = Field(..., description="Categoria do gasto")
     valor: float = Field(..., description="Valor do gasto")
     metodo_pagamento: str = Field(
-        ..., description="Nome do cartão de crédito utilizado (ex: itau, c6, xp)"
+        ...,
+        description="Método de pagamento utilizado. DEVE corresponder EXATAMENTE a uma das chaves válidas informadas. Não tente deduzir ou inventar (se houver ambiguidade, pergunte ao usuário qual é a opção correta).",
     )
     item_comprado: str = Field(..., description="Nome do item comprado")
     local_compra: str = Field(..., description="Local onde a compra foi realizada")

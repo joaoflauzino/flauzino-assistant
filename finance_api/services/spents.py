@@ -9,6 +9,7 @@ import calendar
 from finance_api.models.spents import Spent
 from finance_api.repositories.spents import SpentRepository
 from finance_api.repositories.categories import CategoryRepository
+from finance_api.repositories.payment_methods import PaymentMethodRepository
 from finance_api.schemas.spents import SpentCreate, SpentUpdate
 from finance_api.core.decorators import handle_service_errors
 from finance_api.core.exceptions import EntityNotFoundError, ValidationError
@@ -33,6 +34,11 @@ class SpentService:
             raise ValidationError(
                 f"Categoria '{spent.category}' não existe. Por favor, crie-a primeiro."
             )
+
+        # Validate payment method exists in database
+        pm_repo = PaymentMethodRepository(self.repo.db)
+        if not await pm_repo.get_by_key(spent.payment_method):
+            raise ValidationError(f"Método de pagamento '{spent.payment_method}' não existe.")
 
         if spent.is_installment:
             installment_id = uuid.uuid4()
@@ -117,6 +123,14 @@ class SpentService:
             if not await category_repo.get_by_key(update_data.category):
                 raise ValidationError(
                     f"Categoria '{update_data.category}' não existe. Por favor, crie-a primeiro."
+                )
+
+        # Validate payment method exists if being updated
+        if update_data.payment_method:
+            pm_repo = PaymentMethodRepository(self.repo.db)
+            if not await pm_repo.get_by_key(update_data.payment_method):
+                raise ValidationError(
+                    f"Método de pagamento '{update_data.payment_method}' não existe."
                 )
 
         current_spent = await self.repo.get_by_id(spent_id)

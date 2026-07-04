@@ -36,11 +36,11 @@
 ## 5. Geração de Gráficos sob Demanda (Integração com MCP)
 - [x] Implementar um servidor MCP (Model Context Protocol) capaz de consultar a `finance_api` e desenhar gráficos (ex: bibliotecas de plotagem).
 - [x] Integrar esse servidor para que o assistente (Agent) consiga gerar visualizações de gastos e enviá-las ao Telegram em formato de imagem **tanto via comandos quanto por texto natural** ("Gere um gráfico de pizza dos gastos desse mês").
-- [ ] A parte de follow-up do histórico na hora de gerar gráficos não está funcionando.
+- [x] A parte de follow-up do histórico na hora de gerar gráficos não está funcionando.
 
 ## 6. Registro de gastos
-- [ ] Ao registrar gastos com texto livre a IA não esta identificando corretamento os métodos de pagamento (Ex: passei c6 e não existe... existe o c6_joao)
-- [ ] O CRUD não está barrando métodos de pagamentos na tabela de gastos e que não existem na tabela de pagamentos (Ex: passei c6 e não existe... existe o c6_joao)
+- [x] Ao registrar gastos com texto livre a IA não esta identificando corretamento os métodos de pagamento (Ex: passei c6 e não existe... existe o c6_joao)
+- [x] O CRUD (@finance_api) não está barrando métodos de pagamentos na tabela de gastos e que não existem na tabela de pagamentos (Ex: passei c6 e não existe... existe o c6_joao)
 
 ## 7. Fluxo de Handlers (Refatoração para os Itens 3 e 4)
 - [ ] Desenhar a arquitetura de Handlers no `telegram_api` para acomodar as novas intenções.

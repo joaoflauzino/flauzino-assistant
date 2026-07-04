@@ -60,6 +60,12 @@ async def test_spent_creation_with_valid_category(mocker):
     mock_created_spent.amount = 100.0
     mock_repo.create = AsyncMock(return_value=mock_created_spent)
 
+    # Mock PaymentMethodRepository to return a payment method
+    mock_pm = MagicMock()
+    mocker.patch("finance_api.services.spents.PaymentMethodRepository").return_value.get_by_key = (
+        AsyncMock(return_value=mock_pm)
+    )
+
     # Create spent - should succeed
     spent = await service.create(
         SpentCreate(

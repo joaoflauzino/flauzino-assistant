@@ -14,7 +14,7 @@ async def get_valid_categories() -> str:
     """Fetch valid categories from finance API."""
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.get(f"{settings.FINANCE_SERVICE_URL}/categories?size=100")
+            response = await client.get(f"{settings.FINANCE_SERVICE_URL}/categories/?size=100")
             if response.status_code == 200:
                 data = response.json()
                 categories = [item["key"] for item in data.get("items", [])]
@@ -29,7 +29,7 @@ async def get_valid_payment_methods() -> str:
     """Fetch valid payment methods from finance API."""
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.get(f"{settings.FINANCE_SERVICE_URL}/payment-methods?size=100")
+            response = await client.get(f"{settings.FINANCE_SERVICE_URL}/payment-methods/?size=100")
             if response.status_code == 200:
                 data = response.json()
                 methods = [item["key"] for item in data.get("items", [])]
@@ -94,7 +94,8 @@ async def get_system_prompt(platform: str | None = None) -> str:
         - Se todas as informações estiverem presentes, sua `response_message` deve confirmar o registro com todos os dados extraídos, também usando lista com hífens (nunca tags html).
         - Marque `is_complete` como True apenas se tiver todos os 4 campos preenchidos corretamente.
         - Confirme com o usuário se os dados estão corretos usando uma lista clara e após confirmação marque `is_confirmed` como True.
-        - JAMAIS FAÇA ALGUMA INFERÊNCIA DE CATEGORIA, CONFIRME COM O USUÁRIO
+        - JAMAIS FAÇA ALGUMA INFERÊNCIA DE CATEGORIA, CONFIRME COM O USUÁRIO.
+        - JAMAIS FAÇA INFERÊNCIAS DE MÉTODOS DE PAGAMENTO. Se o usuário fornecer um nome incompleto ou genérico e houver mais de uma opção correspondente na lista (ex: informou apenas o banco, mas existem cartões diferentes para pessoas diferentes), não tente adivinhar. Pergunte a ele qual é a opção correta em formato de lista. O método extraído DEVE ser exatamente igual a um dos listados.
 
         2. **Cadastro de Limites de Gastos**:
         Se o usuário estiver tentando cadastrar um limite de gastos, você deve extrair as seguintes informações:

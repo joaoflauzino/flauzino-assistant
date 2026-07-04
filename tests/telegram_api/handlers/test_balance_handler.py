@@ -47,7 +47,7 @@ async def test_balance_command(mock_get_categories, mock_update, mock_context):
     assert state == SELECT_CATEGORY
     mock_update.message.reply_text.assert_called_once()
     args, kwargs = mock_update.message.reply_text.call_args
-    assert "Qual categoria você deseja consultar?" in args[0]
+    assert "Selecione as categorias que deseja visualizar:" in args[0]
 
     # Check reply_markup
     reply_markup = kwargs.get("reply_markup")
@@ -58,115 +58,63 @@ async def test_balance_command(mock_get_categories, mock_update, mock_context):
     buttons = [btn.text for row in inline_keyboard for btn in row]
     assert "mercado" in buttons
     assert "lazer" in buttons
-    assert "Todas as Categorias" in buttons
+    assert "✅ Todas" in buttons
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.handlers.balance_handler.httpx.AsyncClient")
-async def test_select_category_all(mock_async_client, mock_update, mock_context):
+async def test_select_category_all(mock_update, mock_context):
     # Arrange
-    mock_update.callback_query.data = "Todas as Categorias"
-
-    mock_response = AsyncMock()
-    mock_response.status_code = 200
-    mock_response.json = lambda: [
-        {
-            "category": "mercado",
-            "category_display_name": "Mercado",
-            "limit": 1000.0,
-            "spent": 500.0,
-            "available": 500.0,
-            "percentage_used": 50.0,
-        }
-    ]
-    mock_response.raise_for_status = lambda: None
-
-    mock_client_instance = AsyncMock()
-    mock_client_instance.get.return_value = mock_response
-    mock_client_instance.__aenter__.return_value = mock_client_instance
-    mock_async_client.return_value = mock_client_instance
+    mock_update.callback_query.data = "all"
+    mock_context.user_data = {
+        "available_categories": ["mercado", "lazer"],
+        "selected_categories": set(),
+    }
 
     # Act
     state = await select_category(mock_update, mock_context)
 
     # Assert
-    assert state == ConversationHandler.END
+    assert state == SELECT_CATEGORY
     mock_update.callback_query.answer.assert_called_once()
 
-    # Check edit_message_text calls
-    calls = mock_update.callback_query.edit_message_text.call_args_list
-    assert len(calls) == 2
-
-    # First call is loading
-    assert "Consultando saldos" in calls[0].kwargs.get(
-        "text", calls[0].args[0] if calls[0].args else ""
-    )
-
-    # Second call is result
-    final_text = calls[1].kwargs.get("text", calls[1].args[0] if calls[1].args else "")
-    assert "Mercado" in final_text
-    assert "R$ 1000.00" in final_text
-    assert "R$ 500.00" in final_text
+    # It should have updated the keyboard
+    mock_update.callback_query.edit_message_reply_markup.assert_called_once()
+    assert mock_context.user_data["selected_categories"] == {"mercado", "lazer"}
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.handlers.balance_handler.httpx.AsyncClient")
-async def test_select_category_filtered(mock_async_client, mock_update, mock_context):
+async def test_select_category_filtered(mock_update, mock_context):
     # Arrange
-    mock_update.callback_query.data = "mercado"
-
-    mock_response = AsyncMock()
-    mock_response.status_code = 200
-    mock_response.json = lambda: [
-        {
-            "category": "mercado",
-            "category_display_name": "Mercado",
-            "limit": 1000.0,
-            "spent": 500.0,
-            "available": 500.0,
-            "percentage_used": 50.0,
-        },
-        {
-            "category": "lazer",
-            "category_display_name": "Lazer",
-            "limit": 200.0,
-            "spent": 200.0,
-            "available": 0.0,
-            "percentage_used": 100.0,
-        },
-    ]
-    mock_response.raise_for_status = lambda: None
-
-    mock_client_instance = AsyncMock()
-    mock_client_instance.get.return_value = mock_response
-    mock_client_instance.__aenter__.return_value = mock_client_instance
-    mock_async_client.return_value = mock_client_instance
+    mock_update.callback_query.data = "cat:mercado"
+    mock_context.user_data = {
+        "available_categories": ["mercado", "lazer"],
+        "selected_categories": set(),
+    }
 
     # Act
     state = await select_category(mock_update, mock_context)
 
     # Assert
-    assert state == ConversationHandler.END
+    assert state == SELECT_CATEGORY
+    mock_update.callback_query.answer.assert_called_once()
 
-    # Check edit_message_text calls
-    calls = mock_update.callback_query.edit_message_text.call_args_list
-
-    final_text = calls[1].kwargs.get("text", calls[1].args[0] if calls[1].args else "")
-    assert "Mercado" in final_text
-    assert "Lazer" not in final_text
+    # It should add mercado to selected
+    assert mock_context.user_data["selected_categories"] == {"mercado"}
+    mock_update.callback_query.edit_message_reply_markup.assert_called_once()
 
 
 @pytest.mark.asyncio
 @patch("telegram_api.handlers.balance_handler.httpx.AsyncClient")
 async def test_select_category_empty(mock_async_client, mock_update, mock_context):
     # Arrange
-    mock_update.callback_query.data = "Todas as Categorias"
+    mock_update.callback_query.data = "generate"
+    mock_context.user_data = {
+        "available_categories": ["mercado", "lazer"],
+        "selected_categories": {"mercado"},
+    }
 
     mock_response = AsyncMock()
-    mock_response.status_code = 200
-    mock_response.json = lambda: []
-    mock_response.raise_for_status = lambda: None
-
+    mock_response.status_code = 404
     mock_client_instance = AsyncMock()
     mock_client_instance.get.return_value = mock_response
     mock_client_instance.__aenter__.return_value = mock_client_instance

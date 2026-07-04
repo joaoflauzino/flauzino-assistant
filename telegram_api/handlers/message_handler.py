@@ -89,31 +89,29 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
                 keyboard.append(row)
             reply_markup = InlineKeyboardMarkup(keyboard)
 
-        escaped_response = bot_response.replace("_", "\\_")
-
         try:
             if image_base64:
                 image_data = base64.b64decode(image_base64)
                 if reply_markup:
                     await update.message.reply_photo(
                         photo=io.BytesIO(image_data),
-                        caption=escaped_response,
+                        caption=bot_response,
                         parse_mode=ParseMode.MARKDOWN,
                         reply_markup=reply_markup,
                     )
                 else:
                     await update.message.reply_photo(
                         photo=io.BytesIO(image_data),
-                        caption=escaped_response,
+                        caption=bot_response,
                         parse_mode=ParseMode.MARKDOWN,
                     )
             else:
                 if reply_markup:
                     await update.message.reply_text(
-                        escaped_response, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup
+                        bot_response, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup
                     )
                 else:
-                    await update.message.reply_text(escaped_response, parse_mode=ParseMode.MARKDOWN)
+                    await update.message.reply_text(bot_response, parse_mode=ParseMode.MARKDOWN)
         except BadRequest as e:
             if "parse" in str(e).lower() or "entities" in str(e).lower():
                 logger.warning(f"Markdown parsing failed, falling back to plain text: {e}")
@@ -199,31 +197,29 @@ async def handle_agent_callback(update: Update, context: ContextTypes.DEFAULT_TY
                 keyboard.append(row)
             reply_markup = InlineKeyboardMarkup(keyboard)
 
-        escaped_response = bot_response.replace("_", "\\_")
-
         try:
             if image_base64:
                 image_data = base64.b64decode(image_base64)
                 if reply_markup:
                     await query.message.reply_photo(
                         photo=io.BytesIO(image_data),
-                        caption=escaped_response,
+                        caption=bot_response,
                         parse_mode=ParseMode.MARKDOWN,
                         reply_markup=reply_markup,
                     )
                 else:
                     await query.message.reply_photo(
                         photo=io.BytesIO(image_data),
-                        caption=escaped_response,
+                        caption=bot_response,
                         parse_mode=ParseMode.MARKDOWN,
                     )
             else:
                 if reply_markup:
                     await query.message.reply_text(
-                        escaped_response, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup
+                        bot_response, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup
                     )
                 else:
-                    await query.message.reply_text(escaped_response, parse_mode=ParseMode.MARKDOWN)
+                    await query.message.reply_text(bot_response, parse_mode=ParseMode.MARKDOWN)
         except BadRequest as e:
             if "parse" in str(e).lower() or "entities" in str(e).lower():
                 logger.warning(f"Markdown parsing failed: {e}")
