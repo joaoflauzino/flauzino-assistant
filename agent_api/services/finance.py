@@ -41,7 +41,6 @@ class FinanceService:
             "amount": details.valor,
             "item_bought": details.item_comprado,
             "payment_method": details.metodo_pagamento,
-            "payment_owner": details.proprietário,
             "location": details.local_compra,
         }
         return await self._post_to_finance_api("spents", payload)

@@ -138,3 +138,22 @@ async def test_get_system_prompt_default():
     prompt = await get_system_prompt(platform=None)
     assert "**Formatação para Telegram**" not in prompt
     assert "**Formatação para Web**" not in prompt
+
+
+@pytest.mark.asyncio
+async def test_get_system_prompt_balance_query():
+    from agent_api.services.llm import get_system_prompt
+
+    prompt = await get_system_prompt(platform=None)
+    assert "suggested_options" in prompt
+    assert "is_balance_query" in prompt
+
+
+@pytest.mark.asyncio
+async def test_get_system_prompt_graph_session_termination():
+    from agent_api.services.llm import get_system_prompt
+
+    prompt = await get_system_prompt(platform=None)
+    assert "Encerramento de Consultas e Gráficos" in prompt
+    assert "[Gráfico gerado: ...]" in prompt
+    assert "is_complete" in prompt

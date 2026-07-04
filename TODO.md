@@ -28,27 +28,33 @@
 - [x] Validar a criação de categorias na seção de categorias (frontend/backend) para impedir duplicidades de chaves que já existem.
 
 ## 4. Consulta de Saldo e Limites por Categoria
-- [ ] **Síncrono (Comandos e Texto):** Criar comandos no Telegram (ex: `/limites` ou `/saldo`) e **também habilitar a consulta por texto livre** via Agente (ex: "quanto ainda posso gastar de mercado?").
-- [ ] **Assíncrono:** Configurar um *cron job* ou serviço agendado (ex: toda sexta-feira) para enviar proativamente uma mensagem ao Telegram resumindo a saúde financeira e os limites.
+- [x] **Síncrono (Comandos e Texto):** Criar comandos no Telegram (ex: `/limites` ou `/saldo`) e **também habilitar a consulta por texto livre** via Agente (ex: "quanto ainda posso gastar de mercado?").
+- [x] Deixar de retornar texto em `/limites` e `/saldo` e passar a retornar gráficos.
+- [x] **Assíncrono:** Configurar um *cron job* ou serviço agendado (ex: toda sexta-feira) para enviar proativamente uma mensagem ao Telegram resumindo a saúde financeira e os limites.
 - [x] O campo de `mês referência` (reference_month) deve ser um seletor (dropdown/opções) e não um campo de texto livre, para evitar erros de formatação ao editar.
 
-## 4. Geração de Gráficos sob Demanda (Integração com MCP)
-- [ ] Implementar um servidor MCP (Model Context Protocol) capaz de consultar a `finance_api` e desenhar gráficos (ex: bibliotecas de plotagem).
-- [ ] Integrar esse servidor para que o assistente (Agent) consiga gerar visualizações de gastos e enviá-las ao Telegram em formato de imagem **tanto via comandos quanto por texto natural** ("Gere um gráfico de pizza dos gastos desse mês").
+## 5. Geração de Gráficos sob Demanda (Integração com MCP)
+- [x] Implementar um servidor MCP (Model Context Protocol) capaz de consultar a `finance_api` e desenhar gráficos (ex: bibliotecas de plotagem).
+- [x] Integrar esse servidor para que o assistente (Agent) consiga gerar visualizações de gastos e enviá-las ao Telegram em formato de imagem **tanto via comandos quanto por texto natural** ("Gere um gráfico de pizza dos gastos desse mês").
+- [x] A parte de follow-up do histórico na hora de gerar gráficos não está funcionando.
 
-## 5. Fluxo de Handlers (Refatoração para os Itens 3 e 4)
+## 6. Registro de gastos
+- [x] Ao registrar gastos com texto livre a IA não esta identificando corretamento os métodos de pagamento (Ex: passei c6 e não existe... existe o c6_joao)
+- [x] O CRUD (@finance_api) não está barrando métodos de pagamentos na tabela de gastos e que não existem na tabela de pagamentos (Ex: passei c6 e não existe... existe o c6_joao)
+
+## 7. Fluxo de Handlers (Refatoração para os Itens 3 e 4)
 - [ ] Desenhar a arquitetura de Handlers no `telegram_api` para acomodar as novas intenções.
 - [ ] **Garantir suporte total a Linguagem Natural e Áudio:** Além dos comandos (ex: `/limites`), o bot deve permitir que o usuário cadastre gastos, consulte saldos e solicite gráficos conversando normalmente, seja por texto ou enviando áudios.
 - [ ] Avaliar como o Agente de IA tomará decisões com base nessa linguagem livre ("Como estão meus gastos?") para escolher a ferramenta certa (MCP de gráficos vs. API de saldo), mantendo o código limpo e a responsabilidade clara.
 
-## 6. Limpeza e Retenção de Dados (Data Retention)
+## 8. Limpeza e Retenção de Dados (Data Retention)
 - [ ] Criar uma rotina agendada (ex: cron job diário ou script via Makefile) para limpar registros antigos do banco de dados (ex: gastos, recibos e áudios com mais de 2 anos).
 - [ ] Garantir que essa limpeza mantenha as faturas em aberto e apenas delete o histórico antigo seguro, evitando o acúmulo de dados desnecessários e protegendo o cartão de memória do Raspberry Pi contra lotação.
 
-## 7. Infraestrutura e Backups
+## 9. Infraestrutura e Backups
 - [ ] Descobrir porque o crontab com o backup do postgres não está executando todo dia as 03 da manhã.
 
-## 8. Processamento de Áudio e Recibos (OCR)
+## 10. Processamento de Áudio e Recibos (OCR)
 - [ ] **Evolução do OCR:** Remover a dependência do *Tesseract*. Como você já usa a API do Gemini, vamos usar a capacidade **Multimodal do Gemini 2.5 Flash** dentro do `agent_api`. Ele lê a foto do recibo com perfeição e devolve os campos (valor, local, data) já estruturados em JSON, acabando com a dor de cabeça do OCR tradicional!
 - [ ] **Armazenamento:** Salvar a imagem original do comprovante (em base64 ou num bucket/storage local) vinculado ao registro no banco de dados da `finance_api`.
 - [ ] **Integração:** Revisar as rotas atuais de `/ocr/process-receipt` e `/audio/process-audio` no `agent_api` para unificá-las no novo fluxo do assistente.

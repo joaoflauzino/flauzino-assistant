@@ -11,7 +11,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     welcome_message = (
         "👋 Olá! Sou o assistente financeiro da Família Flauzino.\n\n"
         "Você pode:\n"
-        "• Registrar gastos usando o comando /gasto de forma interativa\n\n"
+        "• Registrar gastos usando o comando /gasto de forma interativa\n"
+        "• Consultar limites e saldos usando os comandos /limites ou /saldo\n"
+        "• Mandar mensagens de texto/áudio como 'quanto posso gastar no mercado?'\n\n"
         "Use /help para mais informações!"
     )
 
@@ -23,15 +25,21 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     """Handle /help command."""
     help_message = (
         "📋 *Como usar o bot:*\n\n"
-        "*Registrar gastos:*\n"
+        "*Registrar gastos (Guiado):*\n"
         "Envie o comando /gasto. O bot vai te guiar passo a passo com botões para completar as informações:\n"
         "• Categoria\n"
         "• Valor\n"
         "• Item comprado\n"
         "• Método de pagamento\n"
-        "• Proprietário do cartão\n"
         "• Local da compra\n\n"
-        "💬 O registro de gastos via mensagem de texto livre foi temporariamente desativado a favor do fluxo interativo."
+        "*Consultas de Saldo e Limites:*\n"
+        "• Envie /saldo ou /limites para receber um relatório completo de todos os seus limites e gastos do mês com base no fechamento das faturas.\n\n"
+        "*Consultas e Registros Livres (IA):*\n"
+        "Você também pode conversar naturalmente comigo enviando texto ou áudio! Eu consigo entender o que você quer fazer.\n"
+        "Exemplos do que você pode me mandar:\n"
+        '- _"Quanto ainda tenho de mercado?"_\n'
+        '- _"Comprei um lanche no McDonald\'s por 45 reais no cartão nubank"_\n'
+        '- _"Cadastre um limite de 1000 reais para a categoria lazer"_\n'
     )
 
     logger.info(f"User {update.effective_user.id} requested help")

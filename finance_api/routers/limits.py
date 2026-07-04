@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Optional
+from typing import Optional, List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Response, status
@@ -12,7 +12,11 @@ from finance_api.schemas.limits import (
     SpendingLimitCreate,
     SpendingLimitResponse,
     SpendingLimitUpdate,
+    CategoryBalance,
 )
+from finance_api.repositories.payment_methods import PaymentMethodRepository
+from finance_api.repositories.invoices import InvoiceRepository
+from finance_api.services.invoices import InvoiceService
 from finance_api.schemas.pagination import PaginatedResponse
 
 router = APIRouter()
@@ -38,6 +42,25 @@ async def list_limits(
     repo = SpendingLimitRepository(db)
     service = SpendingLimitService(repo)
     return await service.list(page, size, start_date, end_date)
+
+
+@router.get("/balance", response_model=List[CategoryBalance])
+async def get_balance(
+    reference_month: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+) -> List[CategoryBalance]:
+    limit_repo = SpendingLimitRepository(db)
+    pm_repo = PaymentMethodRepository(db)
+    inv_repo = InvoiceRepository(db)
+
+    inv_service = InvoiceService(inv_repo, pm_repo)
+    limit_service = SpendingLimitService(limit_repo)
+
+    return await limit_service.get_balance(
+        reference_month=reference_month,
+        pm_repo=pm_repo,
+        inv_service=inv_service,
+    )
 
 
 @router.get("/{limit_id}", response_model=SpendingLimitResponse)

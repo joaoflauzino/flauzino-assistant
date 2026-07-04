@@ -14,7 +14,6 @@ from telegram_api.core.logger import get_logger
 from telegram_api.core.http_client import (
     get_valid_categories,
     get_valid_payment_methods,
-    get_valid_owners,
     save_spent,
     save_subscription,
 )
@@ -26,7 +25,6 @@ logger = get_logger(__name__)
     TYPE_ITEM_BOUGHT,
     TYPE_VALUE,
     SELECT_PAYMENT_METHOD,
-    SELECT_OWNER,
     TYPE_LOCATION,
     SELECT_PURCHASE_TYPE,
     TYPE_TOTAL_INSTALLMENTS,
@@ -34,7 +32,7 @@ logger = get_logger(__name__)
     SELECT_DATE_OPTION,
     TYPE_CUSTOM_DATE,
     CONFIRMATION,
-) = range(12)
+) = range(11)
 
 
 def build_inline_keyboard(options: list[str], columns: int = 2) -> InlineKeyboardMarkup:
@@ -117,24 +115,9 @@ async def select_payment_method(update: Update, context: ContextTypes.DEFAULT_TY
     context.user_data["expense"]["payment_method"] = query.data
     logger.info(f"Selected payment method: {query.data}")
 
-    owners = await get_valid_owners()
-    reply_markup = build_inline_keyboard(owners)
-
     await query.edit_message_text(
-        text=f"Método de pagamento: {query.data}\n\nDe quem é o cartão/conta?",
-        reply_markup=reply_markup,
+        text=f"Método de pagamento: {query.data}\n\nOnde foi a compra? (Local)"
     )
-    return SELECT_OWNER
-
-
-async def select_owner(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    query = update.callback_query
-    await query.answer()
-
-    context.user_data["expense"]["payment_owner"] = query.data
-    logger.info(f"Selected owner: {query.data}")
-
-    await query.edit_message_text(text=f"Proprietário: {query.data}\n\nOnde foi a compra? (Local)")
     return TYPE_LOCATION
 
 
@@ -233,7 +216,6 @@ async def show_confirmation(message_target, context: ContextTypes.DEFAULT_TYPE) 
         f"- Item: {expense.get('item_bought')}\n"
         f"- Valor: R$ {expense.get('amount'):.2f}\n"
         f"- Pagamento: {expense.get('payment_method')}\n"
-        f"- Proprietário: {expense.get('payment_owner')}\n"
         f"- Local: {expense.get('location', 'N/A')}\n"
         f"- Data: {date_str}\n"
         f"- Tipo: {ptype_str}\n\n"
@@ -318,7 +300,6 @@ async def confirm_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                     "category": expense.get("category"),
                     "amount": expense.get("amount"),
                     "payment_method": expense.get("payment_method"),
-                    "payment_owner": expense.get("payment_owner"),
                 }
                 if "created_at" in expense:
                     sub_data["created_at"] = expense["created_at"].isoformat()
@@ -329,7 +310,6 @@ async def confirm_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                     "amount": expense.get("amount"),
                     "item_bought": expense.get("item_bought"),
                     "payment_method": expense.get("payment_method"),
-                    "payment_owner": expense.get("payment_owner"),
                     "location": expense.get("location", "N/A"),
                 }
                 if "created_at" in expense:
@@ -370,7 +350,6 @@ expense_conv_handler = ConversationHandler(
         TYPE_ITEM_BOUGHT: [MessageHandler(filters.TEXT & ~filters.COMMAND, type_item_bought)],
         TYPE_VALUE: [MessageHandler(filters.TEXT & ~filters.COMMAND, type_value)],
         SELECT_PAYMENT_METHOD: [CallbackQueryHandler(select_payment_method)],
-        SELECT_OWNER: [CallbackQueryHandler(select_owner)],
         TYPE_LOCATION: [MessageHandler(filters.TEXT & ~filters.COMMAND, type_location)],
         SELECT_PURCHASE_TYPE: [CallbackQueryHandler(select_purchase_type)],
         TYPE_TOTAL_INSTALLMENTS: [

@@ -1,7 +1,8 @@
 import uuid
+from datetime import datetime, timedelta
 from typing import List
 
-from sqlalchemy import select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -54,3 +55,27 @@ class ChatRepository:
         messages = result.scalars().all()
         logger.info(f"Retrieved {len(messages)} messages for session {session_id}")
         return messages
+
+    async def cleanup_stale_sessions(self, max_age_minutes: int = 30) -> int:
+        """Delete sessions with no messages in the last `max_age_minutes` minutes."""
+        cutoff = datetime.utcnow() - timedelta(minutes=max_age_minutes)
+
+        # Find sessions whose last message is older than cutoff
+        subquery = (
+            select(
+                ChatMessage.session_id,
+                func.max(ChatMessage.created_at).label("last_msg"),
+            )
+            .group_by(ChatMessage.session_id)
+            .subquery()
+        )
+        stale_ids = select(subquery.c.session_id).where(subquery.c.last_msg < cutoff)
+
+        result = await self.session.execute(
+            delete(ChatSession).where(ChatSession.id.in_(stale_ids))
+        )
+        await self.session.commit()
+        deleted_count = result.rowcount
+        if deleted_count:
+            logger.info(f"Cleaned up {deleted_count} stale chat sessions")
+        return deleted_count
