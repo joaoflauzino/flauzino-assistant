@@ -30,3 +30,10 @@ jobs:
         # It spins up the containers using the code pulled by actions/checkout.
         run: |
           docker compose --env-file .env -f infra/docker-compose.yml up -d --build
+
+      - name: Cleanup Docker
+        run: |
+          # Remove dangling images, stopped containers, and unused networks
+          docker system prune -f
+          # Remove build cache older than 7 days to prevent accumulation
+          docker builder prune -af --filter "until=168h"
