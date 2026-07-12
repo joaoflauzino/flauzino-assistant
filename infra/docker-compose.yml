@@ -16,6 +16,7 @@ services:
       - default
 
   finance_api:
+    image: flauzino-assistant/finance_api:v1.0.0
     build:
       context: ../
       dockerfile: finance_api/Dockerfile
@@ -29,6 +30,7 @@ services:
       - default
 
   agent_api:
+    image: flauzino-assistant/agent_api:v1.0.0
     build:
       context: ../
       dockerfile: agent_api/Dockerfile
@@ -47,6 +49,7 @@ services:
       - default
 
   mcp_server:
+    image: flauzino-assistant/mcp_server:v1.0.0
     build:
       context: ../mcp_server
       dockerfile: Dockerfile
@@ -60,6 +63,7 @@ services:
       - default
 
   frontend:
+    image: flauzino-assistant/frontend:v1.0.0
     build:
       context: ../frontend
       dockerfile: Dockerfile
@@ -71,6 +75,7 @@ services:
       - default
 
   telegram_bot:
+    image: flauzino-assistant/telegram_bot:v1.0.0
     build:
       context: ../
       dockerfile: telegram_api/Dockerfile
