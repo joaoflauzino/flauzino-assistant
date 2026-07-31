@@ -13,12 +13,8 @@ sse_transport = SseServerTransport("/messages/")
 @router.get("/sse")
 async def handle_sse(request: Request) -> Response:
     """SSE endpoint for MCP protocol communication."""
-    async with sse_transport.connect_sse(
-        request.scope, request.receive, request._send
-    ) as streams:
-        await mcp_server.run(
-            streams[0], streams[1], mcp_server.create_initialization_options()
-        )
+    async with sse_transport.connect_sse(request.scope, request.receive, request._send) as streams:
+        await mcp_server.run(streams[0], streams[1], mcp_server.create_initialization_options())
     return Response()
 
 
