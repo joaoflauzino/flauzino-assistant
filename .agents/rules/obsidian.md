@@ -26,7 +26,13 @@ Ao identificar que uma atualização importante ocorreu, a IA **não deve termin
    - Incluir contexto (o problema resolvido).
    - Incluir trechos de código relevantes, nomes de novos arquivos criados, e variáveis de ambiente (se houver).
    - Registrar links internos (wikilinks `[[Nota]]`) para conectar conceitos.
-4. **Confirmação:** Após executar a skill, avisar o usuário que a documentação foi salva com sucesso no cofre.
+4. **ADRs (Architecture Decision Records):**
+   - Toda decisão arquitetural ou refatoração importante deve gerar um ADR dentro da pasta `projetos/<nome-do-repo>/ADRs/`.
+   - Nomenclatura sequencial: `ADR-001-Titulo-Descritivo.md`, `ADR-002-...`, etc.
+   - Estrutura mínima do ADR: **Status**, **Data**, **Contexto** (o problema), **Decisão** (o que foi feito), **Consequências** (positivas e negativas), **Arquivos Criados/Modificados**.
+   - Incluir wikilink para `[[Contexto_FlauzinoAssistant]]` no campo de contexto.
+   - Referenciar o ADR no `README.md` do projeto no Obsidian (seção "Specs e ADRs").
+5. **Confirmação:** Após executar a skill, avisar o usuário que a documentação foi salva com sucesso no cofre.
 
 *(Nota para o usuário: Caso queira que a IA atue sem pedir permissão, basta alterar o passo 1 para: "A IA deve registrar as mudanças no Obsidian autonomamente, sem pedir autorização prévia, informando apenas quando concluir.")*
 
