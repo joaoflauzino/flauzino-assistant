@@ -1,22 +1,22 @@
 from fastapi import FastAPI
 
-from core.exceptions import (
+from mcp_server.core.exceptions import (
     FinanceClientError,
     GraphGenerationError,
     MCPServerError,
     ServiceError,
 )
-from core.handlers import (
+from mcp_server.core.handlers import (
     finance_client_error_handler,
     graph_generation_error_handler,
     mcp_server_error_handler,
     service_error_handler,
 )
-from routers import graphs
-from routers.mcp import get_sse_transport, router as mcp_router
+from mcp_server.routers import graphs
+from mcp_server.routers.mcp import get_sse_transport, router as mcp_router
 
 # Import mcp_service to trigger tool registration via decorators
-import services.mcp_service  # noqa: F401
+import mcp_server.services.mcp_service  # noqa: F401
 
 app = FastAPI(title="MCP Graph Server")
 

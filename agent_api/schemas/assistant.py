@@ -35,7 +35,7 @@ class AssistantResponse(BaseModel):
     )
     requested_graph_type: str | None = Field(
         None,
-        description="Pode ser 'plot_category_balance' ou 'plot_expense_pie_chart'. Preencha isso APENAS se o usuário pedir explicitamente para gerar um gráfico ou visualização.",
+        description="Pode ser 'plot_category_balance' ou 'plot_expense_pie_chart'. Preencha com 'plot_category_balance' SEMPRE que o usuário perguntar sobre saldo, limites, gastos ou o quanto ainda pode gastar (mesmo que não peça um gráfico explicitamente). Use 'plot_expense_pie_chart' para distribuição de gastos.",
     )
     requested_graph_categories: list[str] | None = Field(
         None,

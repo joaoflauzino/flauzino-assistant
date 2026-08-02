@@ -60,8 +60,9 @@ Toda nova feature ou modificação precisa estar acompanhada de **testes unitár
 
 ## 6. Workflow de Desenvolvimento (Development Workflow)
 Para qualquer solicitação de nova feature:
-1. **Analisar**: Verificar se as alterações afetam a `finance_api`, `agent_api` e/ou `frontend`.
-2. **Especificar (Planning Mode)**: Criar o plano de implementação detalhado (Models -> Repositories -> Services -> Routers). Sempre salvar todos os detalhes de planejamento com exemplos de código e desenhos (formato mermaid) se necessário. Este plano e a documentação final da feature devem ser persistidos no repositório:
+1. **Planejar**: Dê uma olhada `Contexto_FlauzinoAssistant.md` no Obsidian para entender o estado atual e se existe algum contexto que pode ajudar na tarefa (Ex: de acordo com o contexto, ja existiu outras tentativas de implementar essa feature, mas falharam por um motivo X ou Y).
+2. **Analisar**: Verificar se as alterações afetam a `finance_api`, `agent_api` e/ou `frontend`.
+3. **Especificar (Planning Mode)**: Criar o plano de implementação detalhado (Models -> Repositories -> Services -> Routers). Sempre salvar todos os detalhes de planejamento com exemplos de código e desenhos (formato mermaid) se necessário. Este plano e a documentação final da feature devem ser persistidos no repositório:
    - A IA deve criar um diretório `.specs/<feature-name>/`.
    - O plano de implementação e especificações devem ser salvos em `.specs/<feature-name>/implementation_plan.md`.
    - Ao final, o resumo do que foi feito deve ser salvo em `.specs/<feature-name>/walkthrough.md`.

@@ -134,6 +134,8 @@ class SpendingLimitService:
         cat_map = {c.key: c.display_name for c in categories}
 
         balances = []
+        processed_cats = set()
+
         for limit in limits:
             cat_key = limit.category
             cat_display = cat_map.get(cat_key, cat_key)
@@ -151,5 +153,20 @@ class SpendingLimitService:
                     percentage_used=percentage,
                 )
             )
+            processed_cats.add(cat_key)
+
+        for cat_key, spent in spent_by_category.items():
+            if cat_key not in processed_cats and spent > 0:
+                cat_display = cat_map.get(cat_key, cat_key)
+                balances.append(
+                    CategoryBalance(
+                        category=cat_key,
+                        category_display_name=cat_display,
+                        limit=0.0,
+                        spent=spent,
+                        available=-spent,
+                        percentage_used=100.0,
+                    )
+                )
 
         return balances

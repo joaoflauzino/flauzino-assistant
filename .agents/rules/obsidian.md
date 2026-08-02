@@ -15,6 +15,7 @@ A IA deve iniciar o processo de documentação no Obsidian sempre que:
 - Uma refatoração importante ou mudança de arquitetura for concluída.
 - Um plano de implementação (`implementation_plan.md`) for totalmente executado e validado.
 - O usuário solicitar explicitamente ("atualize a documentação").
+- Caso ficar na dúvida, pergunte se é necessário documentar no Obsidian.
 
 ## 2. Procedimento de Documentação (Fluxo de Autorização)
 Ao identificar que uma atualização importante ocorreu, a IA **não deve terminar a conversa sem antes tratar a documentação**. Ela deve seguir estes passos:

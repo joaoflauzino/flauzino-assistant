@@ -4,7 +4,7 @@ from typing import Any, Callable
 
 import httpx
 
-from core.exceptions import FinanceClientError, GraphGenerationError, ServiceError
+from mcp_server.core.exceptions import FinanceClientError, GraphGenerationError, ServiceError
 
 logger = logging.getLogger(__name__)
 

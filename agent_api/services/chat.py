@@ -12,7 +12,6 @@ from agent_api.schemas.dtos import ChatMessage, ChatResponse
 from agent_api.services.finance import FinanceService
 from agent_api.services.llm import get_llm_response
 from agent_api.core.logger import get_logger
-import os
 from mcp.client.sse import sse_client
 from mcp.client.session import ClientSession
 from agent_api.settings import settings
@@ -71,7 +70,7 @@ class ChatService:
         if getattr(response, "requested_graph_type", None):
             logger.info(f"LLM requested graph via MCP: {response.requested_graph_type}")
             try:
-                mcp_url = os.getenv("MCP_SERVER_URL", "http://mcp_server:8002") + "/sse"
+                mcp_url = settings.MCP_SERVER_URL + "/sse"
                 async with sse_client(mcp_url) as (read_stream, write_stream):
                     async with ClientSession(read_stream, write_stream) as session:
                         await session.initialize()
@@ -86,22 +85,32 @@ class ChatService:
                             response.requested_graph_type, arguments=arguments
                         )
 
-                        # Extract the base64 image from the MCP response
+                        # Extract the base64 image or text from the MCP response
+                        mcp_text_response = None
                         if result and result.content:
                             for content_item in result.content:
                                 if getattr(content_item, "type", "") == "image":
                                     image_base64 = content_item.data
-                                    break
+                                elif getattr(content_item, "type", "") == "text":
+                                    mcp_text_response = getattr(content_item, "text", "")
 
-                graph_context = f"[Gráfico gerado: {response.requested_graph_type}"
-                if getattr(response, "requested_graph_categories", None):
-                    graph_context += (
-                        f", categorias: {', '.join(response.requested_graph_categories)}"
-                    )
-                if getattr(response, "requested_graph_mode", None):
-                    graph_context += f", modo: {response.requested_graph_mode}"
-                graph_context += "]"
-                response.response_message = "Aqui está o gráfico que você pediu!"
+                if image_base64:
+                    graph_context = f"[Gráfico gerado: {response.requested_graph_type}"
+                    if getattr(response, "requested_graph_categories", None):
+                        graph_context += (
+                            f", categorias: {', '.join(response.requested_graph_categories)}"
+                        )
+                    if getattr(response, "requested_graph_mode", None):
+                        graph_context += f", modo: {response.requested_graph_mode}"
+                    graph_context += "]"
+                    response.response_message = "Aqui está o gráfico que você pediu!"
+                elif mcp_text_response:
+                    response.response_message = mcp_text_response
+                    graph_context = f"[Falha ao gerar gráfico: {mcp_text_response}]"
+                else:
+                    response.response_message = "Desculpe, não foi possível gerar o gráfico."
+                    graph_context = "[Falha ao gerar gráfico: Resposta vazia do MCP]"
+
                 response.is_complete = False
                 response.is_confirmed = False
             except Exception as e:

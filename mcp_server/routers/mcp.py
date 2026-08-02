@@ -3,7 +3,7 @@ from mcp.server.sse import SseServerTransport
 from starlette.requests import Request
 from starlette.responses import Response
 
-from core.mcp import mcp_server
+from mcp_server.core.mcp import mcp_server
 
 router = APIRouter(tags=["mcp"])
 

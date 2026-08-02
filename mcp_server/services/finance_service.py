@@ -1,7 +1,7 @@
 import httpx
 
-from core.decorators import handle_service_errors
-from core.settings import settings
+from mcp_server.core.decorators import handle_service_errors
+from mcp_server.core.settings import settings
 
 
 @handle_service_errors

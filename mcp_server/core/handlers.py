@@ -1,7 +1,7 @@
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
-from core.exceptions import (
+from mcp_server.core.exceptions import (
     FinanceClientError,
     GraphGenerationError,
     MCPServerError,

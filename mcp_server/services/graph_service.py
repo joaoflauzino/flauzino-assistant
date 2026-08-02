@@ -1,8 +1,8 @@
 import plotly.express as px
 import plotly.graph_objects as go
 
-from core.decorators import handle_service_errors
-from core.exceptions import GraphGenerationError
+from mcp_server.core.decorators import handle_service_errors
+from mcp_server.core.exceptions import GraphGenerationError
 
 
 @handle_service_errors

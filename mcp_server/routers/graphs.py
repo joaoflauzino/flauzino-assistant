@@ -3,8 +3,8 @@ from typing import Optional
 
 from fastapi import APIRouter, Query
 
-from schemas.graphs import GraphImageResponse
-from services import finance_service, graph_service
+from mcp_server.schemas.graphs import GraphImageResponse
+from mcp_server.services import finance_service, graph_service
 
 router = APIRouter(prefix="/graphs", tags=["graphs"])
 

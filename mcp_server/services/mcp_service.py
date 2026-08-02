@@ -3,8 +3,8 @@ from typing import Any
 
 from mcp.types import ImageContent, TextContent, Tool
 
-from core.mcp import mcp_server
-from services import finance_service, graph_service
+from mcp_server.core.mcp import mcp_server
+from mcp_server.services import finance_service, graph_service
 
 
 @mcp_server.list_tools()
@@ -87,9 +87,8 @@ async def handle_call_tool(
             TextContent(
                 type="text",
                 text=(
-                    "Nenhum dado encontrado para gerar o gráfico com as categorias informadas. "
-                    "Por favor informe o usuário que essas categorias não existem ou não possuem "
-                    "limites cadastrados."
+                    "Não encontrei limites cadastrados ou gastos para as categorias que você pediu. "
+                    "Verifique se o nome está correto ou se houve algum registro neste mês."
                 ),
             )
         ]

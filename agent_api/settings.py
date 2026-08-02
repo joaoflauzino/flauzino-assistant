@@ -7,6 +7,7 @@ class AgentApiSettings(BaseSettings):
     GOOGLE_API_KEY: str | None = None
     MODEL_NAME: str = "gemini-3-flash"
     FINANCE_SERVICE_URL: str = "http://localhost:8000"
+    MCP_SERVER_URL: str = "http://localhost:8002"
     DATABASE_URL: str
 
 
