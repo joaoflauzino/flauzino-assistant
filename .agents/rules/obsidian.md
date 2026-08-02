@@ -39,16 +39,17 @@ Ao identificar que uma atualização importante ocorreu, a IA **não deve termin
 
 ## 3. Gestão de Contexto e Memória (Diário de Bordo)
 
-Para garantir a continuidade e evitar a perda de contexto entre diferentes interações ou sessões, a IA deve manter um arquivo central chamado `Contexto_FlauzinoAssistant.md` dentro da pasta do projeto no Obsidian (em `projetos/flauzino-assistant/`).
+Para garantir a continuidade e evitar a perda de contexto entre diferentes interações ou sessões, a IA deve manter a documentação de contexto de desenvolvimento dentro da pasta `projetos/flauzino-assistant/contexto/` no Obsidian.
+Cada dia de trabalho deve ter o seu próprio arquivo no formato `YYYY-MM-DD.md` (ex: `2026-08-01.md`). As informações devem ser acumuladas neste arquivo ao longo do dia.
 
 ### 3.1. Leitura Obrigatória (Recuperação de Contexto)
-Sempre que uma nova conversa for iniciada e o usuário pedir para retomar o trabalho, ou quando a IA não tiver certeza do estado atual do projeto, a IA deve **obrigatoriamente ler este arquivo no Obsidian usando a skill** antes de planejar ou escrever qualquer código.
+Sempre que uma nova conversa for iniciada e o usuário pedir para retomar o trabalho, ou quando a IA não tiver certeza do estado atual do projeto, a IA deve **obrigatoriamente ler o arquivo do dia atual (e os anteriores mais recentes se necessário) no Obsidian usando a skill** antes de planejar ou escrever qualquer código.
 
 ### 3.2. Estrutura e Atualização da Memória
-Ao concluir uma feature importante, ou quando o usuário informar que a sessão/interação atual terminou, a IA deve atualizar este arquivo contendo:
+Ao concluir uma feature importante, ou quando o usuário informar que a sessão/interação atual terminou, a IA deve atualizar o arquivo do dia no Obsidian contendo:
 - **Resumo do que foi entregue:** (ex: "Criamos a integração com o Telegram").
 - **Decisões e Padrões Importantes:** (ex: "Decidimos não usar banco de dados para os logs, apenas arquivos locais por enquanto").
 - **Pontas Soltas / Próximos Passos (TODOs):** O que faltou fazer ou o que deve ser atacado na próxima iteração.
 - **Desafios Enfrentados:** Algum bug persistente ou gambiarra temporária que precisará de revisão no futuro.
 
-A IA deve tratar este arquivo como o "cérebro compartilhado" entre ela e o usuário.
+A IA deve tratar a pasta de contexto como o "cérebro compartilhado" entre ela e o usuário.
