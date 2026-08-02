@@ -15,14 +15,13 @@ COPY --from=uv /uv /bin/uv
 WORKDIR /app
 
 # Instala dependências
-COPY pyproject.toml .
-RUN uv venv
-RUN uv pip install -e .
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-install-project --no-dev --python /usr/local/bin/python
 
 # Copia código
-COPY . .
+COPY . ./mcp_server
 
 # Expõe porta 8002
 EXPOSE 8002
 
-CMD ["/app/.venv/bin/uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8002"]
+CMD ["/app/.venv/bin/uvicorn", "mcp_server.main:app", "--host", "0.0.0.0", "--port", "8002"]

@@ -41,6 +41,7 @@
 ## 6. Registro de gastos
 - [x] Ao registrar gastos com texto livre a IA não esta identificando corretamento os métodos de pagamento (Ex: passei c6 e não existe... existe o c6_joao)
 - [x] O CRUD (@finance_api) não está barrando métodos de pagamentos na tabela de gastos e que não existem na tabela de pagamentos (Ex: passei c6 e não existe... existe o c6_joao)
+- [ ] Bug: Durante o cadastro via `/gasto`, quando a LLM pede confirmação e exibe os botões (Confirmar/Cancelar), se o usuário digitar texto para corrigir algo ao invés de clicar, as próximas mensagens da LLM vêm sem formatação e ela perde o contexto, exigindo repetir todos os valores.
 
 ## 7. Fluxo de Handlers (Refatoração para os Itens 3 e 4)
 - [ ] Desenhar a arquitetura de Handlers no `telegram_api` para acomodar as novas intenções.
