@@ -147,16 +147,17 @@ class ChatService:
             try:
                 session_id = uuid.UUID(session_id_str)
             except ValueError:
-                raise HTTPException(status_code=400, detail="Invalid session_id format")
+                logger.warning(f"Invalid session_id format: {session_id_str}, creating new one.")
+            else:
+                session = await self.repository.get_session(session_id)
+                if session:
+                    return session.id
+                else:
+                    logger.warning(f"Session {session_id} not found, creating new one.")
 
-            session = await self.repository.get_session(session_id)
-            if not session:
-                raise HTTPException(status_code=404, detail="Session not found")
-            return session.id
-        else:
-            session = await self.repository.create_session()
-            logger.info(f"Created new session: {session.id}")
-            return session.id
+        session = await self.repository.create_session()
+        logger.info(f"Created new session: {session.id}")
+        return session.id
 
     async def _save_message(self, session_id: uuid.UUID, role: str, content: str) -> None:
         await self.repository.add_message(session_id, role, content)
