@@ -1,7 +1,6 @@
 import uuid
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException
 
 from typing import List, Dict, Any, Tuple
 
