@@ -1,4 +1,8 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
+from mcp.server.fastmcp.server import StreamableHTTPASGIApp
+from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 
 from mcp_server.core.exceptions import (
     FinanceClientError,
@@ -12,13 +16,31 @@ from mcp_server.core.handlers import (
     mcp_server_error_handler,
     service_error_handler,
 )
+from mcp_server.core.mcp import mcp
 from mcp_server.routers import graphs
-from mcp_server.routers.mcp import get_sse_transport, router as mcp_router
 
 # Import mcp_service to trigger tool registration via decorators
 import mcp_server.services.mcp_service  # noqa: F401
 
-app = FastAPI(title="MCP Graph Server")
+# Gerencia as sessões do transporte Streamable HTTP do protocolo MCP.
+# O task group é criado no lifespan abaixo (requisito do StreamableHTTPSessionManager).
+session_manager = StreamableHTTPSessionManager(
+    app=mcp._mcp_server,
+    json_response=mcp.settings.json_response,
+    stateless=mcp.settings.stateless_http,
+    security_settings=mcp.settings.transport_security,
+)
+streamable_http_app = StreamableHTTPASGIApp(session_manager)
+
+
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    """Manage the MCP Streamable HTTP session manager lifecycle."""
+    async with session_manager.run():
+        yield
+
+
+app = FastAPI(title="MCP Graph Server", lifespan=lifespan)
 
 # Register global exception handlers
 app.add_exception_handler(FinanceClientError, finance_client_error_handler)
@@ -28,10 +50,10 @@ app.add_exception_handler(MCPServerError, mcp_server_error_handler)
 
 # Register routers
 app.include_router(graphs.router)
-app.include_router(mcp_router)
 
-# Mount SSE transport for MCP protocol
-app.mount("/messages/", get_sse_transport().handle_post_message)
+# Mount Streamable HTTP transport for the MCP protocol
+# Endpoints: POST/GET/DELETE /mcp
+app.mount("/mcp", streamable_http_app)
 
 if __name__ == "__main__":
     import uvicorn

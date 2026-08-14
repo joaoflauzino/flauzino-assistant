@@ -14,12 +14,13 @@ COPY --from=uv /uv /bin/uv
 
 WORKDIR /app
 
-# Instala dependências
+# Instala apenas as dependências do mcp_server (workspace)
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-install-project --no-dev --python /usr/local/bin/python
+COPY mcp_server/pyproject.toml mcp_server/pyproject.toml
+RUN uv sync --frozen --no-dev --package mcp_server --python /usr/local/bin/python
 
 # Copia código
-COPY . ./mcp_server
+COPY mcp_server ./mcp_server
 
 # Expõe porta 8002
 EXPOSE 8002

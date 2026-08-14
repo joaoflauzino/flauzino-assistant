@@ -8,11 +8,10 @@ from agent_api.core.decorators import handle_service_errors
 from agent_api.repositories.chat_repository import ChatRepository
 from agent_api.schemas.assistant import AssistantResponse
 from agent_api.schemas.dtos import ChatMessage, ChatResponse
+from agent_api.services import mcp_client
 from agent_api.services.finance import FinanceService
 from agent_api.services.llm import get_llm_response
 from agent_api.core.logger import get_logger
-from mcp.client.sse import sse_client
-from mcp.client.session import ClientSession
 from agent_api.settings import settings
 
 logger = get_logger(__name__)
@@ -69,29 +68,20 @@ class ChatService:
         if getattr(response, "requested_graph_type", None):
             logger.info(f"LLM requested graph via MCP: {response.requested_graph_type}")
             try:
-                mcp_url = settings.MCP_SERVER_URL + "/sse"
-                async with sse_client(mcp_url) as (read_stream, write_stream):
-                    async with ClientSession(read_stream, write_stream) as session:
-                        await session.initialize()
-                        # Call the tool on the MCP server
-                        arguments = {}
-                        if getattr(response, "requested_graph_categories", None):
-                            arguments["categories"] = response.requested_graph_categories
-                        if getattr(response, "requested_graph_mode", None):
-                            arguments["mode"] = response.requested_graph_mode
+                arguments = {}
+                if getattr(response, "requested_graph_categories", None):
+                    arguments["categories"] = response.requested_graph_categories
+                if getattr(response, "requested_graph_mode", None):
+                    arguments["mode"] = response.requested_graph_mode
 
-                        result = await session.call_tool(
-                            response.requested_graph_type, arguments=arguments
-                        )
+                result = await mcp_client.call_tool(response.requested_graph_type, arguments)
 
-                        # Extract the base64 image or text from the MCP response
-                        mcp_text_response = None
-                        if result and result.content:
-                            for content_item in result.content:
-                                if getattr(content_item, "type", "") == "image":
-                                    image_base64 = content_item.data
-                                elif getattr(content_item, "type", "") == "text":
-                                    mcp_text_response = getattr(content_item, "text", "")
+                # Extract the base64 image or text from the MCP response
+                if result.image_base64:
+                    image_base64 = result.image_base64
+                    mcp_text_response = None
+                else:
+                    mcp_text_response = result.text
 
                 if image_base64:
                     graph_context = f"[Gráfico gerado: {response.requested_graph_type}"

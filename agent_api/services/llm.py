@@ -1,12 +1,42 @@
+import time
+
 import httpx
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from agent_api.core.decorators import handle_llm_errors
 from agent_api.core.logger import get_logger
 from agent_api.schemas.assistant import AssistantResponse
+from agent_api.services import mcp_client
 from agent_api.settings import settings
 
 logger = get_logger(__name__)
+
+_MCP_TOOLS_CACHE_TTL_SECONDS = 60
+_mcp_tools_cache: dict = {"expires_at": 0.0, "tools": ""}
+
+FALLBACK_GRAPH_TOOLS = """- `plot_category_balance`: compara os Limites cadastrados com os Gastos atuais por categoria (modo 'saldo' ou 'limites').
+- `plot_expense_pie_chart`: gráfico de pizza com a distribuição de gastos por categoria."""
+
+
+async def get_mcp_tools_summary() -> str:
+    """Return a summary of the tools available on the MCP server (cached).
+
+    Falls back to a static list if the MCP server is unreachable.
+    """
+    now = time.monotonic()
+    if now < _mcp_tools_cache["expires_at"]:
+        return _mcp_tools_cache["tools"]
+
+    try:
+        tools = await mcp_client.list_tools()
+        summary = "\n".join(f"- `{t.name}`: {t.description}" for t in tools)
+        _mcp_tools_cache.update(
+            {"expires_at": now + _MCP_TOOLS_CACHE_TTL_SECONDS, "tools": summary}
+        )
+        return summary
+    except Exception as e:
+        logger.warning(f"Failed to fetch MCP tools, using fallback list: {e}")
+        return FALLBACK_GRAPH_TOOLS
 
 
 # Fetch categories dynamically from finance API
@@ -43,6 +73,7 @@ async def get_system_prompt(platform: str | None = None) -> str:
     """Generate system prompt with dynamic categories and platform instructions."""
     valid_categories = await get_valid_categories()
     valid_payment_methods = await get_valid_payment_methods()
+    tools_summary = await get_mcp_tools_summary()
 
     platform_instructions = ""
     if platform == "telegram":
@@ -113,10 +144,12 @@ async def get_system_prompt(platform: str | None = None) -> str:
         - Deixe `spending_details` e `limit_details` vazios.
         - Não preencha `suggested_options` para categorias de saldos.
         - Se `is_balance_query` for True, não se preocupe em formular a resposta financeira final agora, o backend fornecerá os dados na mesma interação. Apenas defina a `response_message` como "Aguardando dados...".
-        - **IMPORTANTE:** Se o usuário pedir um **GRÁFICO** (ex: "Me mostre um gráfico de pizza dos meus gastos", "Me mostre o gráfico de mercado", "Gere um gráfico visual"), preencha o campo `requested_graph_type` com:
-          - `"plot_category_balance"` se o usuário quiser comparar limite vs gastos gerais.
-          - `"plot_expense_pie_chart"` se o usuário pedir um gráfico de pizza, distribuição ou divisão de gastos.
-          E caso o usuário especifique categorias na mesma frase, extraia-as em `requested_graph_categories` (apenas as que existirem na lista de VÁLIDAS acima). Se preencher `requested_graph_type`, defina a `response_message` como "Aguardando gráfico...".
+         - **IMPORTANTE:** Se o usuário pedir um **GRÁFICO** (ex: "Me mostre um gráfico de pizza dos meus gastos", "Me mostre o gráfico de mercado", "Gere um gráfico visual"), preencha o campo `requested_graph_type` com o nome de UMA das ferramentas de gráfico disponíveis abaixo. NUNCA invente nomes: use exatamente um dos nomes listados.
+
+         **FERRAMENTAS DE GRÁFICO DISPONÍVEIS**:
+         {tools_summary}
+
+         - Escolha a ferramenta mais adequada ao pedido do usuário. Caso o usuário especifique categorias na mesma frase, extraia-as em `requested_graph_categories` (apenas as que existirem na lista de VÁLIDAS acima). Se preencher `requested_graph_type`, defina a `response_message` como "Aguardando gráfico...".
 
         4. **Outros Assuntos**:
         Se o usuário falar sobre assuntos que NÃO sejam finanças ou registro de gastos, sua `response_message` deve ser:

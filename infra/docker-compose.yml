@@ -51,8 +51,8 @@ services:
   mcp_server:
     image: flauzino-assistant/mcp_server:v1.0.0
     build:
-      context: ../mcp_server
-      dockerfile: Dockerfile
+      context: ../
+      dockerfile: mcp_server/Dockerfile
     ports:
       - "8002:8002"
     environment:

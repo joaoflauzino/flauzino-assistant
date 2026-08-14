@@ -1,7 +1,7 @@
-.PHONY: install db-up db-down run-finance run-agent run-telegram run-frontend docker-up docker-down format lint test
+.PHONY: install db-up db-down run-finance run-agent run-telegram run-frontend docker-up docker-down format lint test test-mcp
 
 install:
-	uv sync
+	uv sync --all-packages
 	cd frontend && npm install
 
 setup:
@@ -41,3 +41,6 @@ lint:
 
 test:
 	uv run pytest
+
+test-mcp:
+	uv run pytest mcp_server/tests
