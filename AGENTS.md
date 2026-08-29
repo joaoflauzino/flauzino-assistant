@@ -60,13 +60,12 @@ Toda nova feature ou modificação precisa estar acompanhada de **testes unitár
 
 ## 6. Workflow de Desenvolvimento (Development Workflow)
 Para qualquer solicitação de nova feature:
-1. **Planejar**: Dê uma olhada na pasta `contexto/` no Obsidian (especialmente nos arquivos mais recentes) para entender o estado atual e se existe algum contexto que pode ajudar na tarefa (Ex: de acordo com o contexto, ja existiu outras tentativas de implementar essa feature, mas falharam por um motivo X ou Y).
-2. **Analisar**: Verificar se as alterações afetam a `finance_api`, `agent_api` e/ou `frontend`.
-3. **Especificar (Planning Mode)**: Criar o plano de implementação detalhado (Models -> Repositories -> Services -> Routers). Sempre salvar todos os detalhes de planejamento com exemplos de código e desenhos (formato mermaid) se necessário. Este plano e a documentação final da feature devem ser persistidos no repositório:
+1. **Planejar e Analisar**: Analisar os requisitos e o estado atual do repositório, verificando se as alterações afetam a `finance_api`, `agent_api` e/ou `frontend`.
+2. **Especificar (Planning Mode)**: Criar o plano de implementação detalhado (Models -> Repositories -> Services -> Routers). Sempre salvar todos os detalhes de planejamento com exemplos de código e desenhos (formato mermaid) se necessário. Este plano e a documentação final da feature devem ser persistidos no repositório:
    - A IA deve criar um diretório `.specs/<feature-name>/`.
    - O plano de implementação e especificações devem ser salvos em `.specs/<feature-name>/implementation_plan.md`.
    - Ao final, o resumo do que foi feito deve ser salvo em `.specs/<feature-name>/walkthrough.md`.
 3. **Aprovação**: Aguardar a aprovação humana do plano de implementação/especificação.
 4. **Implementar**: Somente após aprovação, iniciar a escrita do código respeitando os padrões descritos neste documento.
 5. **Testar**: Gerar o plano de testes e escrever/executar os testes automatizados.
-6. **Documentar e Salvar Contexto (Obsidian)**: Ao finalizar a tarefa, certifique-se de que os arquivos `implementation_plan.md` e `walkthrough.md` estejam atualizados dentro de `.specs/<feature-name>/`. A IA deve então obrigatoriamente atualizar a documentação e o diário de bordo (criando ou atualizando o arquivo do dia na pasta `projetos/flauzino-assistant/contexto/`) no Obsidian, além de gerar o ADR se for o caso, conforme estipulado nas regras de gestão de contexto.
+6. **Documentar**: Ao finalizar a tarefa, certifique-se de que os arquivos `implementation_plan.md` e `walkthrough.md` estejam atualizados dentro de `.specs/<feature-name>/`.
