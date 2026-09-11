@@ -30,9 +30,7 @@ def validate_image_file(filename: str, file_size: int) -> None:
     if filename:
         ext = "." + filename.split(".")[-1].lower()
         if ext not in ALLOWED_EXTENSIONS:
-            raise InvalidImageError(
-                f"Invalid file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"
-            )
+            raise InvalidImageError(f"Invalid file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}")
 
     if file_size > MAX_FILE_SIZE_MB * 1024 * 1024:
         raise InvalidImageError(f"File too large. Maximum size: {MAX_FILE_SIZE_MB}MB")

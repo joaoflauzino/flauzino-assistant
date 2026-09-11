@@ -18,9 +18,7 @@ pytestmark = pytest.mark.asyncio
 async def test_client():
     """Fixture for test client."""
     async with LifespanManager(app):
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             yield client
 
 
@@ -95,9 +93,7 @@ class TestOCRExtractEndpoint:
     async def test_extract_text_no_text_extracted(self, test_client, mock_ocr_service):
         """Test handling when OCR finds no text."""
         # Arrange
-        mock_ocr_service.extract_text.side_effect = OCRProcessingError(
-            "No text could be extracted"
-        )
+        mock_ocr_service.extract_text.side_effect = OCRProcessingError("No text could be extracted")
 
         files = {"file": ("blank.jpg", b"fake blank image", "image/jpeg")}
 
@@ -120,9 +116,7 @@ class TestOCRExtractEndpoint:
         # Assert
         assert response.status_code == 400
 
-    async def test_extract_text_supports_multiple_formats(
-        self, test_client, mock_ocr_service
-    ):
+    async def test_extract_text_supports_multiple_formats(self, test_client, mock_ocr_service):
         """Test that multiple image formats are supported."""
         formats = [
             ("receipt.png", "image/png"),
@@ -195,9 +189,7 @@ class TestOCRProcessReceiptEndpoint:
         data = {"session_id": existing_session_id}
 
         # Act
-        response = await test_client.post(
-            "/ocr/process-receipt", files=files, data=data
-        )
+        response = await test_client.post("/ocr/process-receipt", files=files, data=data)
 
         # Assert
         assert response.status_code == 200
@@ -209,14 +201,10 @@ class TestOCRProcessReceiptEndpoint:
         call_args = mock_chat_service.process_message.call_args[0]
         assert call_args[1] == existing_session_id
 
-    async def test_process_receipt_no_text_extracted(
-        self, test_client, mock_ocr_service
-    ):
+    async def test_process_receipt_no_text_extracted(self, test_client, mock_ocr_service):
         """Test handling when receipt has no readable text."""
         # Arrange
-        mock_ocr_service.extract_text.side_effect = OCRProcessingError(
-            "No text extracted"
-        )
+        mock_ocr_service.extract_text.side_effect = OCRProcessingError("No text extracted")
 
         files = {"file": ("blank.jpg", b"fake image", "image/jpeg")}
 
@@ -244,9 +232,7 @@ class TestOCRProcessReceiptEndpoint:
         data = {"platform": "telegram"}
 
         # Act
-        response = await test_client.post(
-            "/ocr/process-receipt", files=files, data=data
-        )
+        response = await test_client.post("/ocr/process-receipt", files=files, data=data)
 
         # Assert
         assert response.status_code == 200
@@ -273,9 +259,7 @@ class TestOCRValidation:
             response = await test_client.post("/ocr/extract", files=files)
             assert response.status_code == 400
 
-    async def test_validate_image_accepts_supported_extensions(
-        self, test_client, mock_ocr_service
-    ):
+    async def test_validate_image_accepts_supported_extensions(self, test_client, mock_ocr_service):
         """Test that supported image extensions are accepted."""
         # Arrange
         mock_ocr_service.extract_text.return_value = ("Text", 80.0)

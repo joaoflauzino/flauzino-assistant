@@ -39,9 +39,7 @@ def finance_service(mock_client):
 
 
 @pytest.mark.asyncio
-async def test_register_finance_unreachable(
-    finance_service, sample_agent_response, mock_client
-):
+async def test_register_finance_unreachable(finance_service, sample_agent_response, mock_client):
     # Arrange
     # Simulate a connection error when posting to spents
     mock_client.post.side_effect = httpx.ConnectError("Connection refused")
@@ -52,9 +50,7 @@ async def test_register_finance_unreachable(
 
 
 @pytest.mark.asyncio
-async def test_register_invalid_spent_400(
-    finance_service, sample_agent_response, mock_client
-):
+async def test_register_invalid_spent_400(finance_service, sample_agent_response, mock_client):
     # Arrange
     # Simulate a 400 Bad Request
     mock_response = MagicMock()
@@ -72,9 +68,7 @@ async def test_register_invalid_spent_400(
 
 
 @pytest.mark.asyncio
-async def test_register_invalid_spent_422(
-    finance_service, sample_agent_response, mock_client
-):
+async def test_register_invalid_spent_422(finance_service, sample_agent_response, mock_client):
     # Arrange
     # Simulate a 422 Unprocessable Entity
     mock_response = MagicMock()
@@ -92,9 +86,7 @@ async def test_register_invalid_spent_422(
 
 
 @pytest.mark.asyncio
-async def test_register_finance_server_error(
-    finance_service, sample_agent_response, mock_client
-):
+async def test_register_finance_server_error(finance_service, sample_agent_response, mock_client):
     # Arrange
     # Simulate a 500 Internal Server Error
     mock_response = MagicMock()
@@ -143,9 +135,9 @@ async def test_get_balances_success(mock_client):
     assert balances[0]["category"] == "mercado"
     mock_client.get.assert_awaited_once()
     call_args = mock_client.get.call_args
-    assert "categories=mercado" in str(
-        call_args
-    ) or call_args.kwargs.get("params") == {"categories": "mercado"}
+    assert "categories=mercado" in str(call_args) or call_args.kwargs.get("params") == {
+        "categories": "mercado"
+    }
 
 
 @pytest.mark.asyncio
@@ -153,9 +145,7 @@ async def test_get_categories_success(mock_client):
     service = FinanceService(client=mock_client)
     mock_response = MagicMock()
     mock_response.status_code = 200
-    mock_response.json.return_value = {
-        "items": [{"key": "alimentacao"}, {"key": "lazer"}]
-    }
+    mock_response.json.return_value = {"items": [{"key": "alimentacao"}, {"key": "lazer"}]}
     mock_client.get.return_value = mock_response
 
     # Use cache=False to test network retrieval
@@ -168,9 +158,7 @@ async def test_get_payment_methods_success(mock_client):
     service = FinanceService(client=mock_client)
     mock_response = MagicMock()
     mock_response.status_code = 200
-    mock_response.json.return_value = {
-        "items": [{"key": "pix"}, {"key": "nubank"}]
-    }
+    mock_response.json.return_value = {"items": [{"key": "pix"}, {"key": "nubank"}]}
     mock_client.get.return_value = mock_response
 
     # Use cache=False to test network retrieval

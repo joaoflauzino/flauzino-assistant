@@ -1,7 +1,6 @@
 from typing import Any, Dict, List, Tuple
 import uuid
 
-from fastapi import HTTPException
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 
