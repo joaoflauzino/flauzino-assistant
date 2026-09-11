@@ -1,7 +1,7 @@
-"""Testa o MCP server de forma isolada, ponta a ponta via HTTP (Streamable HTTP).
+"""Testa o MCP server da finance_api de forma isolada, ponta a ponta via HTTP (Streamable HTTP).
 
 Uso:
-    python scripts/test_mcp_isolated.py [--url http://localhost:8002/mcp]
+    python scripts/test_mcp_isolated.py [--url http://localhost:8000/mcp] [--tool get_category_balance]
 
 O script conecta no servidor, descobre as tools via tools/list e chama uma delas.
 Se for gerada uma imagem, ela é salva em /tmp/mcp_graph_test.png para inspeção visual.
@@ -46,14 +46,14 @@ async def run(url: str, tool: str) -> int:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Teste isolado do MCP server")
+    parser = argparse.ArgumentParser(description="Teste isolado do MCP server da finance_api")
     parser.add_argument(
-        "--url", default="http://localhost:8002/mcp", help="Endpoint /mcp do servidor"
+        "--url", default="http://localhost:8000/mcp", help="Endpoint /mcp do servidor finance_api"
     )
     parser.add_argument(
         "--tool",
-        default="plot_category_balance",
-        choices=["plot_category_balance", "plot_expense_pie_chart"],
+        default="get_category_balance",
+        choices=["get_category_balance", "list_categories", "get_balance_chart", "create_spent"],
         help="Tool a ser chamada",
     )
     args = parser.parse_args()

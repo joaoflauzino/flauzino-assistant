@@ -14,15 +14,15 @@ COPY --from=uv /uv /bin/uv
 
 WORKDIR /app
 
-# Instala apenas as dependências do mcp_server (workspace)
+# Instala apenas as dependências do graph_api (workspace)
 COPY pyproject.toml uv.lock ./
-COPY mcp_server/pyproject.toml mcp_server/pyproject.toml
-RUN uv sync --frozen --no-dev --package mcp_server --python /usr/local/bin/python
+COPY graph_api/pyproject.toml graph_api/pyproject.toml
+RUN uv sync --frozen --no-dev --package graph_api --python /usr/local/bin/python
 
 # Copia código
-COPY mcp_server ./mcp_server
+COPY graph_api ./graph_api
 
 # Expõe porta 8002
 EXPOSE 8002
 
-CMD ["/app/.venv/bin/uvicorn", "mcp_server.main:app", "--host", "0.0.0.0", "--port", "8002"]
+CMD ["/app/.venv/bin/uvicorn", "graph_api.main:app", "--host", "0.0.0.0", "--port", "8002"]

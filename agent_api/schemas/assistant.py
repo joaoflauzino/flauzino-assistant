@@ -1,3 +1,4 @@
+from typing import Literal
 from pydantic import BaseModel, Field
 
 from agent_api.schemas.limit import LimitDetails
@@ -33,9 +34,13 @@ class AssistantResponse(BaseModel):
         None,
         description="Lista de opções de botões a serem apresentadas ao usuário, caso o assistente queira que ele escolha. NUNCA use isso para pedir para o usuário escolher categorias de saldo ou limite; se ele não especificar, assuma que ele quer ver todas automaticamente.",
     )
-    requested_graph_type: str | None = Field(
+    requested_graph_type: Literal["bar", "pie"] | None = Field(
         None,
-        description="Nome de uma das ferramentas de gráfico disponíveis no MCP server (ver prompt de sistema). Preencha SEMPRE que o usuário perguntar sobre saldo, limites, gastos ou o quanto ainda pode gastar, mesmo que não peça um gráfico explicitamente.",
+        description=(
+            "Preencha APENAS se o usuário pedir um gráfico visual. "
+            "Use 'pie' para gráfico de pizza/distribuição percentual e 'bar' para limites e saldos. "
+            "Se o usuário pedir um gráfico mas não especificar o formato, use 'bar' como padrão."
+        ),
     )
     requested_graph_categories: list[str] | None = Field(
         None,

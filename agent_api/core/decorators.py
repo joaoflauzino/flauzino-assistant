@@ -1,19 +1,19 @@
-from typing import Any, Callable
 import functools
+from typing import Any, Callable
+
+from fastapi import HTTPException
+from google.api_core.exceptions import GoogleAPIError
 import httpx
 from langchain_core.exceptions import OutputParserException
-from google.api_core.exceptions import GoogleAPIError
 from sqlalchemy.exc import SQLAlchemyError
-from fastapi import HTTPException
-
 
 from agent_api.core.exceptions import (
-    FinanceUnreachableError,
-    FinanceServerError,
-    InvalidSpentError,
-    LLMProviderError,
-    LLMParsingError,
     DatabaseError,
+    FinanceServerError,
+    FinanceUnreachableError,
+    InvalidSpentError,
+    LLMParsingError,
+    LLMProviderError,
     ServiceError,
 )
 from agent_api.core.logger import get_logger
@@ -95,7 +95,7 @@ def handle_ocr_errors(func: Callable[..., Any]) -> Callable[..., Any]:
             logger.error(f"Unexpected OCR error: {e}", exc_info=True)
 
             # Import OCR exceptions here to avoid circular imports
-            from agent_api.core.exceptions import OCRProcessingError, InvalidImageError
+            from agent_api.core.exceptions import InvalidImageError, OCRProcessingError
 
             # Check for specific error types in the message
             error_msg = str(e).lower()
@@ -103,5 +103,23 @@ def handle_ocr_errors(func: Callable[..., Any]) -> Callable[..., Any]:
                 raise InvalidImageError(f"Invalid image: {str(e)}")
 
             raise OCRProcessingError(f"OCR processing failed: {str(e)}")
+
+    return wrapper
+
+
+def handle_audio_errors(func: Callable[..., Any]) -> Callable[..., Any]:
+    """Decorator to catch audio processing errors and raise AudioProcessingError."""
+
+    @functools.wraps(func)
+    async def wrapper(*args: Any, **kwargs: Any) -> Any:
+        try:
+            return await func(*args, **kwargs)
+        except Exception as e:
+            from agent_api.core.exceptions import AudioProcessingError, InvalidAudioError
+
+            if isinstance(e, (AudioProcessingError, InvalidAudioError, HTTPException)):
+                raise
+            logger.error(f"Unexpected Audio error: {e}", exc_info=True)
+            raise AudioProcessingError(f"Falha ao transcrever o áudio: {str(e)}")
 
     return wrapper

@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -17,14 +19,25 @@ from finance_api.core.handlers import (
 )
 from finance_api.routers import (
     categories,
+    invoices,
     limits,
     payment_methods,
     spents,
     subscriptions,
-    invoices,
 )
+from finance_api.mcp.server import mcp_streamable_app
+import finance_api.mcp.tools  # noqa: F401 - Register MCP tools
 
-app = FastAPI(title="Flauzino Assistant API")
+
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    """Gerencia o ciclo de vida do session manager do Streamable HTTP para o MCP."""
+    session_manager = mcp_streamable_app.create_manager()
+    async with session_manager.run():
+        yield
+
+
+app = FastAPI(title="Flauzino Assistant API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -48,3 +61,6 @@ app.include_router(categories.router, prefix="/categories", tags=["categories"])
 app.include_router(payment_methods.router, prefix="/payment-methods", tags=["payment-methods"])
 app.include_router(subscriptions.router, prefix="/subscriptions", tags=["subscriptions"])
 app.include_router(invoices.router, prefix="/invoices", tags=["invoices"])
+
+# Mount Streamable HTTP transport for the MCP protocol on /mcp
+app.mount("/mcp", mcp_streamable_app)

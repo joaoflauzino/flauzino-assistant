@@ -1,4 +1,4 @@
-.PHONY: install db-up db-down run-finance run-agent run-telegram run-frontend docker-up docker-down format lint test test-mcp
+.PHONY: install db-up db-down run-finance run-agent run-mcp run-telegram run-frontend docker-up docker-down format lint test test-mcp
 
 install:
 	uv sync --all-packages
@@ -18,6 +18,11 @@ run-finance:
 
 run-agent:
 	uv run uvicorn agent_api.main:app --port 8001 --reload
+
+run-graph:
+	uv run uvicorn graph_api.main:app --port 8002 --reload
+
+run-mcp: run-graph
 
 run-telegram:
 	uv run python -m telegram_api.main
@@ -42,5 +47,8 @@ lint:
 test:
 	uv run pytest
 
+test-graph:
+	uv run pytest graph_api/tests
+
 test-mcp:
-	uv run pytest mcp_server/tests
+	uv run pytest tests/finance_api/test_mcp_tools.py

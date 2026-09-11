@@ -19,7 +19,7 @@ dev = [
 ]
 
 [tool.uv.workspace]
-members = ["agent_api", "finance_api", "telegram_api", "mcp_server"]
+members = ["agent_api", "finance_api", "telegram_api", "graph_api"]
 
 [tool.uv]
 package = false

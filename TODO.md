@@ -9,12 +9,12 @@
 
 Hoje o `mcp_server` busca dados da `finance_api` internamente (`services/finance_service.py`) para desenhar gráficos. A ideia é quebrar esse acoplamento:
 
-- [ ] **`finance_api`: expor servidor MCP próprio** (Streamable HTTP) com tools de **dados** (saldo/limites por categoria, gastos, etc.). As rotas REST continuam existindo normalmente.
-- [ ] **`mcp_server` → renomear para `graph_api`**: a tool de gráfico deixa de buscar dados e vira **função pura** — recebe os dados estruturados por parâmetro (categorias/valores/limites) e devolve a imagem (PNG). Remove `services/finance_service.py`. Não precisa conhecer a `finance_api`.
-- [ ] **`agent_api`: cliente MCP dos dois + orquestração**: quando a LLM sinaliza intenção de gráfico, o `chat.py` encadeia de forma **determinística**: chama finance tool → pega o JSON → chama graph tool → devolve imagem. O dado não passa pela LLM (só por argumentos JSON entre tools).
-- [ ] **Decisão de ferramenta por linguagem livre**: separar a lógica do agente para escolher entre finance MCP (saldo/limites/consulta) e graph MCP (gráficos), em vez da API de saldo REST.
+- [x] **`finance_api`: expor servidor MCP próprio** (Streamable HTTP) com tools de **dados** (saldo/limites por categoria, gastos, categorias, etc.). As rotas REST continuam existindo normalmente.
+- [x] **`mcp_server` → renomear para `graph_api`**: a geração de gráfico vira **função pura REST** — recebe os dados estruturados por parâmetro (categorias/valores/limites) e devolve a imagem (PNG). Remove `services/finance_service.py`. Não precisa conhecer a `finance_api`.
+- [x] **`agent_api`: orquestração determinística via Tools Nativas**: quando a LLM sinaliza intenção de gráfico, o `chat.py` encadeia de forma **determinística**: chama finance REST → pega o JSON → chama graph_api REST → devolve imagem sem overhead de MCP em rede.
+- [ ] **Decisão de ferramenta por linguagem livre**: separar a lógica do agente para escolher entre finance (saldo/limites/consulta) e graph (gráficos), em vez da API de saldo REST.
 - [ ] **Corrigir bug:** follow-up do histórico na geração de gráficos não está funcionando (item 5 antigo).
-- [ ] Atualizar `scripts/test_mcp_isolated.py` e testes: graph tool vira função pura → testes sem mockar `finance_service`; adicionar testes do MCP da `finance_api`.
+- [x] Atualizar `scripts/test_mcp_isolated.py` e testes: graph tool vira função pura REST; adicionados testes do MCP da `finance_api`.
 
 ## 2. Dupla interface por serviço — MCP **e** HTTP (PRIORIDADE)
 

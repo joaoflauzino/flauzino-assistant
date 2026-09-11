@@ -1,79 +1,33 @@
-import time
-
-import httpx
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from agent_api.core.decorators import handle_llm_errors
+from agent_api.core.http_client import get_http_client
 from agent_api.core.logger import get_logger
 from agent_api.schemas.assistant import AssistantResponse
-from agent_api.services import mcp_client
+from agent_api.services.finance import FinanceService
 from agent_api.settings import settings
 
 logger = get_logger(__name__)
 
-_MCP_TOOLS_CACHE_TTL_SECONDS = 60
-_mcp_tools_cache: dict = {"expires_at": 0.0, "tools": ""}
-
-FALLBACK_GRAPH_TOOLS = """- `plot_category_balance`: compara os Limites cadastrados com os Gastos atuais por categoria (modo 'saldo' ou 'limites').
-- `plot_expense_pie_chart`: gráfico de pizza com a distribuição de gastos por categoria."""
+_finance_service = FinanceService(get_http_client())
 
 
-async def get_mcp_tools_summary() -> str:
-    """Return a summary of the tools available on the MCP server (cached).
-
-    Falls back to a static list if the MCP server is unreachable.
-    """
-    now = time.monotonic()
-    if now < _mcp_tools_cache["expires_at"]:
-        return _mcp_tools_cache["tools"]
-
-    try:
-        tools = await mcp_client.list_tools()
-        summary = "\n".join(f"- `{t.name}`: {t.description}" for t in tools)
-        _mcp_tools_cache.update(
-            {"expires_at": now + _MCP_TOOLS_CACHE_TTL_SECONDS, "tools": summary}
-        )
-        return summary
-    except Exception as e:
-        logger.warning(f"Failed to fetch MCP tools, using fallback list: {e}")
-        return FALLBACK_GRAPH_TOOLS
-
-
-# Fetch categories dynamically from finance API
 async def get_valid_categories() -> str:
-    """Fetch valid categories from finance API."""
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(f"{settings.FINANCE_SERVICE_URL}/categories/?size=100")
-            if response.status_code == 200:
-                data = response.json()
-                categories = [item["key"] for item in data.get("items", [])]
-                return ", ".join(categories)
-    except Exception as e:
-        logger.warning(f"Failed to fetch categories: {e}")
-    # Fallback to common categories
-    return "alimentacao, comer_fora, farmacia, mercado, transporte, moradia, saude, lazer, educação, compras, vestuario, viagem, serviços, crianças, outros"
+    """Fetch valid categories from finance API as a comma-separated string."""
+    categories = await _finance_service.get_categories()
+    return ", ".join(categories)
 
 
 async def get_valid_payment_methods() -> str:
-    """Fetch valid payment methods from finance API."""
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(f"{settings.FINANCE_SERVICE_URL}/payment-methods/?size=100")
-            if response.status_code == 200:
-                data = response.json()
-                methods = [item["key"] for item in data.get("items", [])]
-                return ", ".join(methods)
-    except Exception as e:
-        logger.warning(f"Failed to fetch payment methods: {e}")
-    return "itau, nubank, picpay, xp, c6, pix"
+    """Fetch valid payment methods from finance API as a comma-separated string."""
+    methods = await _finance_service.get_payment_methods()
+    return ", ".join(methods)
 
 
 async def get_system_prompt(platform: str | None = None) -> str:
     """Generate system prompt with dynamic categories and platform instructions."""
     valid_categories = await get_valid_categories()
     valid_payment_methods = await get_valid_payment_methods()
-    tools_summary = await get_mcp_tools_summary()
 
     platform_instructions = ""
     if platform == "telegram":
@@ -144,20 +98,24 @@ async def get_system_prompt(platform: str | None = None) -> str:
         - Deixe `spending_details` e `limit_details` vazios.
         - Não preencha `suggested_options` para categorias de saldos.
         - Se `is_balance_query` for True, não se preocupe em formular a resposta financeira final agora, o backend fornecerá os dados na mesma interação. Apenas defina a `response_message` como "Aguardando dados...".
-         - **IMPORTANTE:** Se o usuário pedir um **GRÁFICO** (ex: "Me mostre um gráfico de pizza dos meus gastos", "Me mostre o gráfico de mercado", "Gere um gráfico visual"), preencha o campo `requested_graph_type` com o nome de UMA das ferramentas de gráfico disponíveis abaixo. NUNCA invente nomes: use exatamente um dos nomes listados.
 
-         **FERRAMENTAS DE GRÁFICO DISPONÍVEIS**:
-         {tools_summary}
+        4. **Geração de Gráficos**:
+        Se o usuário pedir explicitamente um gráfico, chart, ou visualização (ex: "gere um gráfico dos meus limites", "gráfico de pizza dos gastos", "mostre um gráfico de barras com meus saldos"):
+        - Identifique o tipo de gráfico:
+          - Use "plot_expense_pie_chart" se ele pedir gráfico de pizza, pie chart, proporção de gastos.
+          - Use "plot_category_balance" se ele pedir gráfico de barras, comparativo de saldos/limites, ou não especificar o formato.
+        - Defina `requested_graph_type` com um dos tipos acima.
+        - Se o usuário especificou categorias específicas para o gráfico, preencha a lista `requested_graph_categories` com os nomes exatos das categorias válidas. Se ele não especificou ou pediu de tudo/geral, deixe a lista vazia (`[]`).
+        - Se o gráfico for de barras ("plot_category_balance"), você pode definir o modo em `requested_graph_mode`: "saldo" (para ver limite vs disponível vs gasto) ou "gastos" (foco apenas no total gasto por categoria). O padrão é "saldo".
+        - Se `requested_graph_type` estiver preenchido, deixe `spending_details` e `limit_details` vazios. Defina `is_balance_query` como False.
+        - Defina `response_message` como "Gerando o gráfico solicitado...".
+        - Marque `is_complete` como False e `is_confirmed` como False.
 
-         - Escolha a ferramenta mais adequada ao pedido do usuário. Caso o usuário especifique categorias na mesma frase, extraia-as em `requested_graph_categories` (apenas as que existirem na lista de VÁLIDAS acima). Se preencher `requested_graph_type`, defina a `response_message` como "Aguardando gráfico...".
-
-        4. **Outros Assuntos**:
-        Se o usuário falar sobre assuntos que NÃO sejam finanças ou registro de gastos, sua `response_message` deve ser:
-        "Desculpe, estou autorizado a ajudar apenas com finanças pessoais no momento."
-        E `spending_details` deve ser null.
-
-        5. **Histórico**:
-        Use o histórico da conversa para entender correções ou adições de informações anteriores (ex: se o usuário disse o valor antes e agora disse o local).
+        5. **Opções Sugeridas (suggested_options)**:
+        - Se você estiver fazendo uma pergunta de confirmação ou oferecendo escolhas ao usuário, forneça uma lista com no máximo 3 opções curtas em `suggested_options`.
+        - Se estiver perguntando se confirma um gasto/limite, inclua sugestões como: ["Sim", "Não"].
+        - Se estiver pedindo uma escolha simples, sugira as opções mais prováveis.
+        - Se não houver escolhas óbvias, deixe a lista vazia (`[]`).
 
         6. **Encerramento de Consultas e Gráficos**:
         Se o histórico mostra que um gráfico ou consulta de saldo já foi entregue (mensagens com "[Gráfico gerado: ...]") e o usuário:
@@ -172,17 +130,27 @@ async def get_system_prompt(platform: str | None = None) -> str:
 
 
 @handle_llm_errors
-async def get_llm_response(history: list, platform: str | None = None) -> AssistantResponse:
-    llm = ChatGoogleGenerativeAI(model=settings.MODEL_NAME, temperature=0).with_structured_output(
-        AssistantResponse
+async def get_llm_response(
+    chat_history: list[dict], platform: str | None = None
+) -> AssistantResponse:
+    """Get structured response from Gemini LLM using history."""
+    llm = ChatGoogleGenerativeAI(
+        model=settings.MODEL_NAME,
+        temperature=0,
     )
+    structured_llm = llm.with_structured_output(AssistantResponse)
 
-    logger.info("Calling LLM service")
-
+    # Format history for LangChain
+    formatted_messages = []
+    # Add system prompt as the first message
     system_prompt = await get_system_prompt(platform)
-    messages = [("system", system_prompt)]
-    for msg in history:
-        role = "human" if msg["role"] == "user" else "ai"
-        messages.append((role, msg["content"]))
+    formatted_messages.append(("system", system_prompt))
 
-    return await llm.ainvoke(messages)
+    # Add conversation history
+    for msg in chat_history:
+        role = "human" if msg["role"] == "user" else "ai"
+        formatted_messages.append((role, msg["content"]))
+
+    response: AssistantResponse = await structured_llm.ainvoke(formatted_messages)
+
+    return response

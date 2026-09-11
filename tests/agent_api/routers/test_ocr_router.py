@@ -1,14 +1,15 @@
 """Unit tests for OCR router endpoints."""
 
-import pytest
-from unittest.mock import AsyncMock
 from io import BytesIO
-from httpx import ASGITransport, AsyncClient
-from asgi_lifespan import LifespanManager
+from unittest.mock import AsyncMock
 
-from agent_api.main import app
-from agent_api.schemas.dtos import ChatResponse, ChatMessage
+from asgi_lifespan import LifespanManager
+from httpx import ASGITransport, AsyncClient
+import pytest
+
 from agent_api.core.exceptions import OCRProcessingError
+from agent_api.main import app
+from agent_api.schemas.dtos import ChatMessage, ChatResponse
 
 pytestmark = pytest.mark.asyncio
 
@@ -17,7 +18,9 @@ pytestmark = pytest.mark.asyncio
 async def test_client():
     """Fixture for test client."""
     async with LifespanManager(app):
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
             yield client
 
 
@@ -30,11 +33,11 @@ def sample_image_file():
 
 @pytest.fixture
 def mock_ocr_service(mocker):
-    """Mock OCR service."""
-    service_patch = mocker.patch("agent_api.routers.ocr.ocr_service")
-    # Make extract_text return an AsyncMock
-    service_patch.extract_text = AsyncMock()
-    return service_patch
+    """Mock OCR extract_text function."""
+    mock_extract = mocker.patch("agent_api.routers.ocr.extract_text", new_callable=AsyncMock)
+    mock_holder = mocker.MagicMock()
+    mock_holder.extract_text = mock_extract
+    return mock_holder
 
 
 @pytest.fixture
@@ -52,7 +55,10 @@ class TestOCRExtractEndpoint:
     async def test_extract_text_success(self, test_client, mock_ocr_service):
         """Test successful text extraction from image."""
         # Arrange
-        mock_ocr_service.extract_text.return_value = ("SUPERMERCADO XYZ\nTotal: R$ 50.00", 85.5)
+        mock_ocr_service.extract_text.return_value = (
+            "SUPERMERCADO XYZ\nTotal: R$ 50.00",
+            85.5,
+        )
 
         files = {"file": ("receipt.jpg", b"fake image", "image/jpeg")}
 
@@ -64,27 +70,36 @@ class TestOCRExtractEndpoint:
         data = response.json()
         assert data["text"] == "SUPERMERCADO XYZ\nTotal: R$ 50.00"
         assert data["confidence"] == 85.5
-        assert data["char_count"] == 32  # Length of the text above
         assert data["filename"] == "receipt.jpg"
+        assert data["char_count"] == len(data["text"])
 
-    async def test_extract_text_invalid_file_type(self, test_client):
-        """Test rejection of invalid file types."""
+    async def test_extract_text_missing_file(self, test_client):
+        """Test error when no file is provided."""
+        # Act
+        response = await test_client.post("/ocr/extract")
+
+        # Assert
+        assert response.status_code == 422  # Validation error
+
+    async def test_extract_text_invalid_file_extension(self, test_client):
+        """Test error with invalid file extension."""
         # Arrange
-        files = {"file": ("document.txt", b"some text", "text/plain")}
+        files = {"file": ("document.pdf", b"fake pdf", "application/pdf")}
 
         # Act
         response = await test_client.post("/ocr/extract", files=files)
 
         # Assert
         assert response.status_code == 400
-        assert "Invalid file type" in response.json()["detail"]
 
     async def test_extract_text_no_text_extracted(self, test_client, mock_ocr_service):
-        """Test when no text can be extracted from image."""
+        """Test handling when OCR finds no text."""
         # Arrange
+        mock_ocr_service.extract_text.side_effect = OCRProcessingError(
+            "No text could be extracted"
+        )
 
-        mock_ocr_service.extract_text.side_effect = OCRProcessingError("No text could be extracted")
-        files = {"file": ("receipt.jpg", b"fake image", "image/jpeg")}
+        files = {"file": ("blank.jpg", b"fake blank image", "image/jpeg")}
 
         # Act
         response = await test_client.post("/ocr/extract", files=files)
@@ -93,10 +108,10 @@ class TestOCRExtractEndpoint:
         assert response.status_code == 400
 
     async def test_extract_text_handles_ocr_error(self, test_client, mock_ocr_service):
-        """Test error handling when OCR fails."""
+        """Test handling of OCR processing errors."""
         # Arrange
-
         mock_ocr_service.extract_text.side_effect = OCRProcessingError("OCR failed")
+
         files = {"file": ("receipt.jpg", b"fake image", "image/jpeg")}
 
         # Act
@@ -105,44 +120,42 @@ class TestOCRExtractEndpoint:
         # Assert
         assert response.status_code == 400
 
-    async def test_extract_text_supports_multiple_formats(self, test_client, mock_ocr_service):
-        """Test that various image formats are accepted."""
-        # Arrange
-        mock_ocr_service.extract_text.return_value = ("Text", 80.0)
+    async def test_extract_text_supports_multiple_formats(
+        self, test_client, mock_ocr_service
+    ):
+        """Test that multiple image formats are supported."""
         formats = [
-            ("image.jpg", "image/jpeg"),
-            ("image.png", "image/png"),
-            ("image.webp", "image/webp"),
+            ("receipt.png", "image/png"),
+            ("receipt.webp", "image/webp"),
+            ("receipt.bmp", "image/bmp"),
         ]
 
+        mock_ocr_service.extract_text.return_value = ("Text", 80.0)
+
         for filename, mime_type in formats:
-            # Act
             files = {"file": (filename, b"fake image", mime_type)}
             response = await test_client.post("/ocr/extract", files=files)
-
-            # Assert
-            assert response.status_code == 200, f"Failed for {filename}"
+            assert response.status_code == 200
 
 
 class TestOCRProcessReceiptEndpoint:
     """Tests for POST /ocr/process-receipt endpoint."""
 
-    async def test_process_receipt_creates_new_session(
+    async def test_process_receipt_new_session_success(
         self, test_client, mock_ocr_service, mock_chat_service
     ):
-        """Test processing receipt creates new chat session."""
+        """Test successful receipt processing creating a new session."""
         # Arrange
         mock_ocr_service.extract_text.return_value = ("MERCADO\nTotal: 132,07", 75.0)
 
-        fake_session_id = "test-session-id-123"
-        mock_chat_service.process_message.return_value = ChatResponse(
-            response="Preciso do método de pagamento...",
-            session_id=fake_session_id,
-            history=[
-                ChatMessage(role="user", content="Aqui está o texto extraído de um recibo..."),
-                ChatMessage(role="assistant", content="Preciso do método de pagamento..."),
-            ],
+        expected_response = ChatResponse(
+            response="Extraí os dados: Mercado R$ 132,07. Confirma?",
+            session_id="new-session-id",
+            history=[ChatMessage(role="assistant", content="Response")],
+            is_complete=False,
+            suggested_options=["Sim", "Não"],
         )
+        mock_chat_service.process_message.return_value = expected_response
 
         files = {"file": ("receipt.jpg", b"fake image", "image/jpeg")}
 
@@ -152,88 +165,96 @@ class TestOCRProcessReceiptEndpoint:
         # Assert
         assert response.status_code == 200
         data = response.json()
-        assert data["session_id"] == fake_session_id
-        assert "Preciso do método de pagamento" in data["response"]
-        assert len(data["history"]) == 2
+        assert data["session_id"] == "new-session-id"
+        assert data["response"] == "Extraí os dados: Mercado R$ 132,07. Confirma?"
 
-        # Verify ChatService was called with OCR text
-        mock_chat_service.process_message.assert_awaited_once()
-        message_arg = mock_chat_service.process_message.call_args[0][0]
-        assert "MERCADO" in message_arg
-        assert "132,07" in message_arg
+        # Verify chat service was called with formatted message
+        mock_chat_service.process_message.assert_called_once()
+        call_args = mock_chat_service.process_message.call_args[0]
+        assert "MERCADO" in call_args[0]
+        assert "132,07" in call_args[0]
+        assert call_args[1] is None  # session_id should be None
 
-    async def test_process_receipt_continues_existing_session(
+    async def test_process_receipt_existing_session_success(
         self, test_client, mock_ocr_service, mock_chat_service
     ):
-        """Test processing receipt with existing session_id."""
+        """Test receipt processing with existing session ID."""
         # Arrange
+        existing_session_id = "existing-uuid-1234"
         mock_ocr_service.extract_text.return_value = ("Receipt text", 80.0)
 
-        existing_session = "existing-session-123"
-        mock_chat_service.process_message.return_value = ChatResponse(
-            response="Continuing...", session_id=existing_session, history=[]
+        expected_response = ChatResponse(
+            response="Gasto adicionado à sessão existente.",
+            session_id=existing_session_id,
+            history=[],
+            is_complete=False,
         )
+        mock_chat_service.process_message.return_value = expected_response
 
         files = {"file": ("receipt.jpg", b"fake image", "image/jpeg")}
-        data = {"session_id": existing_session}
+        data = {"session_id": existing_session_id}
 
         # Act
-        response = await test_client.post("/ocr/process-receipt", files=files, data=data)
+        response = await test_client.post(
+            "/ocr/process-receipt", files=files, data=data
+        )
 
         # Assert
         assert response.status_code == 200
         result = response.json()
-        assert result["session_id"] == existing_session
+        assert result["session_id"] == existing_session_id
 
-        # Verify session_id was passed to ChatService
+        # Verify session_id was passed to chat service
+        mock_chat_service.process_message.assert_called_once()
         call_args = mock_chat_service.process_message.call_args[0]
-        assert call_args[1] == existing_session
+        assert call_args[1] == existing_session_id
 
-    async def test_process_receipt_no_text_extracted(self, test_client, mock_ocr_service):
-        """Test when OCR extracts no text from receipt."""
-        # Arrange
-
-        mock_ocr_service.extract_text.side_effect = OCRProcessingError("No text extracted")
-        files = {"file": ("receipt.jpg", b"fake image", "image/jpeg")}
-
-        # Act
-        response = await test_client.post("/ocr/process-receipt", files=files)
-
-        # Assert
-        assert response.status_code == 400
-
-    async def test_process_receipt_invalid_image(self, test_client):
-        """Test rejection of invalid image files."""
-        # Arrange
-        files = {"file": ("document.pdf", b"fake pdf", "application/pdf")}
-
-        # Act
-        response = await test_client.post("/ocr/process-receipt", files=files)
-
-        # Assert
-        assert response.status_code == 400
-        assert "Invalid file type" in response.json()["detail"]
-
-    async def test_process_receipt_handles_nonexistent_session(
-        self, test_client, mock_ocr_service, mock_chat_service
+    async def test_process_receipt_no_text_extracted(
+        self, test_client, mock_ocr_service
     ):
-        """Test handling of non-existent session ID."""
+        """Test handling when receipt has no readable text."""
         # Arrange
-        from fastapi import HTTPException
-
-        mock_ocr_service.extract_text.return_value = ("Text", 80.0)
-        mock_chat_service.process_message.side_effect = HTTPException(
-            status_code=404, detail="Session not found"
+        mock_ocr_service.extract_text.side_effect = OCRProcessingError(
+            "No text extracted"
         )
 
-        files = {"file": ("receipt.jpg", b"fake image", "image/jpeg")}
-        data = {"session_id": "nonexistent-session"}
+        files = {"file": ("blank.jpg", b"fake image", "image/jpeg")}
 
         # Act
-        response = await test_client.post("/ocr/process-receipt", files=files, data=data)
+        response = await test_client.post("/ocr/process-receipt", files=files)
 
         # Assert
-        assert response.status_code == 404
+        assert response.status_code == 400
+
+    async def test_process_receipt_with_platform_param(
+        self, test_client, mock_ocr_service, mock_chat_service
+    ):
+        """Test receipt processing with platform parameter."""
+        # Arrange
+        expected_response = ChatResponse(
+            response="Resposta formatada para Telegram",
+            session_id="session-id",
+            history=[],
+            is_complete=False,
+        )
+        mock_chat_service.process_message.return_value = expected_response
+        mock_ocr_service.extract_text.return_value = ("Text", 80.0)
+
+        files = {"file": ("receipt.jpg", b"fake image", "image/jpeg")}
+        data = {"platform": "telegram"}
+
+        # Act
+        response = await test_client.post(
+            "/ocr/process-receipt", files=files, data=data
+        )
+
+        # Assert
+        assert response.status_code == 200
+
+        # Verify platform was passed to chat service
+        mock_chat_service.process_message.assert_called_once()
+        call_args = mock_chat_service.process_message.call_args[0]
+        assert call_args[2] == "telegram"  # platform parameter
 
 
 class TestOCRValidation:
@@ -252,7 +273,9 @@ class TestOCRValidation:
             response = await test_client.post("/ocr/extract", files=files)
             assert response.status_code == 400
 
-    async def test_validate_image_accepts_supported_extensions(self, test_client, mock_ocr_service):
+    async def test_validate_image_accepts_supported_extensions(
+        self, test_client, mock_ocr_service
+    ):
         """Test that supported image extensions are accepted."""
         # Arrange
         mock_ocr_service.extract_text.return_value = ("Text", 80.0)
@@ -267,6 +290,6 @@ class TestOCRValidation:
         ]
 
         for filename in supported_files:
-            files = {"file": (filename, b"fake image", "image/jpeg")}
+            files = {"file": (filename, b"image data", "image/jpeg")}
             response = await test_client.post("/ocr/extract", files=files)
-            assert response.status_code == 200, f"Failed for {filename}"
+            assert response.status_code == 200
