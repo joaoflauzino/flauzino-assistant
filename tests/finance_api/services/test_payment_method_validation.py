@@ -21,14 +21,14 @@ async def test_spent_creation_validates_payment_method(mocker):
     # Mock CategoryRepository to return a category (category exists)
     mock_category = MagicMock()
     mock_category.key = "test_cat"
-    mocker.patch(
-        "finance_api.services.spents.CategoryRepository"
-    ).return_value.get_by_key = AsyncMock(return_value=mock_category)
+    mocker.patch("finance_api.services.spents.CategoryRepository").return_value.get_by_key = (
+        AsyncMock(return_value=mock_category)
+    )
 
     # Mock PaymentMethodRepository to return None (payment_method doesn't exist)
-    mocker.patch(
-        "finance_api.services.spents.PaymentMethodRepository"
-    ).return_value.get_by_key = AsyncMock(return_value=None)
+    mocker.patch("finance_api.services.spents.PaymentMethodRepository").return_value.get_by_key = (
+        AsyncMock(return_value=None)
+    )
 
     # Should raise ValidationError
     with pytest.raises(ValidationError, match="Método de pagamento 'nonexistent_pm' não existe"):
@@ -56,14 +56,14 @@ async def test_spent_update_validates_payment_method(mocker):
     # Mock CategoryRepository to return a category (category exists)
     mock_category = MagicMock()
     mock_category.key = "test_cat"
-    mocker.patch(
-        "finance_api.services.spents.CategoryRepository"
-    ).return_value.get_by_key = AsyncMock(return_value=mock_category)
+    mocker.patch("finance_api.services.spents.CategoryRepository").return_value.get_by_key = (
+        AsyncMock(return_value=mock_category)
+    )
 
     # Mock PaymentMethodRepository to return None (payment_method doesn't exist)
-    mocker.patch(
-        "finance_api.services.spents.PaymentMethodRepository"
-    ).return_value.get_by_key = AsyncMock(return_value=None)
+    mocker.patch("finance_api.services.spents.PaymentMethodRepository").return_value.get_by_key = (
+        AsyncMock(return_value=None)
+    )
 
     # Try to update with invalid payment_method - should raise ValidationError
     with pytest.raises(ValidationError, match="Método de pagamento 'nonexistent_pm' não existe"):
