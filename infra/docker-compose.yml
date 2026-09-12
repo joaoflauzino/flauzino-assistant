@@ -38,7 +38,8 @@ services:
       - "8001:8001"
     environment:
       - FINANCE_SERVICE_URL=http://finance_api:8000
-      - MCP_SERVER_URL=http://mcp_server:8002
+      - GRAPH_SERVICE_URL=http://graph_api:8002
+      - MCP_SERVER_URL=http://graph_api:8002
       - GEMINI_API_KEY=${GOOGLE_API_KEY}
       - MODEL_NAME=${MODEL_NAME:-gemini-2.0-flash-exp}
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-flauzino}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-assistant}
@@ -48,17 +49,13 @@ services:
     networks:
       - default
 
-  mcp_server:
-    image: flauzino-assistant/mcp_server:v1.0.0
+  graph_api:
+    image: flauzino-assistant/graph_api:v1.0.0
     build:
-      context: ../mcp_server
-      dockerfile: Dockerfile
+      context: ../
+      dockerfile: graph_api/Dockerfile
     ports:
       - "8002:8002"
-    environment:
-      - FINANCE_SERVICE_URL=http://finance_api:8000
-    depends_on:
-      - finance_api
     networks:
       - default
 
@@ -83,7 +80,8 @@ services:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - AGENT_API_URL=http://agent_api:8001
       - FINANCE_SERVICE_URL=http://finance_api:8000
-      - MCP_SERVER_URL=http://mcp_server:8002
+      - GRAPH_SERVICE_URL=http://graph_api:8002
+      - MCP_SERVER_URL=http://graph_api:8002
       - ALLOWED_TELEGRAM_USERNAMES=${ALLOWED_TELEGRAM_USERNAMES}
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-flauzino}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-assistant}
     depends_on:

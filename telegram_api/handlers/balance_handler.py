@@ -107,16 +107,38 @@ async def select_category(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
         try:
             async with httpx.AsyncClient(timeout=15.0) as client:
-                cats_str = ",".join(list(selected))
-                url = f"{settings.MCP_SERVER_URL}/graphs/balance?mode={mode}&categories={cats_str}"
-                response = await client.get(url)
+                finance_url = f"{settings.FINANCE_SERVICE_URL}/limits/balance"
+                fin_resp = await client.get(finance_url)
+                if fin_resp.status_code == 404:
+                    await query.edit_message_text(
+                        "Você ainda não possui limites de gastos cadastrados para este mês."
+                    )
+                    return ConversationHandler.END
+                fin_resp.raise_for_status()
+                balances = fin_resp.json()
 
-                if response.status_code == 404:
+                if not balances:
                     await query.edit_message_text(
                         "Você ainda não possui limites de gastos cadastrados para este mês."
                     )
                     return ConversationHandler.END
 
+                selected_lower = {s.lower().strip() for s in selected}
+                filtered_balances = [
+                    b
+                    for b in balances
+                    if b.get("category", "").lower() in selected_lower
+                    or b.get("category_display_name", "").lower() in selected_lower
+                ] or balances
+
+                graph_url = f"{settings.GRAPH_SERVICE_URL}/graphs/bar"
+                response = await client.post(
+                    graph_url,
+                    json={
+                        "balances": filtered_balances,
+                        "mode": mode,
+                    },
+                )
                 response.raise_for_status()
                 data = response.json()
 

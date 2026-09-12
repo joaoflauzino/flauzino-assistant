@@ -10,13 +10,14 @@ WORKDIR /app
 ENV UV_COMPILE_BYTECODE=1
 ENV UV_LINK_MODE=copy
 
-# Copy dependency files
+# Copy dependency files (workspace root + member pyproject)
 COPY pyproject.toml uv.lock ./
+COPY finance_api/pyproject.toml finance_api/pyproject.toml
 
-# Install dependencies into a virtual environment
+# Install only the finance_api dependencies into a virtual environment
 # Using the system python to ensure shebangs match the runtime image
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-install-project --no-dev --python /usr/local/bin/python
+    uv sync --frozen --no-dev --package finance_api --python /usr/local/bin/python
 
 # Stage 2: Runtime
 FROM python:3.13.14-slim-bookworm

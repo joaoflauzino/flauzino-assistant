@@ -23,7 +23,7 @@ jobs:
           python-version: '3.13'
           
       - name: Install dependencies
-        run: uv sync --dev
+        run: uv sync --dev --all-packages
 
       - name: Run Black Formatter Check
         run: uv run black --check .
@@ -36,3 +36,6 @@ jobs:
 
       - name: Run Pytest
         run: uv run pytest
+
+      - name: Run MCP Server Pytest
+        run: uv run pytest mcp_server/tests

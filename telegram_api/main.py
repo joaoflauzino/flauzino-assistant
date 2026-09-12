@@ -140,13 +140,22 @@ async def send_weekly_balance_summary(context) -> None:
         import base64
 
         async with httpx.AsyncClient() as client:
-            url = f"{settings.MCP_SERVER_URL}/graphs/balance"
-            response = await client.get(url)
+            fin_url = f"{settings.FINANCE_SERVICE_URL}/limits/balance"
+            fin_resp = await client.get(fin_url)
+            fin_resp.raise_for_status()
+            balances = fin_resp.json()
+
+            if not balances:
+                logger.info("No balance data available for weekly summary.")
+                return
+
+            graph_url = f"{settings.GRAPH_SERVICE_URL}/graphs/bar"
+            response = await client.post(graph_url, json={"balances": balances, "mode": "saldo"})
             response.raise_for_status()
 
             data = response.json()
             if "image_base64" not in data:
-                logger.error("No image returned from MCP for weekly summary.")
+                logger.error("No image returned from graph_api for weekly summary.")
                 return
 
             img_data = base64.b64decode(data["image_base64"])

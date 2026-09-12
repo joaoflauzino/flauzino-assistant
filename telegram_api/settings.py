@@ -9,6 +9,7 @@ class TelegramApiSettings(BaseSettings):
     DATABASE_URL: str
     REQUEST_TIMEOUT: int = 30
     FINANCE_SERVICE_URL: str = "http://localhost:8000"
+    GRAPH_SERVICE_URL: str = "http://localhost:8002"
     MCP_SERVER_URL: str = "http://localhost:8002"
     ALLOWED_TELEGRAM_USERNAMES: str = ""
 

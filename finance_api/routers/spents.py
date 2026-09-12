@@ -59,7 +59,9 @@ async def get_dashboard(
 
 
 @router.get("/installments-summary", response_model=list[InstallmentSummary])
-async def get_installments_summary(db: AsyncSession = Depends(get_db)) -> list[InstallmentSummary]:
+async def get_installments_summary(
+    db: AsyncSession = Depends(get_db),
+) -> list[InstallmentSummary]:
     repo = SpentRepository(db)
     service = SpentService(repo)
     return await service.get_installments_summary()
@@ -74,7 +76,9 @@ async def get_spent(spent_id: UUID, db: AsyncSession = Depends(get_db)) -> Spent
 
 @router.patch("/{spent_id}", response_model=SpentResponse)
 async def update_spent(
-    spent_id: UUID, update_data: SpentUpdate, db: AsyncSession = Depends(get_db)
+    spent_id: UUID,
+    update_data: SpentUpdate,
+    db: AsyncSession = Depends(get_db),
 ) -> SpentResponse:
     repo = SpentRepository(db)
     service = SpentService(repo)
