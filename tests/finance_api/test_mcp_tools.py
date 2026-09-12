@@ -52,7 +52,7 @@ async def test_get_category_balance_tool(mocker):
     ]
 
     mocker.patch(
-        "finance_api.services.limits.SpendingLimitService.get_balance",
+        "finance_api.services.balances.BalanceService.get_balance",
         new_callable=AsyncMock,
         return_value=mock_balances,
     )

@@ -6,18 +6,12 @@ from mcp.server.fastmcp import Image
 from pydantic import Field
 
 from finance_api.core.database import AsyncSessionLocal
+from finance_api.core.dependencies import get_balance_service, get_spent_service
 from finance_api.core.logger import get_logger
 from finance_api.mcp.server import mcp
 from finance_api.repositories.categories import CategoryRepository
-from finance_api.repositories.invoices import InvoiceRepository
-from finance_api.repositories.limits import SpendingLimitRepository
-from finance_api.repositories.payment_methods import PaymentMethodRepository
-from finance_api.repositories.spents import SpentRepository
 from finance_api.schemas.spents import SpentCreate
 from finance_api.services.categories import CategoryService
-from finance_api.services.invoices import InvoiceService
-from finance_api.services.limits import SpendingLimitService
-from finance_api.services.spents import SpentService
 from finance_api.settings import settings
 
 logger = get_logger(__name__)
@@ -40,18 +34,8 @@ async def get_category_balance(
 ) -> list[dict]:
     """Consulta os saldos disponíveis, limites e gastos de cada categoria."""
     async with AsyncSessionLocal() as db:
-        limit_repo = SpendingLimitRepository(db)
-        pm_repo = PaymentMethodRepository(db)
-        inv_repo = InvoiceRepository(db)
-
-        inv_service = InvoiceService(inv_repo, pm_repo)
-        limit_service = SpendingLimitService(limit_repo)
-
-        balances = await limit_service.get_balance(
-            reference_month=reference_month,
-            pm_repo=pm_repo,
-            inv_service=inv_service,
-        )
+        balance_service = get_balance_service(db)
+        balances = await balance_service.get_balance(reference_month=reference_month)
 
         result = [b.model_dump() for b in balances]
         if categories:
@@ -82,8 +66,7 @@ async def create_spent(
 ) -> dict:
     """Registra um novo gasto no sistema de finanças."""
     async with AsyncSessionLocal() as db:
-        repo = SpentRepository(db)
-        service = SpentService(repo)
+        service = get_spent_service(db)
 
         spent_create = SpentCreate(
             category=category,
