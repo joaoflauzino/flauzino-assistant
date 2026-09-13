@@ -91,7 +91,7 @@ export const CategoriesPage = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <div>
                     <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0 }}>Categorias</h1>
-                    <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>Manage your spending categories</p>
+                    <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>Gerencie suas categorias de gastos</p>
                 </div>
 
                 <button
@@ -114,7 +114,7 @@ export const CategoriesPage = () => {
                     onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
                     onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                 >
-                    <Plus size={20} /> New Category
+                    <Plus size={20} /> Nova Categoria
                 </button>
             </div>
 
@@ -185,7 +185,7 @@ export const CategoriesPage = () => {
                                     {categories.length === 0 ? (
                                         <tr>
                                             <td colSpan={3} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                                No categories found. Create one to get started!
+                                                Nenhuma categoria encontrada. Crie uma para começar!
                                             </td>
                                         </tr>
                                     ) : (
@@ -214,7 +214,7 @@ export const CategoriesPage = () => {
                                                     <button
                                                         type="button"
                                                         onClick={(e) => { e.stopPropagation(); openEdit(c); }}
-                                                        title="Edit"
+                                                        title="Editar"
                                                         style={{
                                                             padding: '0.5rem',
                                                             backgroundColor: 'rgba(245, 158, 11, 0.1)',
@@ -234,7 +234,7 @@ export const CategoriesPage = () => {
                                                     <button
                                                         type="button"
                                                         onClick={(e) => { e.stopPropagation(); handleDelete(c.id); }}
-                                                        title="Delete"
+                                                        title="Excluir"
                                                         style={{
                                                             padding: '0.5rem',
                                                             backgroundColor: 'rgba(239, 68, 68, 0.1)',
@@ -320,7 +320,7 @@ export const CategoriesPage = () => {
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingCategory ? "Editar Categoria" : "Nova Categoria"}>
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1rem' }}>
                     <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Key Identifier</label>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Identificador (Key)</label>
                         <input
                             required
                             className="form-input"
@@ -339,7 +339,7 @@ export const CategoriesPage = () => {
                             }}
                         />
                         <small style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '0.5rem', display: 'block' }}>
-                            Unique identifier used by the system (e.g. food, transport).
+                            Identificador único usado pelo sistema (ex: food, transport).
                         </small>
                     </div>
                     <div>
@@ -376,7 +376,7 @@ export const CategoriesPage = () => {
                                 fontWeight: 500
                             }}
                         >
-                            Cancel
+                            Cancelar
                         </button>
                         <button
                             type="submit"
@@ -391,7 +391,7 @@ export const CategoriesPage = () => {
                                 minWidth: '100px'
                             }}
                         >
-                            {editingCategory ? "Update" : "Create"}
+                            {editingCategory ? "Salvar" : "Criar"}
                         </button>
                     </div>
                 </form>

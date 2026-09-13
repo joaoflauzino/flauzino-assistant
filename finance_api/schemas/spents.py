@@ -27,16 +27,16 @@ class SpentBase(BaseModel):
 
 class SpentCreate(SpentBase):
     is_installment: Optional[bool] = False
-    current_installment: Optional[int] = Field(None, ge=1)
-    total_installments: Optional[int] = Field(None, ge=2)
+    current_installment: Optional[int] = Field(default=None, ge=1)
+    total_installments: Optional[int] = Field(default=None, ge=2)
     created_at: Optional[datetime] = None
 
 
 class SpentUpdate(BaseModel):
-    category: Optional[str] = Field(None, min_length=1, max_length=50)
+    category: Optional[str] = Field(default=None, min_length=1, max_length=50)
     amount: Optional[float] = None
-    item_bought: Optional[str] = Field(None, min_length=1, max_length=50)
-    payment_method: Optional[str] = Field(None, min_length=1, max_length=50)
+    item_bought: Optional[str] = Field(default=None, min_length=1, max_length=50)
+    payment_method: Optional[str] = Field(default=None, min_length=1, max_length=50)
     location: Optional[str] = None
     installment_id: Optional[UUID] = None
     current_installment: Optional[int] = None

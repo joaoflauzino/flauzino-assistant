@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Plus, Trash2, Edit2, ChevronLeft, ChevronRight, PiggyBank } from 'lucide-react';
 import api from '../services/api';
-import type { SpendingLimit, PaginatedResponse } from '../types';
+import type { SpendingLimit, PaginatedResponse, Category } from '../types';
 import { Modal } from '../components/Modal';
 
 export const LimitsPage = () => {
     const [limits, setLimits] = useState<SpendingLimit[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -19,10 +20,15 @@ export const LimitsPage = () => {
         amount: ''
     });
 
+    const categoryMap = categories.reduce((acc, cat) => {
+        acc[cat.key] = cat.display_name;
+        return acc;
+    }, {} as Record<string, string>);
+
     const fetchData = async (p: number) => {
         setLoading(true);
         try {
-            let query = `/limits/?page=${p}&size=10`;
+            const query = `/limits/?page=${p}&size=10`;
 
             const response = await api.get<PaginatedResponse<SpendingLimit>>(query);
             setLimits(response.data.items);
@@ -34,6 +40,18 @@ export const LimitsPage = () => {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const res = await api.get<PaginatedResponse<Category>>('/categories/?size=1000');
+                setCategories(res.data.items);
+            } catch (error) {
+                console.error("Failed to fetch categories", error);
+            }
+        };
+        fetchCategories();
+    }, []);
 
     useEffect(() => {
         fetchData(page);
@@ -90,8 +108,6 @@ export const LimitsPage = () => {
         setFormData({ category: '', amount: '' });
         setIsModalOpen(true);
     };
-
-
 
     return (
         <div>
@@ -206,7 +222,7 @@ export const LimitsPage = () => {
                                                     fontSize: '0.85rem',
                                                     fontWeight: 500
                                                 }}>
-                                                    {l.category}
+                                                    {categoryMap[l.category] || l.category}
                                                 </span>
                                             </td>
                                             <td style={{ padding: '1.25rem 1.5rem', fontWeight: 600, fontSize: '1rem', color: 'var(--text-primary)' }}>
@@ -317,12 +333,11 @@ export const LimitsPage = () => {
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1rem' }}>
                     <div>
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Categoria</label>
-                        <input
+                        <select
                             required
                             className="form-input"
                             value={formData.category}
                             onChange={e => setFormData({ ...formData, category: e.target.value })}
-                            placeholder="e.g. food"
                             style={{
                                 width: '100%',
                                 padding: '0.9rem',
@@ -330,9 +345,18 @@ export const LimitsPage = () => {
                                 border: '1px solid var(--border-color)',
                                 backgroundColor: 'var(--bg-primary)',
                                 color: 'white',
-                                fontSize: '1rem'
+                                fontSize: '1rem',
+                                appearance: 'none'
                             }}
-                        />
+                        >
+                            <option value="" disabled>Selecione uma categoria...</option>
+                            {formData.category && !categories.some(c => c.key === formData.category) && (
+                                <option value={formData.category}>{formData.category}</option>
+                            )}
+                            {categories.map(c => (
+                                <option key={c.id} value={c.key}>{c.display_name}</option>
+                            ))}
+                        </select>
                     </div>
                     <div>
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Amount (R$)</label>
