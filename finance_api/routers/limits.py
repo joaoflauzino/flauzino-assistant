@@ -6,17 +6,16 @@ from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from finance_api.core.database import get_db
+from finance_api.core.dependencies import get_balance_service
 from finance_api.repositories.limits import SpendingLimitRepository
 from finance_api.services.limits import SpendingLimitService
+from finance_api.services.balances import BalanceService
 from finance_api.schemas.limits import (
     SpendingLimitCreate,
     SpendingLimitResponse,
     SpendingLimitUpdate,
     CategoryBalance,
 )
-from finance_api.repositories.payment_methods import PaymentMethodRepository
-from finance_api.repositories.invoices import InvoiceRepository
-from finance_api.services.invoices import InvoiceService
 from finance_api.schemas.pagination import PaginatedResponse
 
 router = APIRouter()
@@ -47,20 +46,9 @@ async def list_limits(
 @router.get("/balance", response_model=List[CategoryBalance])
 async def get_balance(
     reference_month: Optional[str] = None,
-    db: AsyncSession = Depends(get_db),
+    service: BalanceService = Depends(get_balance_service),
 ) -> List[CategoryBalance]:
-    limit_repo = SpendingLimitRepository(db)
-    pm_repo = PaymentMethodRepository(db)
-    inv_repo = InvoiceRepository(db)
-
-    inv_service = InvoiceService(inv_repo, pm_repo)
-    limit_service = SpendingLimitService(limit_repo)
-
-    return await limit_service.get_balance(
-        reference_month=reference_month,
-        pm_repo=pm_repo,
-        inv_service=inv_service,
-    )
+    return await service.get_balance(reference_month=reference_month)
 
 
 @router.get("/{limit_id}", response_model=SpendingLimitResponse)

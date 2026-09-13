@@ -4,15 +4,18 @@ Este projeto tem como objetivo criar um assistente virtual capaz de lidar com re
 
 ## Arquitetura
 
-O projeto possui a seguinte arquitetura, dividida em cinco módulos principais:
+O projeto possui a seguinte arquitetura, dividida em seis módulos principais:
 
 ![Diagrama de Arquitetura do Sistema](docs/architecture.png)
 
 -   **`infra/`**: Contém a configuração da infraestrutura, incluindo o banco de dados PostgreSQL via Docker Compose e scripts de inicialização.
 -   **`finance_api/`**: Uma API FastAPI responsável por toda a lógica de negócio e persistência de dados. Implementa uma **Camada de Serviço** para isolar regras de negócio e **Tratamento Global de Exceções**.
 -   **`agent_api/`**: Uma API FastAPI que serve como a interface de conversação. Ela recebe mensagens do usuário, utiliza um LLM para extrair informações e se comunica com a `finance_api` para registrar os dados.
+-   **`mcp_server/`**: Servidor **MCP** (Model Context Protocol) que gera gráficos financeiros (barras e pizza) com Plotly/Kaleido e os expõe como **MCP Tools** via Streamable HTTP (endpoint `/mcp`) para consumo pelo agente.
 -   **`telegram_api`**: Bot do Telegram para processar interações dos usuários. Agora possui um fluxo interativo (`/gasto`) que se comunica diretamente com a `finance_api`, e envia áudios/recibos para a `agent_api`.
 -   **`frontend/`**: Interface Web moderna construída com React e Vite para gerenciamento visual de gastos e limites.
+
+> **Gerenciamento de dependências:** o projeto é um **uv workspace**. Cada serviço declara suas próprias dependências em um `pyproject.toml` próprio (membro do workspace), mas todos compartilham **um único `.venv` na raiz e um único `uv.lock`**. No Docker, cada imagem instala apenas as dependências do seu serviço (imagens slim).
 
 ## Requisitos do Sistema
 
@@ -38,7 +41,7 @@ Este projeto utiliza `uv` para gerenciamento de dependências e `Docker` para o 
 ### 1. Configuração do Ambiente
 
 1.  **Instale as dependências:**
-    Você pode usar o comando Makefile (que usa o `uv sync` internamente):
+    Você pode usar o comando Makefile (que usa o `uv sync --all-packages` internamente — instala as dependências de todos os serviços no `.venv` da raiz):
     ```bash
     make install
     ```
@@ -58,6 +61,7 @@ Este projeto utiliza `uv` para gerenciamento de dependências e `Docker` para o 
     | `DATABASE_URL` | URL de conexão com o banco de dados. | - | **Sim** (Local via Docker) |
     | `MODEL_NAME` | Modelo do Gemini a ser utilizado. | `gemini-2.5-flash` | Não |
     | `FINANCE_SERVICE_URL` | URL da API Financeira (usada pelo Agente). | `http://localhost:8000` | Não |
+    | `MCP_SERVER_URL` | URL do servidor MCP de gráficos (usada pelo Agente). | `http://localhost:8002` | Não |
     | `AGENT_SERVICE_URL` | URL da API do Agente (usada pela Finance API). | `http://localhost:8001` | Não |
     | `TELEGRAM_BOT_TOKEN` | Token do bot do Telegram (obtenha via [@BotFather](https://t.me/botfather)). | - | **Sim** (para usar o bot do Telegram) |
 
@@ -142,6 +146,7 @@ Se você deseja rodar tudo (Banco, APIs, Frontend) via Docker:
     - Iniciar o banco de dados PostgreSQL.
     - Construir e iniciar a `finance_api` na porta 8000.
     - Construir e iniciar a `agent_api` na porta 8001.
+    - Construir e iniciar o `mcp_server` (gráficos) na porta 8002.
     - Construir e iniciar o `frontend` na porta 5173.
     - Construir e iniciar o `telegram_bot` (se `TELEGRAM_BOT_TOKEN` estiver configurado).
 
@@ -154,6 +159,7 @@ Se você deseja rodar tudo (Banco, APIs, Frontend) via Docker:
     - Frontend: `http://localhost:5173`
     - Finance docs: `http://localhost:8000/docs`
     - Agent docs: `http://localhost:8001/docs`
+    - MCP server (endpoint Streamable HTTP): `http://localhost:8002/mcp`
 
 3.  **Verifique os logs:**
     ```bash
@@ -168,6 +174,11 @@ O projeto utiliza `pytest` para testes unitários.
     A partir da raiz do projeto, execute:
     ```bash
     make test
+    ```
+
+2.  **Execute os testes do MCP Server** (testes isolados do protocolo MCP e do transporte HTTP):
+    ```bash
+    make test-mcp
     ```
 
 ## Formatação e Linting
@@ -187,13 +198,14 @@ O projeto utiliza `black` para formatação de código (limite de 100 caracteres
 
 ## Próximos Passos (TODO)
 
-Consulte o arquivo [TODO.md](TODO.md) para visualizar a lista de futuras funcionalidades planejadas para o projeto, incluindo suporte a faturas de cartões, gastos recorrentes, geração de gráficos via MCP e correções na infraestrutura (como falhas no cron de backup do banco de dados).
+Consulte o arquivo [TODO.md](TODO.md) para visualizar a lista de futuras funcionalidades planejadas para o projeto, incluindo suporte a faturas de cartões, gastos recorrentes e correções na infraestrutura (como falhas no cron de backup do banco de dados).
 
 ## Documentação das APIs
 
 Consulte as documentações específicas de cada serviço nos seus respectivos diretórios:
 
 - [Finance API](finance_api/README.md)
+- [MCP Server](mcp_server/README.md)
 - [Frontend](frontend/README.md)
 
 > **⚠️ Aviso Importante**

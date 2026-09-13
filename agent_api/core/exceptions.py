@@ -68,3 +68,9 @@ class InvalidAudioError(ServiceError):
     def __init__(self, message="Invalid or corrupted audio file"):
         self.message = message
         super().__init__(self.message)
+
+
+class GraphServiceError(ServiceError):
+    def __init__(self, message="Graph Service Error"):
+        self.message = message
+        super().__init__(self.message)
