@@ -1,6 +1,7 @@
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
+
 async def finance_unreachable_handler(request: Request, exc: Exception):
     return JSONResponse(
         status_code=503,
