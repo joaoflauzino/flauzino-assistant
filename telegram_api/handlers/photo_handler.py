@@ -99,14 +99,13 @@ async def handle_photo_message(update: Update, context: ContextTypes.DEFAULT_TYP
     except httpx.RequestError as e:
         logger.error(f"Connection error to agent_api: {e}")
         error_message = (
-            "⚠️ Não consegui conectar ao serviço de OCR. " "Por favor, tente novamente mais tarde."
+            "⚠️ Não consegui conectar ao serviço de OCR. Por favor, tente novamente mais tarde."
         )
         await update.message.reply_text(error_message)
 
     except Exception as e:
         logger.error(f"Unexpected error handling photo: {e}", exc_info=True)
         error_message = (
-            "❌ Ocorreu um erro ao processar a imagem. "
-            "Por favor, tente enviar uma foto mais clara."
+            "❌ Ocorreu um erro ao processar a imagem. Por favor, tente enviar uma foto mais clara."
         )
         await update.message.reply_text(error_message)

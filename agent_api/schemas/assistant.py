@@ -34,6 +34,10 @@ class AssistantResponse(BaseModel):
         default=None,
         description="Lista de opções de botões a serem apresentadas ao usuário, caso o assistente queira que ele escolha. NUNCA use isso para pedir para o usuário escolher categorias de saldo ou limite; se ele não especificar, assuma que ele quer ver todas automaticamente.",
     )
+    image_base64: str | None = Field(
+        default=None,
+        description="Imagem em formato base64 caso um gráfico tenha sido gerado.",
+    )
     requested_graph_type: Literal["bar", "pie"] | None = Field(
         default=None,
         description=(
