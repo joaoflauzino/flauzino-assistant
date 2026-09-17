@@ -139,7 +139,7 @@ class FinanceService(BaseHttpService):
 
     async def save_limit(self, details: LimitDetails) -> dict:
         payload = {
-            "category": details.category,
-            "amount": details.value,
+            "category": details.categoria,
+            "amount": details.valor,
         }
         return await self._post_to_finance_api("limits", payload)

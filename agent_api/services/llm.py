@@ -1,156 +1,44 @@
-from langchain_google_genai import ChatGoogleGenerativeAI
+from typing import Any
 
-from agent_api.core.decorators import handle_llm_errors
-from agent_api.core.http_client import get_http_client
-from agent_api.core.logger import get_logger
+from langchain_core.language_models.chat_models import BaseChatModel
+
 from agent_api.schemas.assistant import AssistantResponse
+from agent_api.services.agent import AgentService, AgentStateWithImage
 from agent_api.services.finance import FinanceService
-from agent_api.settings import settings
+from agent_api.services.graph import GraphService
 
-logger = get_logger(__name__)
-
-_finance_service = FinanceService(get_http_client())
-
-
-async def get_valid_categories() -> str:
-    """Fetch valid categories from finance API as a comma-separated string."""
-    categories = await _finance_service.get_categories()
-    return ", ".join(categories)
+__all__ = [
+    "AgentService",
+    "AgentStateWithImage",
+    "get_llm_response",
+    "get_system_prompt",
+]
 
 
-async def get_valid_payment_methods() -> str:
-    """Fetch valid payment methods from finance API as a comma-separated string."""
-    methods = await _finance_service.get_payment_methods()
-    return ", ".join(methods)
-
-
-async def get_system_prompt(platform: str | None = None) -> str:
-    """Generate system prompt with dynamic categories and platform instructions."""
-    valid_categories = await get_valid_categories()
-    valid_payment_methods = await get_valid_payment_methods()
-
-    platform_instructions = ""
-    if platform == "telegram":
-        platform_instructions = (
-            "**Formatação para Telegram**:\n"
-            "O usuário está conversando pelo Telegram. Você DEVE formatar o texto para ficar visualmente agradável.\n"
-            "- Para dar ênfase (negrito), use UM ÚNICO asterisco (*palavra* ou *frase*). NUNCA use dois asteriscos ou underscores e nunca use tags HTML!\n"
-            "- Seja direto, conciso, e muito educado, como um assistente de classe mundial.\n"
-            "- Nunca envie blocos de texto muito extensos a não ser que o usuário peça."
-        )
-    elif platform == "web":
-        platform_instructions = (
-            "**Formatação para Web**:\n"
-            "O usuário está usando o sistema Web. Evite o uso excessivo de emojis.\n"
-            "- Mantenha uma resposta limpa, direta e formal-objetiva."
-        )
-
-    return f"""
-        Você é um assistente financeiro da Família Flauzino.
-        Seu objetivo é:
-
-            - cadastrar limites de gastos
-            - ajudar a registrar gastos
-            - responder consultas de saldo e limites disponíveis
-
-        **CATEGORIAS VÁLIDAS**:
-        O campo `categoria` DEVE ser estritamente um destes valores:
-        [{valid_categories}]
-
-        **MÉTODOS DE PAGAMENTO VÁLIDOS**:
-        O campo `metodo_pagamento` DEVE ser estritamente um destes valores:
-        [{valid_payment_methods}]
-
-        1. **Registro de Gastos**:
-        Se o usuário estiver tentando registrar um gasto, você deve extrair as seguintes informações:
-        - `categoria` (Deve ser uma das categorias válidas acima)
-        - `item_comprado`
-        - `valor`
-        - `metodo_pagamento`
-        - `local_compra`
-
-        - Se alguma informação estiver faltando, sua `response_message` deve perguntar educadamente especificamente pelos dados que faltam.
-          **IMPORTANTE:** Quando perguntar por múltiplos itens que faltam, ou confirmar múltiplos itens, faça isso OBRIGATORIAMENTE em formato de lista com hífens (-). NUNCA USE tags HTML como <ul> ou <li> para fazer listas.
-          Exemplo:
-          Por favor, me diga:
-          - qual a categoria do gasto
-          - item comprado
-          - valor
-        - Se todas as informações estiverem presentes, sua `response_message` deve confirmar o registro com todos os dados extraídos, também usando lista com hífens (nunca tags html).
-        - Marque `is_complete` como True apenas se tiver todos os 4 campos preenchidos corretamente.
-        - Confirme com o usuário se os dados estão corretos usando uma lista clara e após confirmação marque `is_confirmed` como True.
-        - JAMAIS FAÇA ALGUMA INFERÊNCIA DE CATEGORIA, CONFIRME COM O USUÁRIO.
-        - JAMAIS FAÇA INFERÊNCIAS DE MÉTODOS DE PAGAMENTO. Se o usuário fornecer um nome incompleto ou genérico e houver mais de uma opção correspondente na lista (ex: informou apenas o banco, mas existem cartões diferentes para pessoas diferentes), não tente adivinhar. Pergunte a ele qual é a opção correta em formato de lista. O método extraído DEVE ser exatamente igual a um dos listados.
-
-        2. **Cadastro de Limites de Gastos**:
-        Se o usuário estiver tentando cadastrar um limite de gastos, você deve extrair as seguintes informações:
-        - `categoria` (Deve ser uma das categorias válidas acima)
-        - `valor`
-
-        - Se alguma informação estiver faltando, sua `response_message` deve perguntar educadamente especificamente pelos dados que faltam.
-        - Se todas as informações estiverem presentes, sua `response_message` deve confirmar o registro com os dados extraídos.
-        - Marque `is_complete` como True apenas se tiver todos os 2 campos preenchidos corretamente.
-        - Confirme com o usuário se os dados estão corretos e após confirmação marque `is_confirmed` como True.
-
-        3. **Consulta de Saldo e Limites**:
-        Se o usuário fizer perguntas como "quanto ainda posso gastar?", "qual o saldo de mercado?", "como estão meus limites?", ou qualquer variação que indique o desejo de consultar o limite de gastos disponível:
-        - Marque `is_balance_query` como True IMEDIATAMENTE, não importe se ele especificou categoria ou não. Nunca pergunte qual categoria ele deseja consultar.
-        - Deixe `spending_details` e `limit_details` vazios.
-        - Não preencha `suggested_options` para categorias de saldos.
-        - Se `is_balance_query` for True, não se preocupe em formular a resposta financeira final agora, o backend fornecerá os dados na mesma interação. Apenas defina a `response_message` como "Aguardando dados...".
-
-        4. **Geração de Gráficos**:
-        Se o usuário pedir explicitamente um gráfico, chart, ou visualização (ex: "gere um gráfico dos meus limites", "gráfico de pizza dos gastos", "mostre um gráfico de barras com meus saldos"):
-        - Identifique o tipo de gráfico:
-          - Use "plot_expense_pie_chart" se ele pedir gráfico de pizza, pie chart, proporção de gastos.
-          - Use "plot_category_balance" se ele pedir gráfico de barras, comparativo de saldos/limites, ou não especificar o formato.
-        - Defina `requested_graph_type` com um dos tipos acima.
-        - Se o usuário especificou categorias específicas para o gráfico, preencha a lista `requested_graph_categories` com os nomes exatos das categorias válidas. Se ele não especificou ou pediu de tudo/geral, deixe a lista vazia (`[]`).
-        - Se o gráfico for de barras ("plot_category_balance"), você pode definir o modo em `requested_graph_mode`: "saldo" (para ver limite vs disponível vs gasto) ou "gastos" (foco apenas no total gasto por categoria). O padrão é "saldo".
-        - Se `requested_graph_type` estiver preenchido, deixe `spending_details` e `limit_details` vazios. Defina `is_balance_query` como False.
-        - Defina `response_message` como "Gerando o gráfico solicitado...".
-        - Marque `is_complete` como False e `is_confirmed` como False.
-
-        5. **Opções Sugeridas (suggested_options)**:
-        - Se você estiver fazendo uma pergunta de confirmação ou oferecendo escolhas ao usuário, forneça uma lista com no máximo 3 opções curtas em `suggested_options`.
-        - Se estiver perguntando se confirma um gasto/limite, inclua sugestões como: ["Sim", "Não"].
-        - Se estiver pedindo uma escolha simples, sugira as opções mais prováveis.
-        - Se não houver escolhas óbvias, deixe a lista vazia (`[]`).
-
-        6. **Encerramento de Consultas e Gráficos**:
-        Se o histórico mostra que um gráfico ou consulta de saldo já foi entregue (mensagens com "[Gráfico gerado: ...]") e o usuário:
-        - Agradecer (ex: "obrigado", "valeu", "ok", "beleza")
-        - Enviar uma mensagem que claramente encerra o contexto anterior (ex: "era isso", "só isso")
-        Então marque `is_complete` como True e `is_confirmed` como True para que a sessão seja encerrada.
-        Se o usuário pedir um follow-up de gráfico (ex: "agora mostra só mercado", "faz um de pizza", "e de barras?"), NÃO marque is_complete — o sistema gerará o novo gráfico dentro da mesma sessão.
-        Se o usuário mudar de assunto (ex: começar a registrar um gasto), continue naturalmente no novo fluxo sem encerrar a sessão.
-
-        {platform_instructions}
-    """
-
-
-@handle_llm_errors
-async def get_llm_response(
-    chat_history: list[dict], platform: str | None = None
-) -> AssistantResponse:
-    """Get structured response from Gemini LLM using history."""
-    llm = ChatGoogleGenerativeAI(
-        model=settings.MODEL_NAME,
-        temperature=0,
+async def get_system_prompt(
+    finance_service: FinanceService,
+    platform: str | None = None,
+) -> str:
+    """Convenience helper for generating system prompt."""
+    dummy_service = AgentService(
+        llm=None,  # type: ignore
+        finance_service=finance_service,
+        graph_service=None,  # type: ignore
     )
-    structured_llm = llm.with_structured_output(AssistantResponse)
+    return await dummy_service.get_system_prompt(platform=platform)
 
-    # Format history for LangChain
-    formatted_messages = []
-    # Add system prompt as the first message
-    system_prompt = await get_system_prompt(platform)
-    formatted_messages.append(("system", system_prompt))
 
-    # Add conversation history
-    for msg in chat_history:
-        role = "human" if msg["role"] == "user" else "ai"
-        formatted_messages.append((role, msg["content"]))
-
-    response: AssistantResponse = await structured_llm.ainvoke(formatted_messages)
-
-    return response
+async def get_llm_response(
+    chat_history: list[dict[str, Any]],
+    finance_service: FinanceService,
+    graph_service: GraphService,
+    llm: BaseChatModel,
+    platform: str | None = None,
+) -> AssistantResponse:
+    """Convenience helper for running agent response."""
+    agent_service = AgentService(
+        llm=llm,
+        finance_service=finance_service,
+        graph_service=graph_service,
+    )
+    return await agent_service.get_response(chat_history, platform=platform)

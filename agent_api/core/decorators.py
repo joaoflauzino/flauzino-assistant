@@ -8,12 +8,16 @@ from langchain_core.exceptions import OutputParserException
 from sqlalchemy.exc import SQLAlchemyError
 
 from agent_api.core.exceptions import (
+    AudioProcessingError,
     DatabaseError,
     FinanceServerError,
     FinanceUnreachableError,
+    InvalidAudioError,
+    InvalidImageError,
     InvalidSpentError,
     LLMParsingError,
     LLMProviderError,
+    OCRProcessingError,
     ServiceError,
 )
 from agent_api.core.logger import get_logger
@@ -28,6 +32,8 @@ def handle_finance_errors(func: Callable[..., Any]) -> Callable[..., Any]:
     async def wrapper(*args: Any, **kwargs: Any) -> Any:
         try:
             return await func(*args, **kwargs)
+        except (ServiceError, HTTPException):
+            raise
         except httpx.RequestError:
             raise FinanceUnreachableError("Finance API is offline or unreachable")
         except httpx.HTTPStatusError as e:
@@ -38,8 +44,6 @@ def handle_finance_errors(func: Callable[..., Any]) -> Callable[..., Any]:
                 raise FinanceServerError("Finance API internal error")
             raise
         except Exception as e:
-            if isinstance(e, ServiceError) or isinstance(e, HTTPException):
-                raise
             logger.error(f"Unexpected finance error: {e}", exc_info=True)
             raise ServiceError(f"Unexpected finance error: {str(e)}")
 
@@ -53,6 +57,8 @@ def handle_llm_errors(func: Callable[..., Any]) -> Callable[..., Any]:
     async def wrapper(*args: Any, **kwargs: Any) -> Any:
         try:
             return await func(*args, **kwargs)
+        except (ServiceError, HTTPException):
+            raise
         except OutputParserException as e:
             raise LLMParsingError(f"Failed to parse LLM response: {str(e)}")
         except GoogleAPIError as e:
@@ -71,11 +77,11 @@ def handle_service_errors(func: Callable[..., Any]) -> Callable[..., Any]:
     async def wrapper(*args: Any, **kwargs: Any) -> Any:
         try:
             return await func(*args, **kwargs)
+        except (ServiceError, HTTPException):
+            raise
         except SQLAlchemyError as e:
             raise DatabaseError(f"Database operation failed: {str(e)}")
         except Exception as e:
-            if isinstance(e, (DatabaseError, ServiceError, HTTPException)):
-                raise
             logger.error(f"Unexpected service error: {e}", exc_info=True)
             raise ServiceError(f"Unexpected error: {str(e)}")
 
@@ -89,15 +95,10 @@ def handle_ocr_errors(func: Callable[..., Any]) -> Callable[..., Any]:
     async def wrapper(*args: Any, **kwargs: Any) -> Any:
         try:
             return await func(*args, **kwargs)
+        except (ServiceError, HTTPException):
+            raise
         except Exception as e:
-            if isinstance(e, (ServiceError, HTTPException)):
-                raise
             logger.error(f"Unexpected OCR error: {e}", exc_info=True)
-
-            # Import OCR exceptions here to avoid circular imports
-            from agent_api.core.exceptions import InvalidImageError, OCRProcessingError
-
-            # Check for specific error types in the message
             error_msg = str(e).lower()
             if any(word in error_msg for word in ["image", "decode", "format", "invalid"]):
                 raise InvalidImageError(f"Invalid image: {str(e)}")
@@ -114,12 +115,32 @@ def handle_audio_errors(func: Callable[..., Any]) -> Callable[..., Any]:
     async def wrapper(*args: Any, **kwargs: Any) -> Any:
         try:
             return await func(*args, **kwargs)
+        except (AudioProcessingError, InvalidAudioError, HTTPException):
+            raise
         except Exception as e:
-            from agent_api.core.exceptions import AudioProcessingError, InvalidAudioError
-
-            if isinstance(e, (AudioProcessingError, InvalidAudioError, HTTPException)):
-                raise
             logger.error(f"Unexpected Audio error: {e}", exc_info=True)
             raise AudioProcessingError(f"Falha ao transcrever o áudio: {str(e)}")
 
     return wrapper
+
+
+def handle_tool_errors(tool_name: str | None = None) -> Callable[..., Any]:
+    """Decorator to catch exceptions inside LangChain tools and return graceful error messages."""
+
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+        @functools.wraps(func)
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
+            name = tool_name or func.__name__
+            try:
+                return await func(*args, **kwargs)
+            except ServiceError as e:
+                logger.error(f"Erro de serviço na tool {name}: {e}")
+                err_text = e.message if hasattr(e, "message") else str(e)
+                return f"Erro na operação de {name}: {err_text}"
+            except Exception as e:
+                logger.error(f"Erro inesperado na tool {name}: {e}", exc_info=True)
+                return f"Não foi possível completar a ação em {name} devido a uma instabilidade temporária."
+
+        return wrapper
+
+    return decorator

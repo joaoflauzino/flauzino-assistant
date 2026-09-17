@@ -8,8 +8,10 @@ from httpx import ASGITransport, AsyncClient
 import pytest
 
 from agent_api.core.exceptions import OCRProcessingError
+from agent_api.dependencies import get_chat_service
 from agent_api.main import app
 from agent_api.schemas.dtos import ChatMessage, ChatResponse
+from agent_api.services.chat import ChatService
 
 pytestmark = pytest.mark.asyncio
 
@@ -39,12 +41,13 @@ def mock_ocr_service(mocker):
 
 
 @pytest.fixture
-def mock_chat_service(mocker):
-    """Mock ChatService."""
-    MockService = mocker.patch("agent_api.routers.ocr.ChatService")
-    instance = MockService.return_value
+def mock_chat_service():
+    """Mock ChatService via dependency override."""
+    instance = AsyncMock(spec=ChatService)
     instance.process_message = AsyncMock()
-    return instance
+    app.dependency_overrides[get_chat_service] = lambda: instance
+    yield instance
+    app.dependency_overrides.pop(get_chat_service, None)
 
 
 class TestOCRExtractEndpoint:
