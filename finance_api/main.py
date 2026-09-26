@@ -17,6 +17,7 @@ from finance_api.core.handlers import (
     service_error_handler,
     validation_error_handler,
 )
+from finance_api.core.middlewares import CorrelationIdMiddleware
 from finance_api.routers import (
     categories,
     invoices,
@@ -39,6 +40,7 @@ async def lifespan(application: FastAPI):
 
 app = FastAPI(title="Flauzino Assistant API", lifespan=lifespan)
 
+app.add_middleware(CorrelationIdMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

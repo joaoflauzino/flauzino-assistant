@@ -1,11 +1,14 @@
 from unittest.mock import AsyncMock
 import uuid
-import pytest
+
 from asgi_lifespan import LifespanManager
 from httpx import ASGITransport, AsyncClient
+import pytest
 
+from agent_api.dependencies import get_chat_service
 from agent_api.main import app
-from agent_api.schemas.dtos import ChatResponse, ChatMessage
+from agent_api.schemas.dtos import ChatMessage, ChatResponse
+from agent_api.services.chat import ChatService
 
 # Mark all tests as async
 pytestmark = pytest.mark.asyncio
@@ -20,13 +23,13 @@ async def test_client():
 
 
 @pytest.fixture
-def mock_chat_service(mocker):
-    """Fixture to mock ChatService."""
-    # Patch the class so the router gets our mock instance
-    MockService = mocker.patch("agent_api.routers.chat.ChatService")
-    instance = MockService.return_value
+def mock_chat_service():
+    """Fixture to mock ChatService via FastAPI dependency overrides."""
+    instance = AsyncMock(spec=ChatService)
     instance.process_message = AsyncMock()
-    return instance
+    app.dependency_overrides[get_chat_service] = lambda: instance
+    yield instance
+    app.dependency_overrides.pop(get_chat_service, None)
 
 
 async def test_chat_endpoint_delegates_to_service(test_client, mock_chat_service):
@@ -75,5 +78,5 @@ async def test_chat_endpoint_passes_session_id(test_client, mock_chat_service):
     # Act
     await test_client.post("/chat", json=payload)
 
-    # Assert
+    # Verify service call includes session_id
     mock_chat_service.process_message.assert_awaited_once_with("Hello again", fake_id, None)

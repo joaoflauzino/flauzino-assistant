@@ -3,6 +3,7 @@ from typing import List
 
 import httpx
 
+from agent_api.core.correlation import CORRELATION_HEADER, get_request_id
 from agent_api.core.decorators import handle_finance_errors
 from agent_api.core.logger import get_logger
 from agent_api.schemas.assistant import AssistantResponse
@@ -45,6 +46,10 @@ class FinanceService(BaseHttpService):
     def __init__(self, client: httpx.AsyncClient):
         super().__init__(client)
 
+    def _get_headers(self) -> dict[str, str]:
+        req_id = get_request_id()
+        return {CORRELATION_HEADER: req_id} if req_id else {}
+
     async def get_categories(self, use_cache: bool = True) -> List[str]:
         """Fetch valid categories with in-memory TTL caching."""
         now = time.monotonic()
@@ -57,7 +62,7 @@ class FinanceService(BaseHttpService):
 
         url = f"{settings.FINANCE_SERVICE_URL}/categories/?size=100"
         try:
-            response = await self.client.get(url)
+            response = await self.client.get(url, headers=self._get_headers())
             if response.status_code == 200:
                 data = response.json()
                 categories = [item["key"] for item in data.get("items", [])]
@@ -82,7 +87,7 @@ class FinanceService(BaseHttpService):
 
         url = f"{settings.FINANCE_SERVICE_URL}/payment-methods/?size=100"
         try:
-            response = await self.client.get(url)
+            response = await self.client.get(url, headers=self._get_headers())
             if response.status_code == 200:
                 data = response.json()
                 methods = [item["key"] for item in data.get("items", [])]
@@ -98,11 +103,15 @@ class FinanceService(BaseHttpService):
     async def _post_to_finance_api(self, endpoint: str, payload: dict) -> dict:
         """Helper method to POST data to the finance API."""
         url = f"{settings.FINANCE_SERVICE_URL}/{endpoint}/"
-        logger.info(f"Sending POST request to {url}")
-        response = await self.client.post(url, json=payload)
+        logger.info(f"🌐 [FINANCE_API:REQ] POST {url} | Payload: {payload}")
+        response = await self.client.post(url, json=payload, headers=self._get_headers())
         response.raise_for_status()
-        logger.info("Finance API request successful")
-        return response.json()
+        data = response.json()
+        item_id = data.get("id") or "N/A"
+        logger.info(
+            f"🌐 [FINANCE_API:RESP] POST {url} -> {response.status_code} OK (ID gerado: {item_id})"
+        )
+        return data
 
     @handle_finance_errors
     async def get_balances(self, categories: list[str] | None = None) -> list[dict]:
@@ -112,10 +121,15 @@ class FinanceService(BaseHttpService):
         if categories:
             params["categories"] = ",".join(categories)
 
-        logger.info(f"Fetching balances from {url}")
-        response = await self.client.get(url, params=params)
+        logger.info(f"🌐 [FINANCE_API:REQ] GET {url} | Params: {params}")
+        response = await self.client.get(url, params=params, headers=self._get_headers())
         if response.status_code == 200:
-            return response.json()
+            data = response.json()
+            logger.info(
+                f"🌐 [FINANCE_API:RESP] GET {url} -> 200 OK ({len(data)} saldos retornados)"
+            )
+            return data
+        logger.warning(f"🌐 [FINANCE_API:RESP] GET {url} -> {response.status_code}")
         return []
 
     @handle_finance_errors
@@ -127,6 +141,7 @@ class FinanceService(BaseHttpService):
             return await self.save_limit(response.limit_details)
         return None
 
+    @handle_finance_errors
     async def save_spent(self, details: SpendingDetails) -> dict:
         payload = {
             "category": details.categoria,
@@ -137,9 +152,10 @@ class FinanceService(BaseHttpService):
         }
         return await self._post_to_finance_api("spents", payload)
 
+    @handle_finance_errors
     async def save_limit(self, details: LimitDetails) -> dict:
         payload = {
-            "category": details.category,
-            "amount": details.value,
+            "category": details.categoria,
+            "amount": details.valor,
         }
         return await self._post_to_finance_api("limits", payload)

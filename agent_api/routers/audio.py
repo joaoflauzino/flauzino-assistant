@@ -2,13 +2,10 @@
 
 from typing import Optional
 
-import httpx
 from fastapi import APIRouter, Depends, File, Form, UploadFile
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from agent_api.core.database import get_db
-from agent_api.core.http_client import get_http_client
 from agent_api.core.logger import get_logger
+from agent_api.dependencies import get_chat_service
 from agent_api.schemas.dtos import ChatResponse
 from agent_api.services.audio import transcribe_audio, validate_audio_file
 from agent_api.services.chat import ChatService
@@ -23,8 +20,7 @@ async def process_audio_file(
     file: UploadFile = File(..., description="Audio file"),
     session_id: Optional[str] = Form(None, description="Chat session ID for context"),
     platform: Optional[str] = Form(None, description="Platform originating the request"),
-    client: httpx.AsyncClient = Depends(get_http_client),
-    db: AsyncSession = Depends(get_db),
+    service: ChatService = Depends(get_chat_service),
 ):
     """Process an audio file and start/continue a chat session."""
     logger.info(
@@ -42,8 +38,7 @@ async def process_audio_file(
 
     # Process through chat service
     message = transcribed_text
-    chat_service = ChatService(db, client)
-    response = await chat_service.process_message(message, session_id, platform)
+    response = await service.process_message(message, session_id, platform)
 
     logger.info(f"Audio processed successfully. Session: {response.session_id}")
 

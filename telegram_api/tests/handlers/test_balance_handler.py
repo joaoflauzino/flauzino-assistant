@@ -104,31 +104,52 @@ async def test_select_category_filtered(mock_update, mock_context):
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.handlers.balance_handler.httpx.AsyncClient")
-async def test_select_category_empty(mock_async_client, mock_update, mock_context):
+@patch("telegram_api.handlers.balance_handler.get_balance_graph")
+async def test_select_category_empty(mock_get_graph, mock_update, mock_context):
     # Arrange
     mock_update.callback_query.data = "generate"
     mock_context.user_data = {
         "available_categories": ["mercado", "lazer"],
         "selected_categories": {"mercado"},
     }
-
-    mock_response = AsyncMock()
-    mock_response.status_code = 404
-    mock_client_instance = AsyncMock()
-    mock_client_instance.get.return_value = mock_response
-    mock_client_instance.__aenter__.return_value = mock_client_instance
-    mock_async_client.return_value = mock_client_instance
+    mock_get_graph.return_value = None
 
     # Act
     state = await select_category(mock_update, mock_context)
 
     # Assert
     assert state == ConversationHandler.END
+    mock_get_graph.assert_called_once_with(categories={"mercado"}, mode="saldo")
 
     calls = mock_update.callback_query.edit_message_text.call_args_list
     final_text = calls[1].kwargs.get("text", calls[1].args[0] if calls[1].args else "")
     assert "Você ainda não possui limites de gastos cadastrados para este mês." in final_text
+
+
+@pytest.mark.asyncio
+@patch("telegram_api.handlers.balance_handler.get_balance_graph")
+async def test_select_category_success(mock_get_graph, mock_update, mock_context):
+    # Arrange
+    mock_update.callback_query.data = "generate"
+    mock_update.effective_message = AsyncMock()
+    mock_update.callback_query.message = AsyncMock()
+    mock_context.user_data = {
+        "available_categories": ["mercado", "lazer"],
+        "selected_categories": {"mercado"},
+        "balance_mode": "limites",
+    }
+    mock_get_graph.return_value = b"fake_png_data"
+
+    # Act
+    state = await select_category(mock_update, mock_context)
+
+    # Assert
+    assert state == ConversationHandler.END
+    mock_get_graph.assert_called_once_with(categories={"mercado"}, mode="limites")
+    mock_update.effective_message.reply_photo.assert_called_once_with(
+        photo=b"fake_png_data", caption="Aqui está o gráfico de limites."
+    )
+    mock_update.callback_query.message.delete.assert_called_once()
 
 
 @pytest.mark.asyncio

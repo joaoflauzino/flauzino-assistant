@@ -164,3 +164,21 @@ async def test_get_payment_methods_success(mock_client):
     # Use cache=False to test network retrieval
     methods = await service.get_payment_methods(use_cache=False)
     assert methods == ["pix", "nubank"]
+
+
+@pytest.mark.asyncio
+async def test_post_to_finance_api_propagates_correlation_id(mock_client):
+    from agent_api.core.correlation import CORRELATION_HEADER, set_request_id
+
+    service = FinanceService(client=mock_client)
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {"id": "spent-123"}
+    mock_client.post.return_value = mock_response
+
+    set_request_id("my-trace-id-abc")
+    await service._post_to_finance_api("spents", {"amount": 10})
+
+    mock_client.post.assert_called_once()
+    called_headers = mock_client.post.call_args.kwargs.get("headers", {})
+    assert called_headers.get(CORRELATION_HEADER) == "my-trace-id-abc"

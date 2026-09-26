@@ -3,19 +3,24 @@ flowchart LR
     Frontend["Frontend\n(React + Vite)"]
     Telegram["Telegram Bot\n(telegram_api)"]
     AgentAPI["Agent API\n(FastAPI)"]
-    FinanceAPI["Finance API\n(FastAPI)"]
+    FinanceAPI["Finance API\n(FastAPI + MCP Tools)"]
+    GraphAPI["Graph API\n(FastAPI + Plotly)"]
     DB[("PostgreSQL\n(infra)")]
-    LLM{"Google Gemini"}
+    LLM{"Provedor de LLM"}
     OCR["Tesseract OCR"]
 
-    User -- "Acessa Painel" --> Frontend
-    User -- "Envia texto/áudio/foto" --> Telegram
+    User -- "Acessa painel web" --> Frontend
+    User -- "Interage via chat/comandos" --> Telegram
     
-    Frontend -- "Gerencia Dados" --> FinanceAPI
-    Telegram -- "Encaminha Interações" --> AgentAPI
+    Frontend -- "Gerencia dados e limites" --> FinanceAPI
     
-    AgentAPI -- "Processa Imagens" --> OCR
-    AgentAPI -- "Interpreta" --> LLM
-    AgentAPI -- "Salva transações" --> FinanceAPI
+    Telegram -- "Fluxo /gasto (interativo direto)" --> FinanceAPI
+    Telegram -- "Áudio / Foto / Chat livre" --> AgentAPI
+    Telegram -- "Consulta gráficos (/saldo, /limites)" --> GraphAPI
     
-    FinanceAPI -- "Persiste Dados" --> DB
+    AgentAPI -- "Processa comprovantes" --> OCR
+    AgentAPI -- "Interpretação e extração" --> LLM
+    AgentAPI -- "Consulta e registra dados" --> FinanceAPI
+    
+    FinanceAPI -- "Gera gráficos (MCP Tools)" --> GraphAPI
+    FinanceAPI -- "Persiste transações e limites" --> DB

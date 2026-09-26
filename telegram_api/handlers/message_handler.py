@@ -1,15 +1,12 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes, CallbackQueryHandler
-from telegram.error import BadRequest
-from telegram.constants import ParseMode
 import httpx
-import base64
-import io
+from telegram import Update
+from telegram.ext import CallbackQueryHandler, ContextTypes
 
+from telegram_api.core.correlation import set_request_id
+from telegram_api.core.formatter import build_options_keyboard, send_agent_reply
 from telegram_api.core.http_client import send_message_to_agent
 from telegram_api.core.logger import get_logger
-from telegram_api.core.database import get_db
-from telegram_api.repositories.session_repository import SessionRepository
+from telegram_api.services.session_service import SessionService
 
 logger = get_logger(__name__)
 
@@ -41,83 +38,36 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
     user_message = update.message.text
     chat_id = update.effective_chat.id
 
+    set_request_id()
     logger.info(f"Received message from chat {chat_id}: {user_message[:50]}...")
 
     # Send typing indicator
     await update.message.chat.send_action("typing")
 
     try:
-        async with get_db() as session:
-            repo = SessionRepository(session)
+        session_id = await SessionService.get_session(chat_id)
 
-            # Get existing session_id
-            session_id = await repo.get_session(chat_id)
+        # Call agent_api
+        response_data = await send_message_to_agent(user_message, session_id=session_id)
 
-            # Call agent_api
-            response_data = await send_message_to_agent(user_message, session_id=session_id)
+        bot_response = response_data.get(
+            "response", "Desculpe, não consegui processar sua mensagem."
+        )
+        suggested_options = response_data.get("suggested_options")
+        image_base64 = response_data.get("image_base64")
 
-            # Extract the response message
-            bot_response = response_data.get(
-                "response", "Desculpe, não consegui processar sua mensagem."
-            )
+        # Sync session state
+        await SessionService.sync_session(chat_id, response_data)
 
-            # Check if flow is complete
-            is_complete = response_data.get("is_complete", False)
-            suggested_options = response_data.get("suggested_options")
-            image_base64 = response_data.get("image_base64")
+        # Build options keyboard if options are suggested
+        reply_markup = build_options_keyboard(suggested_options)
 
-            if is_complete:
-                await repo.delete_session(chat_id)
-                logger.info(f"Session cleared for chat {chat_id} (task complete)")
-            else:
-                # Extract and save new session_id if not complete
-                new_session_id = response_data.get("session_id")
-                if new_session_id:
-                    await repo.save_session(chat_id, new_session_id)
-
-        # Send response back to user
-        reply_markup = None
-        if suggested_options and isinstance(suggested_options, list):
-            keyboard = []
-            row = []
-            for option in suggested_options:
-                row.append(InlineKeyboardButton(option, callback_data=f"agent_opt:{option}"))
-                if len(row) == 2:
-                    keyboard.append(row)
-                    row = []
-            if row:
-                keyboard.append(row)
-            reply_markup = InlineKeyboardMarkup(keyboard)
-
-        try:
-            if image_base64:
-                image_data = base64.b64decode(image_base64)
-                if reply_markup:
-                    await update.message.reply_photo(
-                        photo=io.BytesIO(image_data),
-                        caption=bot_response,
-                        parse_mode=ParseMode.MARKDOWN,
-                        reply_markup=reply_markup,
-                    )
-                else:
-                    await update.message.reply_photo(
-                        photo=io.BytesIO(image_data),
-                        caption=bot_response,
-                        parse_mode=ParseMode.MARKDOWN,
-                    )
-            else:
-                if reply_markup:
-                    await update.message.reply_text(
-                        bot_response, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup
-                    )
-                else:
-                    await update.message.reply_text(bot_response, parse_mode=ParseMode.MARKDOWN)
-        except BadRequest as e:
-            if "parse" in str(e).lower() or "entities" in str(e).lower():
-                logger.warning(f"Markdown parsing failed, falling back to plain text: {e}")
-                await update.message.reply_text(bot_response)
-            else:
-                raise
+        await send_agent_reply(
+            target_message=update.message,
+            text=bot_response,
+            image_base64=image_base64,
+            reply_markup=reply_markup,
+        )
         logger.info(f"Sent response to chat {chat_id}")
 
     except httpx.HTTPStatusError as e:
@@ -146,89 +96,38 @@ async def handle_agent_callback(update: Update, context: ContextTypes.DEFAULT_TY
 
     # Remove the prefix "agent_opt:"
     option_text = query.data[10:]
+    set_request_id()
     logger.info(f"User clicked agent option: {option_text}")
-
-    # Simulate a user message with the clicked option
-    # We construct a fake message object or just call the same logic as handle_text_message
-    # But since handle_text_message expects update.message.text, we can't easily fake it if update.message is empty
-    # Wait, query.message is the bot's message.
-    # We can just extract the logic of handle_text_message into a helper, or just manually do it here.
 
     chat_id = update.effective_chat.id
 
     # Send typing indicator
     if query.message:
         await query.message.chat.send_action("typing")
-
-        # We append the user's choice to the chat visually
         await query.message.reply_text(f"Você selecionou: {option_text}")
 
     try:
-        async with get_db() as session:
-            repo = SessionRepository(session)
-            session_id = await repo.get_session(chat_id)
+        session_id = await SessionService.get_session(chat_id)
 
-            response_data = await send_message_to_agent(option_text, session_id=session_id)
+        response_data = await send_message_to_agent(option_text, session_id=session_id)
 
-            bot_response = response_data.get(
-                "response", "Desculpe, não consegui processar sua mensagem."
-            )
-            is_complete = response_data.get("is_complete", False)
-            suggested_options = response_data.get("suggested_options")
-            image_base64 = response_data.get("image_base64")
+        bot_response = response_data.get(
+            "response", "Desculpe, não consegui processar sua mensagem."
+        )
+        suggested_options = response_data.get("suggested_options")
+        image_base64 = response_data.get("image_base64")
 
-            if is_complete:
-                await repo.delete_session(chat_id)
-            else:
-                new_session_id = response_data.get("session_id")
-                if new_session_id:
-                    await repo.save_session(chat_id, new_session_id)
+        # Sync session state
+        await SessionService.sync_session(chat_id, response_data)
 
-        reply_markup = None
-        if suggested_options and isinstance(suggested_options, list):
-            keyboard = []
-            row = []
-            for option in suggested_options:
-                row.append(InlineKeyboardButton(option, callback_data=f"agent_opt:{option}"))
-                if len(row) == 2:
-                    keyboard.append(row)
-                    row = []
-            if row:
-                keyboard.append(row)
-            reply_markup = InlineKeyboardMarkup(keyboard)
+        reply_markup = build_options_keyboard(suggested_options)
 
-        try:
-            if image_base64:
-                image_data = base64.b64decode(image_base64)
-                if reply_markup:
-                    await query.message.reply_photo(
-                        photo=io.BytesIO(image_data),
-                        caption=bot_response,
-                        parse_mode=ParseMode.MARKDOWN,
-                        reply_markup=reply_markup,
-                    )
-                else:
-                    await query.message.reply_photo(
-                        photo=io.BytesIO(image_data),
-                        caption=bot_response,
-                        parse_mode=ParseMode.MARKDOWN,
-                    )
-            else:
-                if reply_markup:
-                    await query.message.reply_text(
-                        bot_response, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup
-                    )
-                else:
-                    await query.message.reply_text(bot_response, parse_mode=ParseMode.MARKDOWN)
-        except BadRequest as e:
-            if "parse" in str(e).lower() or "entities" in str(e).lower():
-                logger.warning(f"Markdown parsing failed: {e}")
-                if reply_markup:
-                    await query.message.reply_text(bot_response, reply_markup=reply_markup)
-                else:
-                    await query.message.reply_text(bot_response)
-            else:
-                raise
+        await send_agent_reply(
+            target_message=query.message,
+            text=bot_response,
+            image_base64=image_base64,
+            reply_markup=reply_markup,
+        )
 
     except Exception as e:
         logger.error(f"Error handling agent callback: {e}", exc_info=True)

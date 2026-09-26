@@ -9,6 +9,8 @@ from dateutil.relativedelta import relativedelta
 from finance_api.core.decorators import handle_service_errors
 from finance_api.core.exceptions import EntityNotFoundError, ValidationError
 from finance_api.core.logger import get_logger
+from finance_api.models.categories import Category
+from finance_api.models.payment_methods import PaymentMethod
 from finance_api.models.spents import Spent
 from finance_api.repositories.categories import CategoryRepository
 from finance_api.repositories.invoices import InvoiceRepository
@@ -58,19 +60,23 @@ class SpentService:
             return InvoiceService(InvoiceRepository(self.repo.db), self.pm_repo)
         return None
 
-    async def _validate_category(self, category_key: str) -> None:
+    async def _validate_category(self, category_key: str) -> Category:
         """Validates that a category exists in the repository."""
         category_repo = self.category_repo
-        if not await category_repo.get_by_key(category_key):
+        category = await category_repo.get_by_key(category_key)
+        if not category:
             raise ValidationError(
                 f"Categoria '{category_key}' não existe. Por favor, crie-a primeiro."
             )
+        return category
 
-    async def _validate_payment_method(self, pm_key: str) -> None:
+    async def _validate_payment_method(self, pm_key: str) -> PaymentMethod:
         """Validates that a payment method exists in the repository."""
         pm_repo = self.pm_repo
-        if not await pm_repo.get_by_key(pm_key):
+        pm = await pm_repo.get_by_key(pm_key)
+        if not pm:
             raise ValidationError(f"Método de pagamento '{pm_key}' não existe.")
+        return pm
 
     def _build_installments(self, spent: SpentCreate) -> List[Spent]:
         """Generates multiple Spent records for each installment month."""
@@ -118,8 +124,11 @@ class SpentService:
     async def create(self, spent: SpentCreate) -> "Spent":
         logger.info(f"Creating spent: {spent.amount} - {spent.category}")
 
-        await self._validate_category(spent.category)
-        await self._validate_payment_method(spent.payment_method)
+        matched_category = await self._validate_category(spent.category)
+        spent.category = matched_category.key
+
+        matched_pm = await self._validate_payment_method(spent.payment_method)
+        spent.payment_method = matched_pm.key
 
         if spent.is_installment:
             spents_to_create = self._build_installments(spent)
@@ -186,10 +195,12 @@ class SpentService:
         logger.info(f"Updating spent: {spent_id}")
 
         if update_data.category:
-            await self._validate_category(update_data.category)
+            matched_cat = await self._validate_category(update_data.category)
+            update_data.category = matched_cat.key
 
         if update_data.payment_method:
-            await self._validate_payment_method(update_data.payment_method)
+            matched_pm = await self._validate_payment_method(update_data.payment_method)
+            update_data.payment_method = matched_pm.key
 
         current_spent = await self.repo.get_by_id(spent_id)
         if not current_spent:

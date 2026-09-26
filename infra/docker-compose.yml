@@ -41,8 +41,8 @@ services:
       - FINANCE_SERVICE_URL=http://finance_api:8000
       - GRAPH_SERVICE_URL=http://graph_api:8002
       - MCP_SERVER_URL=http://graph_api:8002
-      - GEMINI_API_KEY=${GOOGLE_API_KEY}
-      - MODEL_NAME=${MODEL_NAME:-gemini-2.0-flash-exp}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - MODEL_NAME=${MODEL_NAME:-gpt-6-luna}
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-flauzino}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-assistant}
     depends_on:
       - db
@@ -93,4 +93,3 @@ services:
 
 volumes:
   postgres_data:
-

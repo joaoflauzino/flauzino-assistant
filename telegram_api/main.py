@@ -1,28 +1,29 @@
 """Main entry point for the Telegram bot."""
 
+import datetime
 import signal
 import sys
-import datetime
+from sqlalchemy import text
 from telegram import Update
 from telegram.ext import (
     Application,
+    ApplicationHandlerStop,
     CommandHandler,
     MessageHandler,
     TypeHandler,
-    ApplicationHandlerStop,
     filters,
 )
 
-from telegram_api.settings import settings
+from telegram_api.core.database import close_db, get_db, init_db
+from telegram_api.core.http_client import close_http_client, get_balance_graph
 from telegram_api.core.logger import get_logger
-from telegram_api.core.http_client import close_http_client
-from telegram_api.core.database import init_db, close_db
-from telegram_api.handlers.command_handler import start_command, help_command
-from telegram_api.handlers.message_handler import handle_text_message, agent_callback_handler
+from telegram_api.handlers.balance_handler import balance_handlers
+from telegram_api.handlers.command_handler import help_command, start_command
+from telegram_api.handlers.expense_handler import expense_conv_handler
+from telegram_api.handlers.message_handler import agent_callback_handler, handle_text_message
 from telegram_api.handlers.photo_handler import handle_photo_message
 from telegram_api.handlers.voice_handler import handle_voice_message
-from telegram_api.handlers.expense_handler import expense_conv_handler
-from telegram_api.handlers.balance_handler import balance_handlers
+from telegram_api.settings import settings
 
 logger = get_logger(__name__)
 
@@ -121,8 +122,6 @@ def main() -> None:
 
 async def send_weekly_balance_summary(context) -> None:
     """Send weekly balance summary to all allowed users."""
-    import httpx
-
     logger.info("Running weekly balance summary job")
 
     # Get all allowed users
@@ -137,46 +136,26 @@ async def send_weekly_balance_summary(context) -> None:
         return
 
     try:
-        import base64
+        img_data = await get_balance_graph(categories=None, mode="saldo")
+        if not img_data:
+            logger.info("No balance graph available for weekly summary.")
+            return
 
-        async with httpx.AsyncClient() as client:
-            fin_url = f"{settings.FINANCE_SERVICE_URL}/limits/balance"
-            fin_resp = await client.get(fin_url)
-            fin_resp.raise_for_status()
-            balances = fin_resp.json()
+        caption = "Aqui está seu *Resumo Semanal de Saldos e Limites*!"
 
-            if not balances:
-                logger.info("No balance data available for weekly summary.")
-                return
+        async with get_db() as session:
+            # Select distinct chat_ids from sessions table (if they ever interacted)
+            result = await session.execute(text("SELECT DISTINCT chat_id FROM chat_sessions"))
+            chat_ids = [row[0] for row in result.fetchall()]
 
-            graph_url = f"{settings.GRAPH_SERVICE_URL}/graphs/bar"
-            response = await client.post(graph_url, json={"balances": balances, "mode": "saldo"})
-            response.raise_for_status()
-
-            data = response.json()
-            if "image_base64" not in data:
-                logger.error("No image returned from graph_api for weekly summary.")
-                return
-
-            img_data = base64.b64decode(data["image_base64"])
-            caption = "Aqui está seu *Resumo Semanal de Saldos e Limites*!"
-
-            from telegram_api.core.database import get_db
-            from sqlalchemy import text
-
-            async with get_db() as session:
-                # Select distinct chat_ids from sessions table (if they ever interacted)
-                result = await session.execute(text("SELECT DISTINCT chat_id FROM chat_sessions"))
-                chat_ids = [row[0] for row in result.fetchall()]
-
-                for chat_id in chat_ids:
-                    try:
-                        await context.bot.send_photo(
-                            chat_id=chat_id, photo=img_data, caption=caption, parse_mode="Markdown"
-                        )
-                        logger.info(f"Sent weekly summary graph to chat {chat_id}")
-                    except Exception as e:
-                        logger.error(f"Failed to send weekly summary graph to {chat_id}: {e}")
+            for chat_id in chat_ids:
+                try:
+                    await context.bot.send_photo(
+                        chat_id=chat_id, photo=img_data, caption=caption, parse_mode="Markdown"
+                    )
+                    logger.info(f"Sent weekly summary graph to chat {chat_id}")
+                except Exception as e:
+                    logger.error(f"Failed to send weekly summary graph to {chat_id}: {e}")
 
     except Exception as e:
         logger.error(f"Error generating weekly balance summary graph: {e}")

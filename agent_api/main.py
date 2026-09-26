@@ -29,6 +29,7 @@ from agent_api.core.handlers import (
     service_error_handler,
 )
 from agent_api.core.logger import get_logger
+from agent_api.core.middlewares import CorrelationIdMiddleware
 from agent_api.repositories.chat_repository import ChatRepository
 from agent_api.routers.audio import router as audio_router
 from agent_api.routers.chat import router as chat_router
@@ -74,6 +75,7 @@ allowed_origins = os.getenv(
     "http://localhost:5173,http://localhost:3000",
 ).split(",")
 
+app.add_middleware(CorrelationIdMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,

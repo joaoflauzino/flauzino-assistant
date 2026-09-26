@@ -8,6 +8,7 @@ class FinanceApiSettings(BaseSettings):
     AGENT_SERVICE_URL: str = "http://localhost:8001"
     GRAPH_SERVICE_URL: str = "http://localhost:8002"
     FRONTEND_URL: str = "http://localhost:5173"
+    DB_ECHO: bool = False
 
 
 settings = FinanceApiSettings()

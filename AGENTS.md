@@ -1,19 +1,20 @@
-# Projeto Flauzino Assistant - Diretrizes para o Gemini / IAs
+# Projeto Flauzino Assistant - Diretrizes para Assistentes de IA / Desenvolvedores
 
-Este documento serve como guia e especificação oficial do projeto para qualquer inteligência artificial (Gemini, Cursor, Copilot, etc.) e desenvolvedores atuando no repositório. **Sempre leia e siga estas regras antes de sugerir código, escrever testes ou tomar decisões arquiteturais.**
+Este documento serve como guia e especificação oficial do projeto para qualquer inteligência artificial (assistentes, agentes, copilot, etc.) e desenvolvedores atuando no repositório. **Sempre leia e siga estas regras antes de sugerir código, escrever testes ou tomar decisões arquiteturais.**
 
 ## 1. Visão Geral do Projeto e Arquitetura
 O **Flauzino Assistant** é um assistente virtual criado para lidar com registros de gastos pessoais de forma inteligente e automatizada. O sistema possui uma arquitetura modularizada:
 - **`infra/`**: Configurações de infraestrutura (Docker Compose, banco de dados PostgreSQL).
 - **`finance_api/`**: API principal (FastAPI) com a lógica de negócios e persistência. Usa o padrão Controller-Service-Repository.
-- **`agent_api/`**: Interface de conversação via LLM. Utiliza `langchain` e modelos `gemini` para processar texto, áudio e imagens (OCR).
-- **`telegram_api/`**: Bot do Telegram para interface do usuário, processando mensagens e comunicando-se com a `agent_api`.
+- **`agent_api/`**: Interface de conversação via LLM. Utiliza `langchain` e modelos LLM para processar texto, áudio e imagens (OCR).
+- **`graph_api/`**: Microsserviço de renderização gráfica com Plotly e Kaleido.
+- **`telegram_api/`**: Bot do Telegram para interface do usuário, processando mensagens e comunicando-se com a `agent_api`, `finance_api` e `graph_api`.
 - **`frontend/`**: Interface web moderna construída com React/Vite.
 
 ## 2. Tech Stack
 - **Backend**: Python 3.13, FastAPI, Uvicorn
 - **Banco de Dados**: PostgreSQL com `asyncpg`, SQLAlchemy 2.0 (Modo Async)
-- **AI / LLM**: LangChain, Google GenAI (Gemini), Faster-Whisper (Áudio), PyTesseract (OCR)
+- **AI / LLM**: LangChain, Provedores de LLM, Faster-Whisper (Áudio), PyTesseract (OCR)
 - **Gerenciador de Pacotes**: `uv`
 - **Testes**: `pytest`, `pytest-asyncio`, `pytest-mock`
 - **Frontend**: React, Vite, Node.js 18+
@@ -45,7 +46,7 @@ O tratamento de exceções não deve ter blocos `try/except` genéricos espalhad
 
 ### 3.5. Comportamento da IA (Anti-Alucinação e Segurança)
 - **Read Before Write:** A IA **nunca** deve presumir a estrutura de um arquivo, modelo ou banco de dados existente. Antes de sugerir ou modificar código, deve-se usar as ferramentas (ex: `view_file`, `grep_search`) para ler o código atual no repositório.
-- **Segurança Máxima:** Nunca insira chaves de API, senhas ou tokens (ex: Telegram, Gemini) de forma estática (hardcoded) no código fonte. Novas configurações devem ser mapeadas no arquivo `.env.example` e lidas via `pydantic-settings`.
+- **Segurança Máxima:** Nunca insira chaves de API, senhas ou tokens de forma estática (hardcoded) no código fonte. Novas configurações devem ser mapeadas no arquivo `.env.example` e lidas via `pydantic-settings`.
 
 ## 4. Testes Unitários
 Toda nova feature ou modificação precisa estar acompanhada de **testes unitários** utilizando `pytest`. Nenhuma feature deve ser considerada completa sem testes.
