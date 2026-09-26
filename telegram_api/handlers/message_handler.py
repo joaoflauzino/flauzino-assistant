@@ -1,14 +1,11 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes, CallbackQueryHandler
-from telegram.error import BadRequest
-from telegram.constants import ParseMode
 import httpx
-import base64
-import io
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import CallbackQueryHandler, ContextTypes
 
+from telegram_api.core.database import get_db
+from telegram_api.core.formatter import send_agent_reply
 from telegram_api.core.http_client import send_message_to_agent
 from telegram_api.core.logger import get_logger
-from telegram_api.core.database import get_db
 from telegram_api.repositories.session_repository import SessionRepository
 
 logger = get_logger(__name__)
@@ -89,35 +86,12 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
                 keyboard.append(row)
             reply_markup = InlineKeyboardMarkup(keyboard)
 
-        try:
-            if image_base64:
-                image_data = base64.b64decode(image_base64)
-                if reply_markup:
-                    await update.message.reply_photo(
-                        photo=io.BytesIO(image_data),
-                        caption=bot_response,
-                        parse_mode=ParseMode.MARKDOWN,
-                        reply_markup=reply_markup,
-                    )
-                else:
-                    await update.message.reply_photo(
-                        photo=io.BytesIO(image_data),
-                        caption=bot_response,
-                        parse_mode=ParseMode.MARKDOWN,
-                    )
-            else:
-                if reply_markup:
-                    await update.message.reply_text(
-                        bot_response, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup
-                    )
-                else:
-                    await update.message.reply_text(bot_response, parse_mode=ParseMode.MARKDOWN)
-        except BadRequest as e:
-            if "parse" in str(e).lower() or "entities" in str(e).lower():
-                logger.warning(f"Markdown parsing failed, falling back to plain text: {e}")
-                await update.message.reply_text(bot_response)
-            else:
-                raise
+        await send_agent_reply(
+            target_message=update.message,
+            text=bot_response,
+            image_base64=image_base64,
+            reply_markup=reply_markup,
+        )
         logger.info(f"Sent response to chat {chat_id}")
 
     except httpx.HTTPStatusError as e:
@@ -197,38 +171,12 @@ async def handle_agent_callback(update: Update, context: ContextTypes.DEFAULT_TY
                 keyboard.append(row)
             reply_markup = InlineKeyboardMarkup(keyboard)
 
-        try:
-            if image_base64:
-                image_data = base64.b64decode(image_base64)
-                if reply_markup:
-                    await query.message.reply_photo(
-                        photo=io.BytesIO(image_data),
-                        caption=bot_response,
-                        parse_mode=ParseMode.MARKDOWN,
-                        reply_markup=reply_markup,
-                    )
-                else:
-                    await query.message.reply_photo(
-                        photo=io.BytesIO(image_data),
-                        caption=bot_response,
-                        parse_mode=ParseMode.MARKDOWN,
-                    )
-            else:
-                if reply_markup:
-                    await query.message.reply_text(
-                        bot_response, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup
-                    )
-                else:
-                    await query.message.reply_text(bot_response, parse_mode=ParseMode.MARKDOWN)
-        except BadRequest as e:
-            if "parse" in str(e).lower() or "entities" in str(e).lower():
-                logger.warning(f"Markdown parsing failed: {e}")
-                if reply_markup:
-                    await query.message.reply_text(bot_response, reply_markup=reply_markup)
-                else:
-                    await query.message.reply_text(bot_response)
-            else:
-                raise
+        await send_agent_reply(
+            target_message=query.message,
+            text=bot_response,
+            image_base64=image_base64,
+            reply_markup=reply_markup,
+        )
 
     except Exception as e:
         logger.error(f"Error handling agent callback: {e}", exc_info=True)

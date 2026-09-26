@@ -1,11 +1,12 @@
+from io import BytesIO
+import httpx
 from telegram import Update
 from telegram.ext import ContextTypes
-import httpx
-from io import BytesIO
 
+from telegram_api.core.database import get_db
+from telegram_api.core.formatter import send_agent_reply
 from telegram_api.core.http_client import send_receipt_to_agent
 from telegram_api.core.logger import get_logger
-from telegram_api.core.database import get_db
 from telegram_api.repositories.session_repository import SessionRepository
 
 logger = get_logger(__name__)
@@ -72,20 +73,7 @@ async def handle_photo_message(update: Update, context: ContextTypes.DEFAULT_TYP
                     await repo.save_session(chat_id, new_session_id)
 
         # Send response back to user
-        from telegram.error import BadRequest
-        from telegram.constants import ParseMode
-
-        # Escape underscores to prevent Markdown parser from interpreting them as unclosed italics
-        escaped_response = bot_response.replace("_", "\\_")
-
-        try:
-            await update.message.reply_text(escaped_response, parse_mode=ParseMode.MARKDOWN)
-        except BadRequest as e:
-            if "parse" in str(e).lower() or "entities" in str(e).lower():
-                logger.warning(f"Markdown parsing failed, falling back to plain text: {e}")
-                await update.message.reply_text(bot_response)
-            else:
-                raise
+        await send_agent_reply(target_message=update.message, text=bot_response)
         logger.info(f"Sent OCR response to chat {chat_id}")
 
     except httpx.HTTPStatusError as e:
@@ -99,14 +87,13 @@ async def handle_photo_message(update: Update, context: ContextTypes.DEFAULT_TYP
     except httpx.RequestError as e:
         logger.error(f"Connection error to agent_api: {e}")
         error_message = (
-            "⚠️ Não consegui conectar ao serviço de OCR. " "Por favor, tente novamente mais tarde."
+            "⚠️ Não consegui conectar ao serviço de OCR. Por favor, tente novamente mais tarde."
         )
         await update.message.reply_text(error_message)
 
     except Exception as e:
         logger.error(f"Unexpected error handling photo: {e}", exc_info=True)
         error_message = (
-            "❌ Ocorreu um erro ao processar a imagem. "
-            "Por favor, tente enviar uma foto mais clara."
+            "❌ Ocorreu um erro ao processar a imagem. Por favor, tente enviar uma foto mais clara."
         )
         await update.message.reply_text(error_message)

@@ -1,14 +1,20 @@
 from typing import List, Optional
+import unicodedata
 from uuid import UUID
 
-from sqlalchemy import select, update, delete
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from finance_api.core.logger import get_logger
 from finance_api.models.categories import Category
 from finance_api.schemas.categories import CategoryCreate, CategoryUpdate
-from finance_api.core.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+def _normalize_str(text: str) -> str:
+    nfkd = unicodedata.normalize("NFKD", text)
+    return "".join(c for c in nfkd if not unicodedata.combining(c)).lower().strip()
 
 
 class CategoryRepository:
@@ -48,8 +54,23 @@ class CategoryRepository:
         return category
 
     async def get_by_key(self, key: str) -> Optional[Category]:
+        # Exact match first
         result = await self.db.execute(select(Category).where(Category.key == key))
-        return result.scalar_one_or_none()
+        category = result.scalar_one_or_none()
+        if category:
+            return category
+
+        # Fallback to normalized match (e.g. 'alimentação' matching 'alimentacao')
+        normalized_target = _normalize_str(key)
+        all_cats_result = await self.db.execute(select(Category))
+        for cat in all_cats_result.scalars().all():
+            if (
+                _normalize_str(cat.key) == normalized_target
+                or _normalize_str(cat.display_name) == normalized_target
+            ):
+                return cat
+
+        return None
 
     async def update(self, category_id: UUID, update_data: CategoryUpdate) -> Optional[Category]:
         stmt = (

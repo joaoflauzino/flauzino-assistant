@@ -27,11 +27,13 @@ class SpendingLimitService:
     async def create(self, limit_data: SpendingLimitCreate) -> "SpendingLimit":
         logger.info(f"Creating spending limit for category: {limit_data.category}")
 
-        # Validate category exists in database
-        if not await self.category_repo.get_by_key(limit_data.category):
+        # Validate category exists in database and normalize
+        matched_cat = await self.category_repo.get_by_key(limit_data.category)
+        if not matched_cat:
             raise ValidationError(
                 f"Categoria '{limit_data.category}' não existe. Por favor, crie-a primeiro."
             )
+        limit_data.category = matched_cat.key
 
         return await self.repo.create(limit_data)
 
@@ -53,7 +55,9 @@ class SpendingLimitService:
     @handle_service_errors
     async def get_by_category(self, category: str) -> Optional["SpendingLimit"]:
         logger.info(f"Getting spending limit by category: {category}")
-        return await self.repo.get_by_category(category)
+        matched_cat = await self.category_repo.get_by_key(category)
+        cat_key = matched_cat.key if matched_cat else category
+        return await self.repo.get_by_category(cat_key)
 
     @handle_service_errors
     async def get_by_id(self, limit_id: UUID) -> "SpendingLimit":
@@ -66,6 +70,14 @@ class SpendingLimitService:
     @handle_service_errors
     async def update(self, limit_id: UUID, update_data: SpendingLimitUpdate) -> "SpendingLimit":
         logger.info(f"Updating spending limit: {limit_id}")
+        if update_data.category:
+            matched_cat = await self.category_repo.get_by_key(update_data.category)
+            if not matched_cat:
+                raise ValidationError(
+                    f"Categoria '{update_data.category}' não existe. Por favor, crie-a primeiro."
+                )
+            update_data.category = matched_cat.key
+
         updated_limit = await self.repo.update(limit_id, update_data)
         if not updated_limit:
             raise EntityNotFoundError(f"Limite de gastos com ID {limit_id} não encontrado")

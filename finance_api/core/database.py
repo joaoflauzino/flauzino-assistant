@@ -5,7 +5,7 @@ from finance_api.settings import settings
 
 engine = create_async_engine(
     settings.DATABASE_URL,
-    echo=True,  # Set to False in production
+    echo=settings.DB_ECHO,
 )
 
 AsyncSessionLocal = async_sessionmaker(
