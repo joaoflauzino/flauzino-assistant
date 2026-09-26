@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from finance_api.core.exceptions import (
     DatabaseError,
@@ -56,6 +57,12 @@ app.add_exception_handler(EntityConflictError, entity_conflict_handler)
 app.add_exception_handler(ValidationError, validation_error_handler)
 app.add_exception_handler(ServiceError, service_error_handler)
 
+
+@app.get("/health", tags=["health"])
+async def health_check():
+    return {"status": "ok", "service": "finance_api"}
+
+
 # Register routers
 app.include_router(spents.router, prefix="/spents", tags=["spents"])
 app.include_router(limits.router, prefix="/limits", tags=["limits"])
@@ -66,3 +73,8 @@ app.include_router(invoices.router, prefix="/invoices", tags=["invoices"])
 
 # Mount Streamable HTTP transport for the MCP protocol on /mcp
 app.mount("/mcp", mcp_streamable_app)
+
+# Instrument Prometheus metrics and expose on /metrics
+Instrumentator(excluded_handlers=["/metrics", "/health"]).instrument(app).expose(
+    app, include_in_schema=False, tags=["metrics"]
+)

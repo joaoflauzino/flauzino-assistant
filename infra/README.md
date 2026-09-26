@@ -1,6 +1,6 @@
 # Infraestrutura & Configurações
 
-Guia completo da infraestrutura do **Flauzino Assistant**, abrangendo a orquestração com Docker Compose, configuração do banco de dados relacional PostgreSQL e especificação de todas as variáveis de ambiente.
+Guia completo da infraestrutura do **Flauzino Assistant**, abrangendo a orquestração com Docker Compose, configuração do banco de dados relacional PostgreSQL, especificações de variáveis de ambiente e stack de observabilidade com Prometheus e Grafana.
 
 ---
 
@@ -11,11 +11,13 @@ Toda a stack de microsserviços pode ser instanciada via contêineres gerenciado
 | Serviço | Contêiner | Porta Exposta | Descrição |
 |:---|:---|:---|:---|
 | **db** | `postgres:17-alpine` | `5432:5432` | Banco de dados PostgreSQL com volume persistente e script de inicialização |
-| **finance_api** | `flauzino-assistant/finance_api` | `8000:8000` | API central de regras de negócio, persistência e MCP tools |
-| **agent_api** | `flauzino-assistant/agent_api` | `8001:8001` | API inteligente com integração a modelos LLM e Tesseract OCR |
-| **graph_api** | `flauzino-assistant/graph_api` | `8002:8002` | Microsserviço de renderização de gráficos com Plotly e Kaleido |
+| **finance_api** | `flauzino-assistant/finance_api` | `8000:8000` | API central de regras de negócio, persistência, `/metrics` e MCP tools |
+| **agent_api** | `flauzino-assistant/agent_api` | `8001:8001` | API inteligente com LLM, `/metrics` (incluindo tokens e tools) e OCR |
+| **graph_api** | `flauzino-assistant/graph_api` | `8002:8002` | Microsserviço de renderização de gráficos com Plotly, Kaleido e `/metrics` |
 | **frontend** | `flauzino-assistant/frontend` | `5173:80` | Interface Web SPA React servida através do Nginx |
 | **telegram_bot** | `flauzino-assistant/telegram_bot` | — | Worker assíncrono do bot do Telegram conectado aos serviços |
+| **prometheus** | `prom/prometheus:v2.54.1` | `9090:9090` | Servidor de métricas em séries temporais (coleta `/metrics` a cada 10s) |
+| **grafana** | `grafana/grafana:11.2.0` | `3000:3000` | Painéis visuais interativos pré-provisionados com métricas e LLM |
 
 ---
 
@@ -61,7 +63,28 @@ docker-compose -f infra/docker-compose.yml logs -f agent_api
 
 ---
 
-## Observabilidade e Rastreabilidade Distribuída (`X-Request-ID`)
+## Observabilidade (Prometheus + Grafana)
+
+A stack conta com monitoramento em tempo real de saúde, taxa de chamadas, latência, erros HTTP e consumo de LLMs:
+
+### Acessos
+- **Grafana**: [http://localhost:3000](http://localhost:3000) (Usuário: `admin` / Senha: `admin`)
+  - Dashboard provisionado automaticamente: **Flauzino Assistant - Observabilidade Geral**
+- **Prometheus**: [http://localhost:9090](http://localhost:9090)
+  - Alvos monitorados: [http://localhost:9090/targets](http://localhost:9090/targets)
+
+### O que é monitorado
+1. **Saúde & Liveness**: Endpoint `/health` e métrica nativa `up` de cada API (`finance_api`, `agent_api`, `graph_api`).
+2. **Tráfego HTTP & Erros**: Throughput (req/s), distribuição de códigos HTTP (`2xx`, `4xx`, `5xx`) e latência P95 por rota.
+3. **Observabilidade de LLM**:
+   - `flauzino_llm_tokens_total`: Total de tokens de prompt e completion gerados.
+   - `flauzino_llm_requests_total`: Contagem de requisições enviadas ao provedor de LLM e taxas de erro.
+   - `flauzino_llm_request_duration_seconds`: Latência de resposta da OpenAI.
+   - `flauzino_agent_tool_executions_total`: Ferramentas acionadas pelo agente e seus tempos de execução.
+
+---
+
+## Rastreabilidade Distribuída (`X-Request-ID`)
 
 O ecossistema implementa rastreabilidade distribuída de ponta a ponta com **Correlation ID** (`X-Request-ID`):
 
