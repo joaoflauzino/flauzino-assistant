@@ -61,6 +61,20 @@ docker-compose -f infra/docker-compose.yml logs -f agent_api
 
 ---
 
+## Observabilidade e Rastreabilidade Distribuída (`X-Request-ID`)
+
+O ecossistema implementa rastreabilidade distribuída de ponta a ponta com **Correlation ID** (`X-Request-ID`):
+
+1. **Geração na Borda:** Cada comando, texto, mensagem de voz ou foto enviada pelo usuário no Telegram recebe um novo `UUIDv4` gerado no `telegram_api`.
+2. **Propagação via HTTP:** O identificador é inserido no cabeçalho HTTP `X-Request-ID` de todas as chamadas feitas aos demais serviços (`agent_api` e `finance_api`).
+3. **Encaminhamento Interno:** Quando a `agent_api` se comunica com a `finance_api`, o mesmo `X-Request-ID` é mantido no contexto e propagado na requisição HTTP subsequente.
+4. **Logs Correlacionados:** Todos os serviços utilizam loggers que injetam automaticamente o `[request_id]` em cada linha de log. Isso permite acompanhar a jornada completa de uma requisição em todos os contêineres com um único filtro:
+   ```bash
+   docker-compose -f infra/docker-compose.yml logs | grep "seu-uuid-aqui"
+   ```
+
+---
+
 ## Banco de Dados (PostgreSQL)
 
 O arquivo `infra/db/init.sql` é montado automaticamente no diretório `/docker-entrypoint-initdb.d/` na inicialização do contêiner PostgreSQL para criar:

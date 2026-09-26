@@ -1,6 +1,18 @@
 # Agent API
 
-Interface de conversação para interagir com o sistema.
+Interface de conversação inteligente para interagir com o ecossistema, combinando modelos LLM e OCR para processamento de linguagem natural, áudios e recibos.
+
+---
+
+## Rastreabilidade e Correlation ID (`X-Request-ID`)
+
+A `agent_api` propaga identificadores de correlação para observabilidade fim a fim:
+- **Middleware:** O `CorrelationIdMiddleware` captura o cabeçalho `X-Request-ID` da requisição HTTP (ou gera um novo UUIDv4 se ausente) e o injeta no contexto assíncrono.
+- **Propagação Externa:** Todas as requisições HTTP feitas pela `agent_api` para a `Finance API` repassam automaticamente o cabeçalho `X-Request-ID`.
+- **Logs:** Os registros de log da aplicação incluem o prefixo `[request_id]`, correlacionando todas as ações desencadeadas por uma mesma interação.
+- **Resposta:** O cabeçalho `X-Request-ID` é retornado em todas as respostas HTTP da API.
+
+---
 
 #### Enviar Mensagem (POST /chat)
 
@@ -8,6 +20,7 @@ Interface de conversação para interagir com o sistema.
 curl -X 'POST' \
   'http://localhost:8001/chat' \
   -H 'Content-Type: application/json' \
+  -H 'X-Request-ID: opcional-uuid-de-correlacao' \
   -d '{
   "message": "gastei 50 reais no mercado com o cartão do itau do joao lucas",
   "session_id": "optional-uuid"
@@ -107,4 +120,3 @@ curl -X 'POST' \
 
 **Formatos de Áudio suportados:** OGG, MP3, WAV, M4A, etc.  
 **Tamanho máximo do Áudio:** 10MB
-

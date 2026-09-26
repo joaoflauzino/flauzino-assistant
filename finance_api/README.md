@@ -1,6 +1,17 @@
 # Finance API
 
-Interação direta com o banco de dados. A API suporta operações CRUD completas para gastos.
+Interação direta com o banco de dados. A API suporta operações CRUD completas para gastos, categorias, limites e meios de pagamento.
+
+---
+
+## Rastreabilidade e Correlation ID (`X-Request-ID`)
+
+A API implementa rastreabilidade distribuída através de middleware (`CorrelationIdMiddleware`):
+- **Extração e Geração:** Se o cabeçalho `X-Request-ID` for enviado na requisição, ele é capturado e associado ao contexto. Se não for informado, a API gera automaticamente um UUIDv4.
+- **Resposta:** O cabeçalho `X-Request-ID` é sempre retornado no cabeçalho HTTP da resposta.
+- **Logs:** Todos os registros de log incluem o identificador ativo no formato `[request_id]`, permitindo correlacionar transações entre o Telegram Bot, Agent API e Finance API.
+
+---
 
 #### Paginação e Estrutura de Resposta
 
@@ -13,11 +24,11 @@ Os endpoints de listagem (`GET`) utilizam paginação baseada em página.
 -   **Estrutura da Resposta:**
     ```json
     {
-      "items": [ ... ],
-      "total": 50,
-      "page": 1,
-      "size": 10,
-      "pages": 5
+      \"items\": [ ... ],
+      \"total\": 50,
+      \"page\": 1,
+      \"size\": 10,
+      \"pages\": 5
     }
     ```
 
@@ -170,4 +181,3 @@ Gerencie categorias de forma dinâmica via API.
   ```bash
   curl -X 'DELETE' 'http://localhost:8000/payment-owners/{id}'
   ```
-

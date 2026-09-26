@@ -35,6 +35,10 @@ Bot do Telegram inteligente e assíncrono para o ecossistema **Flauzino Assistan
 ### 7. Controle de Acesso e Segurança
 - Middleware embutido que verifica o `@username` do Telegram contra a lista autorizada em `ALLOWED_TELEGRAM_USERNAMES`. Usuários não autorizados são bloqueados imediatamente.
 
+### 8. Rastreabilidade e Correlation ID (`X-Request-ID`)
+- O bot inicia o rastreamento distribuído gerando um identificador de correlação único (`UUIDv4`) para cada interação recebida (texto, áudio, foto ou comando).
+- O `X-Request-ID` é injetado no contexto de logging e enviado em todas as chamadas HTTP para `agent_api` e `finance_api`, permitindo rastrear o ciclo de vida completo de cada solicitação nos logs da stack.
+
 ---
 
 ## Comandos Disponíveis

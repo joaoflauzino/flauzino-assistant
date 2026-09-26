@@ -1,16 +1,16 @@
 # Flauzino Assistant
 
-> Seu assistente financeiro inteligente, multicanal e automatizado para controle de gastos pessoais e limites orçamentários.
+> O assistente financeiro inteligente, multicanal e automatizado desenvolvido sob medida para a Família Flauzino.
 
 ---
 
 ## O que é o Flauzino?
 
-O **Flauzino Assistant** é uma plataforma completa e moderna voltada para simplificar a gestão financeira pessoal. Em vez de preencher planilhas manuais ou lidar com formulários burocráticos, você pode registrar seus gastos da forma que for mais conveniente no seu dia a dia: enviando uma mensagem rápida de texto, gravando uma nota de voz pelo Telegram, fotografando um cupom fiscal ou através de um fluxo guiado por botões.
+O **Flauzino Assistant** é uma plataforma e assistente virtual desenvolvida especialmente para centralizar e simplificar a gestão financeira da **Família Flauzino**. Em vez de preencher planilhas manuais ou lidar com formulários burocráticos no dia a dia familiar, os membros da família podem registrar gastos da forma mais prática e ágil: enviando uma mensagem rápida de texto, gravando uma nota de voz no Telegram, fotografando cupons fiscais ou utilizando fluxos guiados com botões interativos.
 
-Nos bastidores, o assistente combina modelos de linguagem avançados (LLMs) com visão computacional (OCR) para extrair dados de compras, transcrever áudios e classificar despesas automaticamente em categorias orçamentárias com limites definidos. 
+Nos bastidores, o assistente combina modelos de linguagem avançados (LLMs) com visão computacional (OCR) para extrair informações de compras, transcrever áudios e classificar despesas automaticamente nas categorias orçamentárias da família, respeitando os limites estipulados e identificando a forma de pagamento e o dono do cartão.
 
-Além disso, o Flauzino oferece um painel web intuitivo em React para visualizar relatórios detalhados, faturas e parcelamentos, somado a relatórios gráficos periódicos enviados diretamente no seu Telegram para garantir que você nunca perca o controle do seu orçamento.
+Além disso, o Flauzino oferece um painel web intuitivo em React para acompanhamento visual de relatórios, faturas e parcelamentos, além de enviar gráficos periódicos de acompanhamento diretamente no chat do Telegram, garantindo transparência e controle total do orçamento familiar.
 
 ---
 
