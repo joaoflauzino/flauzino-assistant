@@ -12,7 +12,7 @@ Toda a stack de microsserviços pode ser instanciada via contêineres gerenciado
 |:---|:---|:---|:---|
 | **db** | `postgres:17-alpine` | `5432:5432` | Banco de dados PostgreSQL com volume persistente e script de inicialização |
 | **finance_api** | `flauzino-assistant/finance_api` | `8000:8000` | API central de regras de negócio, persistência e MCP tools |
-| **agent_api** | `flauzino-assistant/agent_api` | `8001:8001` | API inteligente com integração OpenAI LLM e Tesseract OCR |
+| **agent_api** | `flauzino-assistant/agent_api` | `8001:8001` | API inteligente com integração a modelos LLM e Tesseract OCR |
 | **graph_api** | `flauzino-assistant/graph_api` | `8002:8002` | Microsserviço de renderização de gráficos com Plotly e Kaleido |
 | **frontend** | `flauzino-assistant/frontend` | `5173:80` | Interface Web SPA React servida através do Nginx |
 | **telegram_bot** | `flauzino-assistant/telegram_bot` | — | Worker assíncrono do bot do Telegram conectado aos serviços |
@@ -78,29 +78,29 @@ Os dados do banco são mantidos no volume persistente `postgres_data`.
 Crie um arquivo `.env` na raiz do projeto baseado no `.env.example`.
 
 ### Banco de Dados
-| Variável | Padrão | Obrigatória? | Descrição |
-|:---|:---|:---:|:---|
-| `POSTGRES_USER` | `fake_user` | Sim | Usuário administrativo do PostgreSQL |
-| `POSTGRES_PASSWORD` | `fake_password` | Sim | Senha do banco PostgreSQL |
-| `POSTGRES_DB` | `test_db` | Sim | Nome da base de dados principal |
-| `DATABASE_URL` | `postgresql+asyncpg://...` | Sim | String de conexão SQLAlchemy assíncrona com PostgreSQL |
-| `DB_ECHO` | `false` | Não | Habilita logs detalhados de queries SQL geradas pelo SQLAlchemy |
+| Variável | Serviços | Padrão | Obrigatória? | Descrição |
+|:---|:---|:---|:---:|:---|
+| `POSTGRES_USER` | `db`, `finance_api`, `agent_api`, `telegram_bot` | `fake_user` | Sim | Usuário administrativo do PostgreSQL |
+| `POSTGRES_PASSWORD` | `db`, `finance_api`, `agent_api`, `telegram_bot` | `fake_password` | Sim | Senha do banco PostgreSQL |
+| `POSTGRES_DB` | `db`, `finance_api`, `agent_api`, `telegram_bot` | `test_db` | Sim | Nome da base de dados principal |
+| `DATABASE_URL` | `finance_api`, `agent_api`, `telegram_bot` | `postgresql+asyncpg://...` | Sim | String de conexão assíncrona SQLAlchemy |
+| `DB_ECHO` | `finance_api`, `agent_api` | `false` | Não | Habilita logs de queries SQL no console |
 
 ### Inteligência Artificial & Bot
-| Variável | Padrão | Obrigatória? | Descrição |
-|:---|:---|:---:|:---|
-| `OPENAI_API_KEY` | — | Sim (para Agent) | Chave de API da OpenAI para operações de chat e extração |
-| `MODEL_NAME` | `gpt-6-luna` | Não | Nome do modelo LLM a ser utilizado |
-| `TELEGRAM_BOT_TOKEN` | — | Sim (para Bot) | Token de autenticação do bot gerado via [@BotFather](https://t.me/botfather) |
-| `ALLOWED_TELEGRAM_USERNAMES` | — | Não | Lista de usernames do Telegram (separados por vírgula) com acesso permitido ao bot |
+| Variável | Serviços | Padrão | Obrigatória? | Descrição |
+|:---|:---|:---|:---:|:---|
+| `OPENAI_API_KEY` | `agent_api` | — | Sim (para Agent) | Chave de API do provedor de LLM configurado |
+| `MODEL_NAME` | `agent_api` | `gpt-6-luna` | Não | Nome do modelo LLM a ser utilizado |
+| `TELEGRAM_BOT_TOKEN` | `telegram_bot` | — | Sim (para Bot) | Token do bot gerado via [@BotFather](https://t.me/botfather) |
+| `ALLOWED_TELEGRAM_USERNAMES` | `telegram_bot` | — | Não | Usernames do Telegram com acesso autorizado (separados por vírgula) |
 
-### URLs de Comunicação entre Serviços
-| Variável | Padrão Local | Padrão Docker | Descrição |
-|:---|:---|:---|:---|
-| `FINANCE_SERVICE_URL` | `http://localhost:8000` | `http://finance_api:8000` | Endpoint da Finance API |
-| `AGENT_SERVICE_URL` / `AGENT_API_URL` | `http://localhost:8001` | `http://agent_api:8001` | Endpoint da Agent API |
-| `GRAPH_SERVICE_URL` / `MCP_SERVER_URL`| `http://localhost:8002` | `http://graph_api:8002` | Endpoint da Graph API |
-| `FRONTEND_URL` | `http://localhost:5173` | `http://frontend:80` | Endpoint do Frontend |
+### URLs de Comunicação entre Microsserviços
+| Variável | Serviços que consomem | Padrão Local | Padrão Docker | Descrição |
+|:---|:---|:---|:---|:---|
+| `FINANCE_SERVICE_URL` | `agent_api`, `telegram_bot` | `http://localhost:8000` | `http://finance_api:8000` | URL base da Finance API |
+| `AGENT_SERVICE_URL` / `AGENT_API_URL` | `telegram_bot`, `finance_api` | `http://localhost:8001` | `http://agent_api:8001` | URL base da Agent API |
+| `GRAPH_SERVICE_URL` / `MCP_SERVER_URL`| `finance_api`, `agent_api`, `telegram_bot` | `http://localhost:8002` | `http://graph_api:8002` | URL base da Graph API |
+| `FRONTEND_URL` | `frontend` | `http://localhost:5173` | `http://frontend:80` | URL base do Frontend |
 
 ---
 

@@ -25,7 +25,7 @@ flowchart LR
     FinanceAPI["Finance API\n(FastAPI + MCP Tools)"]
     GraphAPI["Graph API\n(FastAPI + Plotly)"]
     DB[("PostgreSQL\n(infra)")]
-    LLM{"OpenAI LLM"}
+    LLM{"Provedor de LLM"}
     OCR["Tesseract OCR"]
 
     User -- "Acessa painel web" --> Frontend
@@ -66,8 +66,12 @@ Para rodar todo o ecossistema com Docker em apenas três passos:
 2. **Configure o arquivo de variáveis de ambiente:**
    ```bash
    cp .env.example .env
-   # Adicione sua OPENAI_API_KEY e seu TELEGRAM_BOT_TOKEN no arquivo .env
    ```
+   > 💡 O arquivo `.env.example` já inclui valores padrão para execução local. Para o setup completo, defina:
+   > - `OPENAI_API_KEY`: Chave do provedor de LLM para as funções da `agent_api`.
+   > - `TELEGRAM_BOT_TOKEN`: Token do bot criado no [@BotFather](https://t.me/botfather) para a `telegram_api`.
+   > 
+   > Para a lista completa e descrição de cada variável por serviço, consulte o [Guia de Variáveis de Ambiente](infra/README.md#guia-de-variáveis-de-ambiente-env).
 
 3. **Inicie todos os serviços com o Docker Compose:**
    ```bash
@@ -118,5 +122,3 @@ Para subir apenas o banco de dados durante o desenvolvimento local das APIs:
 ```bash
 make db-up
 ```
-
-Consulte [TODO.md](TODO.md) para visualizar a lista de futuras funcionalidades planejadas para o projeto.
