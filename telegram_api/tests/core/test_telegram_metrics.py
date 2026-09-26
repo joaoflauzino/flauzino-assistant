@@ -1,4 +1,3 @@
-
 from telegram_api.core.metrics import (
     TELEGRAM_MESSAGES_RECEIVED_TOTAL,
     start_metrics_server,
