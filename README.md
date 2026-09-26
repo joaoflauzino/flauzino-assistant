@@ -1,214 +1,122 @@
 # Flauzino Assistant
 
-Este projeto tem como objetivo criar um assistente virtual capaz de lidar com registros de gastos pessoais de forma inteligente e automatizada.
+> Seu assistente financeiro inteligente, multicanal e automatizado para controle de gastos pessoais e limites orçamentários.
 
-## Arquitetura
+---
 
-O projeto possui a seguinte arquitetura, dividida em seis módulos principais:
+## O que é o Flauzino?
 
-![Diagrama de Arquitetura do Sistema](docs/architecture.png)
+O **Flauzino Assistant** é uma plataforma completa e moderna voltada para simplificar a gestão financeira pessoal. Em vez de preencher planilhas manuais ou lidar com formulários burocráticos, você pode registrar seus gastos da forma que for mais conveniente no seu dia a dia: enviando uma mensagem rápida de texto, gravando uma nota de voz pelo Telegram, fotografando um cupom fiscal ou através de um fluxo guiado por botões.
 
--   **`infra/`**: Contém a configuração da infraestrutura, incluindo o banco de dados PostgreSQL via Docker Compose e scripts de inicialização.
--   **`finance_api/`**: Uma API FastAPI responsável por toda a lógica de negócio e persistência de dados. Implementa uma **Camada de Serviço** para isolar regras de negócio e **Tratamento Global de Exceções**.
--   **`agent_api/`**: Uma API FastAPI que serve como a interface de conversação. Ela recebe mensagens do usuário, utiliza um LLM para extrair informações e se comunica com a `finance_api` para registrar os dados.
--   **`mcp_server/`**: Servidor **MCP** (Model Context Protocol) que gera gráficos financeiros (barras e pizza) com Plotly/Kaleido e os expõe como **MCP Tools** via Streamable HTTP (endpoint `/mcp`) para consumo pelo agente.
--   **`telegram_api`**: Bot do Telegram para processar interações dos usuários. Agora possui um fluxo interativo (`/gasto`) que se comunica diretamente com a `finance_api`, e envia áudios/recibos para a `agent_api`.
--   **`frontend/`**: Interface Web moderna construída com React e Vite para gerenciamento visual de gastos e limites.
+Nos bastidores, o assistente combina modelos de linguagem avançados (LLMs) com visão computacional (OCR) para extrair dados de compras, transcrever áudios e classificar despesas automaticamente em categorias orçamentárias com limites definidos. 
 
-> **Gerenciamento de dependências:** o projeto é um **uv workspace**. Cada serviço declara suas próprias dependências em um `pyproject.toml` próprio (membro do workspace), mas todos compartilham **um único `.venv` na raiz e um único `uv.lock`**. No Docker, cada imagem instala apenas as dependências do seu serviço (imagens slim).
+Além disso, o Flauzino oferece um painel web intuitivo em React para visualizar relatórios detalhados, faturas e parcelamentos, somado a relatórios gráficos periódicos enviados diretamente no seu Telegram para garantir que você nunca perca o controle do seu orçamento.
 
-## Requisitos do Sistema
+---
 
-- **Python 3.13+** (apenas para execução local)
-- **Node.js 18+** (apenas para execução local do frontend)
-- **Docker** e **Docker Compose**
-- **Tesseract OCR** (apenas para execução local)
-  ```bash
-  # Ubuntu/Debian
-  sudo apt-get install tesseract-ocr
-  
-  # macOS
-  brew install tesseract
-  
-  # Para suporte a português (opcional)
-  sudo apt-get install tesseract-ocr-por
-  ```
+## Como Funciona
 
-## Como Executar
+```mermaid
+flowchart LR
+    User((Usuário))
+    Frontend["Frontend\n(React + Vite)"]
+    Telegram["Telegram Bot\n(telegram_api)"]
+    AgentAPI["Agent API\n(FastAPI)"]
+    FinanceAPI["Finance API\n(FastAPI + MCP Tools)"]
+    GraphAPI["Graph API\n(FastAPI + Plotly)"]
+    DB[("PostgreSQL\n(infra)")]
+    LLM{"OpenAI LLM"}
+    OCR["Tesseract OCR"]
 
-Este projeto utiliza `uv` para gerenciamento de dependências e `Docker` para o banco de dados.
-
-### 1. Configuração do Ambiente
-
-1.  **Instale as dependências:**
-    Você pode usar o comando Makefile (que usa o `uv sync --all-packages` internamente — instala as dependências de todos os serviços no `.venv` da raiz):
-    ```bash
-    make install
-    ```
-
-2.  **Configure os hooks do Git (pre-commit):**
-    Para garantir que seu código seja sempre formatado e analisado antes de um commit, instale os hooks:
-    ```bash
-    make setup
-    ```
-
-3.  **Crie as variáveis de ambiente:**
-    Crie um arquivo `.env` na raiz do projeto ou exporte as variáveis necessárias.
+    User -- "Acessa painel web" --> Frontend
+    User -- "Interage via chat/comandos" --> Telegram
     
-    | Variável | Descrição | Padrão | Obrigatório? |
-    | :--- | :--- | :--- | :--- |
-    | `GEMINI_API_KEY` | Chave de API do Google Gemini. | - | **Sim** |
-    | `DATABASE_URL` | URL de conexão com o banco de dados. | - | **Sim** (Local via Docker) |
-    | `MODEL_NAME` | Modelo do Gemini a ser utilizado. | `gemini-2.5-flash` | Não |
-    | `FINANCE_SERVICE_URL` | URL da API Financeira (usada pelo Agente). | `http://localhost:8000` | Não |
-    | `MCP_SERVER_URL` | URL do servidor MCP de gráficos (usada pelo Agente). | `http://localhost:8002` | Não |
-    | `AGENT_SERVICE_URL` | URL da API do Agente (usada pela Finance API). | `http://localhost:8001` | Não |
-    | `TELEGRAM_BOT_TOKEN` | Token do bot do Telegram (obtenha via [@BotFather](https://t.me/botfather)). | - | **Sim** (para usar o bot do Telegram) |
-
-    Exemplo de arquivo `.env`:
-    ```env
-    GEMINI_API_KEY="sua_chave_api_aqui"
-    DATABASE_URL="postgresql+asyncpg://seu_usuario:sua_senha@localhost:5432/assistant"
+    Frontend -- "Gerencia dados e limites" --> FinanceAPI
     
-    # Opcionais
-    MODEL_NAME="gemini-2.5-flash"
-    FINANCE_SERVICE_URL="http://localhost:8000"
-    AGENT_SERVICE_URL="http://localhost:8001"
+    Telegram -- "Fluxo /gasto (interativo direto)" --> FinanceAPI
+    Telegram -- "Áudio / Foto / Chat livre" --> AgentAPI
+    Telegram -- "Consulta gráficos (/saldo, /limites)" --> GraphAPI
     
-    # Para usar o bot do Telegram
-    TELEGRAM_BOT_TOKEN="seu_token_do_telegram_aqui"
-    ```
+    AgentAPI -- "Processa comprovantes" --> OCR
+    AgentAPI -- "Interpretação e extração" --> LLM
+    AgentAPI -- "Consulta e registra dados" --> FinanceAPI
     
-4.  **Configure o bot do Telegram (opcional):**
-    Se você deseja usar o bot do Telegram:
-    1. Acesse [@BotFather](https://t.me/botfather) no Telegram
-    2. Envie o comando `/newbot`
-    3. Siga as instruções para escolher o nome e username do bot
-    4. Copie o token fornecido e adicione ao `.env` como `TELEGRAM_BOT_TOKEN`
+    FinanceAPI -- "Gera gráficos (MCP Tools)" --> GraphAPI
+    FinanceAPI -- "Persiste transações e limites" --> DB
+```
 
-### 2. Infraestrutura (Para Desenvolvimento Local)
+- **`finance_api`**: Gerencia regras de negócio, persistência de despesas, orçamentos, limites de gastos e fornece MCP Tools.
+- **`agent_api`**: Orquestra a inteligência conversacional via LLM e OCR para processamento de áudios, recibos e mensagens livres.
+- **`graph_api`**: Microsserviço de visualização de dados com Plotly/Kaleido que gera gráficos de saldos e despesas sob demanda.
+- **`telegram_api`**: Bot com fluxo guiado (`/gasto`), geração de gráficos (`/saldo`), suporte a voz/fotos e resumo semanal agendado.
+- **`frontend`**: Interface Web moderna para acompanhamento em tempo real, painéis analíticos e gestão de faturas e cartões.
+- **`infra`**: Orquestração via Docker Compose com PostgreSQL e inicialização automática de esquemas e dados essenciais.
 
-Se você deseja rodar as APIs localmente (via Python ou VS Code), inicie apenas o banco de dados:
+---
 
-1.  **Inicie o banco de dados PostgreSQL:**
-    A partir da raiz do projeto, execute:
-    ```bash
-    make db-up
-    ```
+## Quick Start
 
-    > **Nota para usuários MacOS (OrbStack/Docker Desktop):**
-    > Para garantir a compatibilidade, defina a variável `ARCH` antes de subir o container, ou adicione ao seu `.env`:
-    > ```bash
-    > export ARCH=arm64
-    > make db-up
-    > ```
-    > Se não definido, o padrão será `amd64` (Linux/Intel).
+Para rodar todo o ecossistema com Docker em apenas três passos:
 
-    Para parar o banco de dados:
-    ```bash
-    make db-down
-    ```
+1. **Instale as dependências do projeto:**
+   ```bash
+   make install
+   ```
 
-2.  **Execute os serviços manualmente:**
+2. **Configure o arquivo de variáveis de ambiente:**
+   ```bash
+   cp .env.example .env
+   # Adicione sua OPENAI_API_KEY e seu TELEGRAM_BOT_TOKEN no arquivo .env
+   ```
 
-    Em terminais separados, você pode usar os seguintes comandos Makefile:
+3. **Inicie todos os serviços com o Docker Compose:**
+   ```bash
+   make docker-up
+   ```
 
-    *   **Finance API:**
-        ```bash
-        make run-finance
-        ```
+Pronto! Os serviços estarão disponíveis:
+- **Painel Web:** [http://localhost:5173](http://localhost:5173)
+- **Finance API Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Agent API Docs:** [http://localhost:8001/docs](http://localhost:8001/docs)
+- **Graph API Docs:** [http://localhost:8002/docs](http://localhost:8002/docs)
 
-    *   **Agent API:**
-        ```bash
-        make run-agent
-        ```
+Para parar os serviços, execute `make docker-down`.
 
-    *   **Telegram Bot:**
-        ```bash
-        make run-telegram
-        ```
+---
 
-    *   **Frontend:**
-        ```bash
-        make run-frontend
-        ```
+## Serviços e Módulos
 
-### 3. Executando Toda a Stack via Docker
+Para detalhes técnicos, contratos de endpoints e opções específicas de cada serviço, consulte suas documentações:
 
-Se você deseja rodar tudo (Banco, APIs, Frontend) via Docker:
+| Serviço | Documentação | Descrição |
+|:---|:---|:---|
+| **Finance API** | [`finance_api/README.md`](finance_api/README.md) | Endpoints REST de gastos, limites, categorias e MCP tools |
+| **Agent API** | [`agent_api/README.md`](agent_api/README.md) | Processamento de chat LLM, OCR de recibos e notas de voz |
+| **Graph API** | [`graph_api/README.md`](graph_api/README.md) | Geração de gráficos estáticos de barras e pizza em base64 |
+| **Telegram Bot** | [`telegram_api/README.md`](telegram_api/README.md) | Interface conversacional, fluxos guiados e alertas agendados |
+| **Frontend** | [`frontend/README.md`](frontend/README.md) | Dashboard interativo e gestão orçamentária visual em React |
+| **Infraestrutura** | [`infra/README.md`](infra/README.md) | Docker Compose, banco PostgreSQL e guia completo de variáveis |
 
-1.  **Inicie tudo com um único comando:**
-    ```bash
-    make docker-up
-    ```
+---
 
-    Isso irá:
-    - Iniciar o banco de dados PostgreSQL.
-    - Construir e iniciar a `finance_api` na porta 8000.
-    - Construir e iniciar a `agent_api` na porta 8001.
-    - Construir e iniciar o `mcp_server` (gráficos) na porta 8002.
-    - Construir e iniciar o `frontend` na porta 5173.
-    - Construir e iniciar o `telegram_bot` (se `TELEGRAM_BOT_TOKEN` estiver configurado).
+## Desenvolvimento
 
-    Para parar todos os containers:
-    ```bash
-    make docker-down
-    ```
+Comandos essenciais para desenvolvimento e manutenção do projeto:
 
-2.  **Acesse a aplicação:**
-    - Frontend: `http://localhost:5173`
-    - Finance docs: `http://localhost:8000/docs`
-    - Agent docs: `http://localhost:8001/docs`
-    - MCP server (endpoint Streamable HTTP): `http://localhost:8002/mcp`
+```bash
+# Executar a suíte de testes automatizados
+make test
 
-3.  **Verifique os logs:**
-    ```bash
-    docker-compose -f infra/docker-compose.yml logs -f
-    ```
+# Formatar o código automaticamente (Black + Ruff)
+make format
 
-## Testes
+# Executar checagens de linting e formatação
+make lint
+```
 
-O projeto utiliza `pytest` para testes unitários.
+Para subir apenas o banco de dados durante o desenvolvimento local das APIs:
+```bash
+make db-up
+```
 
-1.  **Execute os testes:**
-    A partir da raiz do projeto, execute:
-    ```bash
-    make test
-    ```
-
-2.  **Execute os testes do MCP Server** (testes isolados do protocolo MCP e do transporte HTTP):
-    ```bash
-    make test-mcp
-    ```
-
-## Formatação e Linting
-
-O projeto utiliza `black` para formatação de código (limite de 100 caracteres por linha) e `ruff` para linting.
-
-1.  **Para formatar o código (aplica correções automaticamente):**
-    ```bash
-    make format
-    ```
-
-2.  **Para verificar problemas de linting e formatação (check apenas):**
-    ```bash
-    make lint
-    ```
-
-
-## Próximos Passos (TODO)
-
-Consulte o arquivo [TODO.md](TODO.md) para visualizar a lista de futuras funcionalidades planejadas para o projeto, incluindo suporte a faturas de cartões, gastos recorrentes e correções na infraestrutura (como falhas no cron de backup do banco de dados).
-
-## Documentação das APIs
-
-Consulte as documentações específicas de cada serviço nos seus respectivos diretórios:
-
-- [Finance API](finance_api/README.md)
-- [MCP Server](mcp_server/README.md)
-- [Frontend](frontend/README.md)
-
-> **⚠️ Aviso Importante**
-> As aplicações **Agent API** e **Telegram Bot** estão atualmente **em revisão** e podem sofrer alterações significativas na sua estrutura e funcionamento.
-- [Agent API (Em Revisão)](agent_api/README.md)
-- [Telegram Bot (Em Revisão)](telegram_api/README.md)
+Consulte [TODO.md](TODO.md) para visualizar a lista de futuras funcionalidades planejadas para o projeto.
