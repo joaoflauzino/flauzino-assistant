@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from agent_api.core.database import AsyncSessionLocal
 from agent_api.core.exceptions import (
@@ -94,6 +95,17 @@ app.add_exception_handler(InvalidImageError, invalid_image_handler)
 app.add_exception_handler(AudioProcessingError, audio_processing_handler)
 app.add_exception_handler(InvalidAudioError, invalid_audio_handler)
 
+
+@app.get("/health", tags=["health"])
+async def health_check():
+    return {"status": "ok", "service": "agent_api"}
+
+
 app.include_router(chat_router)
 app.include_router(ocr_router)
 app.include_router(audio_router)
+
+# Instrument Prometheus metrics and expose on /metrics
+Instrumentator(excluded_handlers=["/metrics", "/health"]).instrument(app).expose(
+    app, include_in_schema=False, tags=["metrics"]
+)
