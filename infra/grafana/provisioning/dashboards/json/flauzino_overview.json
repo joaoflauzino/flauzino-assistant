@@ -13,16 +13,14 @@
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
       "id": 100,
-      "title": "Status & Saúde das APIs",
+      "title": "Status & Saúde dos Serviços (Liveness)",
       "type": "row"
     },
     {
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
+          "color": { "mode": "thresholds" },
           "mappings": [
             {
               "options": {
@@ -42,7 +40,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 1 },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
       "id": 1,
       "options": {
         "colorMode": "background",
@@ -56,7 +54,6 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "11.2.0",
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
@@ -94,7 +91,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 1 },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
       "id": 2,
       "options": {
         "colorMode": "background",
@@ -145,7 +142,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 1 },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
       "id": 3,
       "options": {
         "colorMode": "background",
@@ -173,10 +170,61 @@
       "type": "stat"
     },
     {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [
+            {
+              "options": {
+                "0": { "color": "red", "index": 0, "text": "DOWN" },
+                "1": { "color": "green", "index": 1, "text": "UP" }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "id": 4,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "editorMode": "code",
+          "expr": "up{instance=~\"telegram_bot.*\"}",
+          "legendFormat": "Telegram Bot",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Telegram Bot (8003)",
+      "type": "stat"
+    },
+    {
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
       "id": 101,
-      "title": "Tráfego HTTP & Desempenho",
+      "title": "Tráfego HTTP & Desempenho das APIs",
       "type": "row"
     },
     {
@@ -185,9 +233,6 @@
         "defaults": {
           "color": { "mode": "palette-classic" },
           "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
             "axisLabel": "req/s",
             "drawStyle": "line",
             "fillOpacity": 15,
@@ -199,7 +244,7 @@
         "overrides": []
       },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
-      "id": 4,
+      "id": 5,
       "options": {
         "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" },
         "tooltip": { "mode": "multi", "sort": "desc" }
@@ -232,7 +277,7 @@
         "overrides": []
       },
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
-      "id": 5,
+      "id": 6,
       "options": {
         "legend": { "calcs": ["sum"], "displayMode": "table", "placement": "bottom" },
         "tooltip": { "mode": "multi", "sort": "desc" }
@@ -265,7 +310,7 @@
         "overrides": []
       },
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 14 },
-      "id": 6,
+      "id": 7,
       "options": {
         "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" },
         "tooltip": { "mode": "multi" }
@@ -287,6 +332,90 @@
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 22 },
       "id": 102,
+      "title": "Observabilidade do Telegram Bot",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "blue", "value": null },
+              { "color": "green", "value": 10 }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 23 },
+      "id": 8,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "editorMode": "code",
+          "expr": "sum(flauzino_telegram_messages_received_total)",
+          "legendFormat": "Total Recebidas",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Mensagens Recebidas (Total)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 40,
+            "stacking": { "group": "A", "mode": "normal" }
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 6, "w": 18, "x": 6, "y": 23 },
+      "id": 9,
+      "options": {
+        "legend": { "calcs": ["sum"], "displayMode": "table", "placement": "right" },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "editorMode": "code",
+          "expr": "sum by (type) (flauzino_telegram_messages_received_total)",
+          "legendFormat": "{{type}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Mensagens Telegram por Tipo (Texto, Áudio, Foto, Comandos)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 29 },
+      "id": 103,
       "title": "Observabilidade de LLM & Agente",
       "type": "row"
     },
@@ -308,8 +437,8 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 5, "w": 8, "x": 0, "y": 23 },
-      "id": 7,
+      "gridPos": { "h": 5, "w": 8, "x": 0, "y": 30 },
+      "id": 10,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -349,8 +478,8 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 5, "w": 8, "x": 8, "y": 23 },
-      "id": 8,
+      "gridPos": { "h": 5, "w": 8, "x": 8, "y": 30 },
+      "id": 11,
       "options": {
         "legend": { "calcs": ["lastNotNull"], "displayMode": "list", "placement": "bottom" }
       },
@@ -380,8 +509,8 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 5, "w": 8, "x": 16, "y": 23 },
-      "id": 9,
+      "gridPos": { "h": 5, "w": 8, "x": 16, "y": 30 },
+      "id": 12,
       "options": {
         "legend": { "calcs": ["mean", "max"], "displayMode": "list", "placement": "bottom" }
       },
@@ -411,8 +540,8 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 28 },
-      "id": 10,
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 35 },
+      "id": 13,
       "options": {
         "legend": { "calcs": ["sum"], "displayMode": "table", "placement": "bottom" }
       },
@@ -442,8 +571,8 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 28 },
-      "id": 11,
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 35 },
+      "id": 14,
       "options": {
         "legend": { "calcs": ["sum"], "displayMode": "table", "placement": "bottom" }
       },
@@ -463,7 +592,7 @@
   ],
   "refresh": "5s",
   "schemaVersion": 39,
-  "tags": ["flauzino", "observability", "llm"],
+  "tags": ["flauzino", "observability", "telegram", "llm"],
   "time": {
     "from": "now-1h",
     "to": "now"
@@ -474,5 +603,5 @@
   "timezone": "browser",
   "title": "Flauzino Assistant - Observabilidade Geral",
   "uid": "flauzino-overview",
-  "version": 1
+  "version": 2
 }

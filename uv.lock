@@ -2234,6 +2234,7 @@ source = { virtual = "telegram_api" }
 dependencies = [
     { name = "asyncpg" },
     { name = "httpx" },
+    { name = "prometheus-client" },
     { name = "pydantic-settings" },
     { name = "python-telegram-bot", extra = ["job-queue"] },
     { name = "sqlalchemy", extra = ["asyncio"] },
@@ -2243,6 +2244,7 @@ dependencies = [
 requires-dist = [
     { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "httpx", specifier = ">=0.28.1" },
+    { name = "prometheus-client", specifier = ">=0.26.0" },
     { name = "pydantic-settings", specifier = ">=2.12.0" },
     { name = "python-telegram-bot", extras = ["job-queue"], specifier = ">=22.6" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.46" },

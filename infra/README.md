@@ -15,7 +15,7 @@ Toda a stack de microsserviços pode ser instanciada via contêineres gerenciado
 | **agent_api** | `flauzino-assistant/agent_api` | `8001:8001` | API inteligente com LLM, `/metrics` (incluindo tokens e tools) e OCR |
 | **graph_api** | `flauzino-assistant/graph_api` | `8002:8002` | Microsserviço de renderização de gráficos com Plotly, Kaleido e `/metrics` |
 | **frontend** | `flauzino-assistant/frontend` | `5173:80` | Interface Web SPA React servida através do Nginx |
-| **telegram_bot** | `flauzino-assistant/telegram_bot` | — | Worker assíncrono do bot do Telegram conectado aos serviços |
+| **telegram_bot** | `flauzino-assistant/telegram_bot` | `8003:8003` | Worker assíncrono do bot do Telegram com `/metrics` de mensagens |
 | **prometheus** | `prom/prometheus:v2.54.1` | `9090:9090` | Servidor de métricas em séries temporais (coleta `/metrics` a cada 10s) |
 | **grafana** | `grafana/grafana:11.2.0` | `3000:3000` | Painéis visuais interativos pré-provisionados com métricas e LLM |
 
@@ -65,7 +65,7 @@ docker-compose -f infra/docker-compose.yml logs -f agent_api
 
 ## Observabilidade (Prometheus + Grafana)
 
-A stack conta com monitoramento em tempo real de saúde, taxa de chamadas, latência, erros HTTP e consumo de LLMs:
+A stack conta com monitoramento em tempo real de saúde, taxa de chamadas, latência, erros HTTP, consumo de LLMs e bot do Telegram:
 
 ### Acessos
 - **Grafana**: [http://localhost:3000](http://localhost:3000) (Usuário: `admin` / Senha: `admin`)
@@ -74,9 +74,12 @@ A stack conta com monitoramento em tempo real de saúde, taxa de chamadas, latê
   - Alvos monitorados: [http://localhost:9090/targets](http://localhost:9090/targets)
 
 ### O que é monitorado
-1. **Saúde & Liveness**: Endpoint `/health` e métrica nativa `up` de cada API (`finance_api`, `agent_api`, `graph_api`).
+1. **Saúde & Liveness (UP/DOWN)**: Monitoramento ativo dos 4 serviços (`finance_api`, `agent_api`, `graph_api` e `telegram_bot`).
 2. **Tráfego HTTP & Erros**: Throughput (req/s), distribuição de códigos HTTP (`2xx`, `4xx`, `5xx`) e latência P95 por rota.
-3. **Observabilidade de LLM**:
+3. **Telegram Bot**:
+   - `flauzino_telegram_messages_received_total`: Total e volume por tipo (texto, áudio, foto, comandos).
+   - Detecção de tentativas de acessos não autorizados.
+4. **Observabilidade de LLM**:
    - `flauzino_llm_tokens_total`: Total de tokens de prompt e completion gerados.
    - `flauzino_llm_requests_total`: Contagem de requisições enviadas ao provedor de LLM e taxas de erro.
    - `flauzino_llm_request_duration_seconds`: Latência de resposta da OpenAI.
