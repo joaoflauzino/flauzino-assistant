@@ -77,6 +77,8 @@ services:
     build:
       context: ../
       dockerfile: telegram_api/Dockerfile
+    ports:
+      - "8003:8003"
     environment:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - AGENT_API_URL=http://agent_api:8001

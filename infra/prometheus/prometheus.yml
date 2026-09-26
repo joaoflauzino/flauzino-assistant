@@ -10,5 +10,6 @@ scrape_configs:
           - "finance_api:8000"
           - "agent_api:8001"
           - "graph_api:8002"
+          - "telegram_bot:8003"
         labels:
           app: "flauzino-assistant"

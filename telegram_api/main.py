@@ -17,6 +17,10 @@ from telegram.ext import (
 from telegram_api.core.database import close_db, get_db, init_db
 from telegram_api.core.http_client import close_http_client, get_balance_graph
 from telegram_api.core.logger import get_logger
+from telegram_api.core.metrics import (
+    TELEGRAM_MESSAGES_RECEIVED_TOTAL,
+    start_metrics_server,
+)
 from telegram_api.handlers.balance_handler import balance_handlers
 from telegram_api.handlers.command_handler import help_command, start_command
 from telegram_api.handlers.expense_handler import expense_conv_handler
@@ -32,8 +36,25 @@ def main() -> None:
     """Start the Telegram bot."""
     logger.info("Starting Telegram bot...")
 
+    # Start Prometheus metrics HTTP server
+    start_metrics_server(port=settings.METRICS_PORT)
+    logger.info(f"Prometheus metrics server started on port {settings.METRICS_PORT}")
+
     async def auth_middleware(update: Update, context) -> None:
-        """Middleware to check if the user is allowed to use the bot."""
+        """Middleware to check if the user is allowed to use the bot and record metrics."""
+        msg_type = "unknown"
+        if update.message:
+            if update.message.text:
+                msg_type = "command" if update.message.text.startswith("/") else "text"
+            elif update.message.photo:
+                msg_type = "photo"
+            elif update.message.voice or update.message.audio:
+                msg_type = "voice"
+        elif update.callback_query:
+            msg_type = "callback_query"
+
+        TELEGRAM_MESSAGES_RECEIVED_TOTAL.labels(type=msg_type).inc()
+
         if not update.effective_user or not settings.ALLOWED_TELEGRAM_USERNAMES:
             return
 
@@ -43,6 +64,7 @@ def main() -> None:
         username = update.effective_user.username
 
         if not username or username.lower() not in allowed_users:
+            TELEGRAM_MESSAGES_RECEIVED_TOTAL.labels(type="unauthorized").inc()
             if update.message:
                 await update.message.reply_text(
                     "Acesso Negado: Você não tem permissão para usar este bot."
