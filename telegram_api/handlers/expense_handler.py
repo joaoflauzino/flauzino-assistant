@@ -10,6 +10,7 @@ from telegram.ext import (
     filters,
 )
 
+from telegram_api.core.correlation import set_request_id
 from telegram_api.core.logger import get_logger
 from telegram_api.core.http_client import (
     get_valid_categories,
@@ -50,6 +51,7 @@ def build_inline_keyboard(options: list[str], columns: int = 2) -> InlineKeyboar
 
 async def gasto_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Start the expense registration flow."""
+    set_request_id()
     logger.info(f"User {update.effective_user.id} started expense registration flow")
     context.user_data["expense"] = {}
 

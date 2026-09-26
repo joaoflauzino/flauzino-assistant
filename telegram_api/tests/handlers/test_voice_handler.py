@@ -38,19 +38,13 @@ def mock_context():
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.handlers.voice_handler.get_db")
-@patch("telegram_api.handlers.voice_handler.SessionRepository")
+@patch("telegram_api.handlers.voice_handler.SessionService")
 @patch("telegram_api.handlers.voice_handler.send_audio_to_agent")
 async def test_handle_voice_message_success(
-    mock_send, mock_repo_class, mock_get_db, mock_voice_update, mock_context
+    mock_send, mock_session_service, mock_voice_update, mock_context
 ):
-    mock_session = AsyncMock()
-    mock_session.__aenter__.return_value = mock_session
-    mock_get_db.return_value = mock_session
-
-    mock_repo = AsyncMock()
-    mock_repo.get_session.return_value = str(uuid.uuid4())
-    mock_repo_class.return_value = mock_repo
+    mock_session_service.get_session = AsyncMock(return_value=str(uuid.uuid4()))
+    mock_session_service.sync_session = AsyncMock()
 
     mock_send.return_value = {
         "response": "✅ Gasto registrado:\n- **Valor:** **R$ 50,00**\n- **Pagamento:** c6_joao",

@@ -1,16 +1,14 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
+    CallbackQueryHandler,
+    CommandHandler,
     ContextTypes,
     ConversationHandler,
-    CommandHandler,
-    CallbackQueryHandler,
 )
-import httpx
-import base64
 
+from telegram_api.core.correlation import set_request_id
+from telegram_api.core.http_client import get_balance_graph, get_valid_categories
 from telegram_api.core.logger import get_logger
-from telegram_api.core.http_client import get_valid_categories
-from telegram_api.settings import settings
 
 logger = get_logger(__name__)
 
@@ -44,6 +42,7 @@ def build_inline_keyboard(
 
 async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Start the balance consultation flow and return a graph."""
+    set_request_id()
     logger.info(f"User {update.effective_user.id} requested balance graph via command")
 
     command_used = update.message.text.split()[0].replace("/", "").lower()
@@ -106,59 +105,19 @@ async def select_category(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await query.edit_message_text("Gerando gráfico dos seus saldos, aguarde...")
 
         try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                finance_url = f"{settings.FINANCE_SERVICE_URL}/limits/balance"
-                fin_resp = await client.get(finance_url)
-                if fin_resp.status_code == 404:
-                    await query.edit_message_text(
-                        "Você ainda não possui limites de gastos cadastrados para este mês."
-                    )
-                    return ConversationHandler.END
-                fin_resp.raise_for_status()
-                balances = fin_resp.json()
-
-                if not balances:
-                    await query.edit_message_text(
-                        "Você ainda não possui limites de gastos cadastrados para este mês."
-                    )
-                    return ConversationHandler.END
-
-                selected_lower = {s.lower().strip() for s in selected}
-                filtered_balances = [
-                    b
-                    for b in balances
-                    if b.get("category", "").lower() in selected_lower
-                    or b.get("category_display_name", "").lower() in selected_lower
-                ] or balances
-
-                graph_url = f"{settings.GRAPH_SERVICE_URL}/graphs/bar"
-                response = await client.post(
-                    graph_url,
-                    json={
-                        "balances": filtered_balances,
-                        "mode": mode,
-                    },
+            img_data = await get_balance_graph(categories=selected, mode=mode)
+            if img_data:
+                await update.effective_message.reply_photo(
+                    photo=img_data, caption=f"Aqui está o gráfico de {mode}."
                 )
-                response.raise_for_status()
-                data = response.json()
-
-                if "image_base64" in data:
-                    img_data = base64.b64decode(data["image_base64"])
-                    await update.effective_message.reply_photo(
-                        photo=img_data, caption=f"Aqui está o gráfico de {mode}."
-                    )
-                    await query.message.delete()
-                else:
-                    await query.edit_message_text(
-                        "Desculpe, o formato do gráfico recebido é inválido."
-                    )
-
-        except httpx.HTTPStatusError as e:
-            logger.error(f"HTTP error fetching balance graph: {e}")
-            await query.edit_message_text("Desculpe, não consegui gerar o gráfico no momento.")
+                await query.message.delete()
+            else:
+                await query.edit_message_text(
+                    "Você ainda não possui limites de gastos cadastrados para este mês."
+                )
         except Exception as e:
-            logger.error(f"Unexpected error fetching balance graph: {e}")
-            await query.edit_message_text("Ocorreu um erro inesperado ao gerar o gráfico.")
+            logger.error(f"Error fetching balance graph: {e}")
+            await query.edit_message_text("Desculpe, não consegui gerar o gráfico no momento.")
 
         return ConversationHandler.END
 

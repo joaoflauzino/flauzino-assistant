@@ -1,13 +1,14 @@
 from io import BytesIO
+
 import httpx
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from telegram_api.core.database import get_db
+from telegram_api.core.correlation import set_request_id
 from telegram_api.core.formatter import send_agent_reply
 from telegram_api.core.http_client import send_receipt_to_agent
 from telegram_api.core.logger import get_logger
-from telegram_api.repositories.session_repository import SessionRepository
+from telegram_api.services.session_service import SessionService
 
 logger = get_logger(__name__)
 
@@ -19,58 +20,46 @@ async def handle_photo_message(update: Update, context: ContextTypes.DEFAULT_TYP
 
     chat_id = update.effective_chat.id
 
+    set_request_id()
     logger.info(f"Received photo from chat {chat_id}")
 
     # Send upload indicator
     await update.message.chat.send_action("upload_photo")
 
     try:
-        async with get_db() as session:
-            repo = SessionRepository(session)
+        session_id = await SessionService.get_session(chat_id)
 
-            # Get existing session_id
-            session_id = await repo.get_session(chat_id)
+        # Get the highest resolution photo
+        photo = update.message.photo[-1]
 
-            # Get the highest resolution photo
-            photo = update.message.photo[-1]
+        # Download the photo
+        photo_file = await context.bot.get_file(photo.file_id)
+        photo_bytes = BytesIO()
+        await photo_file.download_to_memory(photo_bytes)
+        photo_bytes.seek(0)
 
-            # Download the photo
-            photo_file = await context.bot.get_file(photo.file_id)
-            photo_bytes = BytesIO()
-            await photo_file.download_to_memory(photo_bytes)
-            photo_bytes.seek(0)
+        logger.info(
+            f"Downloaded photo from chat {chat_id}, size: {len(photo_bytes.getvalue())} bytes"
+        )
 
-            logger.info(
-                f"Downloaded photo from chat {chat_id}, size: {len(photo_bytes.getvalue())} bytes"
-            )
+        # Send typing indicator while processing
+        await update.message.chat.send_action("typing")
 
-            # Send typing indicator while processing
-            await update.message.chat.send_action("typing")
+        # Send to agent_api for OCR processing
+        response_data = await send_receipt_to_agent(
+            file_content=photo_bytes.getvalue(),
+            filename=f"receipt_{chat_id}.jpg",
+            session_id=session_id,
+        )
 
-            # Send to agent_api for OCR processing
-            response_data = await send_receipt_to_agent(
-                file_content=photo_bytes.getvalue(),
-                filename=f"receipt_{chat_id}.jpg",
-                session_id=session_id,
-            )
+        # Extract the response message
+        bot_response = response_data.get(
+            "response",
+            "Recebi a imagem, mas não consegui processar. Tente enviar uma foto mais clara.",
+        )
 
-            # Extract the response message
-            bot_response = response_data.get(
-                "response",
-                "Recebi a imagem, mas não consegui processar. Tente enviar uma foto mais clara.",
-            )
-
-            # Check if flow is complete
-            is_complete = response_data.get("is_complete", False)
-
-            if is_complete:
-                await repo.delete_session(chat_id)
-                logger.info(f"Session cleared for chat {chat_id} (task complete)")
-            else:
-                # Extract and save new session_id if available
-                new_session_id = response_data.get("session_id")
-                if new_session_id:
-                    await repo.save_session(chat_id, new_session_id)
+        # Sync session state
+        await SessionService.sync_session(chat_id, response_data)
 
         # Send response back to user
         await send_agent_reply(target_message=update.message, text=bot_response)

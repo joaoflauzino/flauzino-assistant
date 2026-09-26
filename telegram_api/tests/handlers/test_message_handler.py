@@ -38,22 +38,14 @@ def mock_context():
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.handlers.message_handler.get_db")
-@patch("telegram_api.handlers.message_handler.SessionRepository")
+@patch("telegram_api.handlers.message_handler.SessionService")
 @patch("telegram_api.handlers.message_handler.send_message_to_agent")
 async def test_handle_text_message_suggested_options(
-    mock_send, mock_repo_class, mock_get_db, mock_update, mock_context
+    mock_send, mock_session_service, mock_update, mock_context
 ):
     # Arrange
-    # Mock DB Session
-    mock_session = AsyncMock()
-    mock_session.__aenter__.return_value = mock_session
-    mock_get_db.return_value = mock_session
-
-    # Mock Repo
-    mock_repo = AsyncMock()
-    mock_repo.get_session.return_value = str(uuid.uuid4())
-    mock_repo_class.return_value = mock_repo
+    mock_session_service.get_session = AsyncMock(return_value=str(uuid.uuid4()))
+    mock_session_service.sync_session = AsyncMock()
 
     # Mock Agent API response
     mock_send.return_value = {
@@ -67,6 +59,8 @@ async def test_handle_text_message_suggested_options(
     await handle_text_message(mock_update, mock_context)
 
     # Assert
+    mock_session_service.get_session.assert_called_once()
+    mock_session_service.sync_session.assert_called_once()
     mock_update.message.reply_text.assert_called_once()
 
     # Verify the reply text and inline keyboard markup
@@ -84,22 +78,12 @@ async def test_handle_text_message_suggested_options(
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.handlers.message_handler.get_db")
-@patch("telegram_api.handlers.message_handler.SessionRepository")
+@patch("telegram_api.handlers.message_handler.SessionService")
 @patch("telegram_api.handlers.message_handler.send_message_to_agent")
-async def test_handle_agent_callback(
-    mock_send, mock_repo_class, mock_get_db, mock_update, mock_context
-):
+async def test_handle_agent_callback(mock_send, mock_session_service, mock_update, mock_context):
     # Arrange
-    # Mock DB Session
-    mock_session = AsyncMock()
-    mock_session.__aenter__.return_value = mock_session
-    mock_get_db.return_value = mock_session
-
-    # Mock Repo
-    mock_repo = AsyncMock()
-    mock_repo.get_session.return_value = str(uuid.uuid4())
-    mock_repo_class.return_value = mock_repo
+    mock_session_service.get_session = AsyncMock(return_value=str(uuid.uuid4()))
+    mock_session_service.sync_session = AsyncMock()
 
     # Mock Agent API response
     mock_send.return_value = {
@@ -112,6 +96,8 @@ async def test_handle_agent_callback(
     await handle_agent_callback(mock_update, mock_context)
 
     # Assert
+    mock_session_service.get_session.assert_called_once()
+    mock_session_service.sync_session.assert_called_once()
     mock_update.callback_query.answer.assert_called_once()
 
     # Should have replied to query.message with the selection

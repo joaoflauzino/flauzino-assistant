@@ -6,7 +6,7 @@ import io
 import re
 from typing import Any
 
-from telegram import InlineKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.error import BadRequest
 
@@ -153,3 +153,32 @@ async def send_agent_reply(
                 await target_message.reply_text(text, **kwargs)
             else:
                 raise
+
+
+def build_options_keyboard(
+    options: list[str] | None, prefix: str = "agent_opt:", columns: int = 2
+) -> InlineKeyboardMarkup | None:
+    """Build an InlineKeyboardMarkup with action buttons from a list of option strings.
+
+    Args:
+        options: List of string options to display as buttons.
+        prefix: Callback data prefix for the options.
+        columns: Maximum number of buttons per row (default: 2).
+
+    Returns:
+        InlineKeyboardMarkup or None if options is empty or invalid.
+    """
+    if not options or not isinstance(options, list):
+        return None
+
+    keyboard: list[list[InlineKeyboardButton]] = []
+    row: list[InlineKeyboardButton] = []
+    for option in options:
+        row.append(InlineKeyboardButton(option, callback_data=f"{prefix}{option}"))
+        if len(row) == columns:
+            keyboard.append(row)
+            row = []
+    if row:
+        keyboard.append(row)
+
+    return InlineKeyboardMarkup(keyboard) if keyboard else None

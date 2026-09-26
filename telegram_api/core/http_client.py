@@ -1,13 +1,23 @@
 """HTTP client for communicating with agent_api."""
 
 import asyncio
-import httpx
+import base64
+import time
 from typing import Any
 
-from telegram_api.settings import settings
+import httpx
+
+from telegram_api.core.correlation import CORRELATION_HEADER, get_request_id, set_request_id
 from telegram_api.core.logger import get_logger
+from telegram_api.settings import settings
 
 logger = get_logger(__name__)
+
+
+def _get_headers() -> dict[str, str]:
+    req_id = get_request_id() or set_request_id()
+    return {CORRELATION_HEADER: req_id}
+
 
 # Single persistent HTTP client - reused across all requests
 _http_client: httpx.AsyncClient | None = None
@@ -55,13 +65,17 @@ async def send_message_to_agent(message: str, session_id: str | None = None) -> 
 
     logger.info(f"Sending message to agent_api: {url}")
     client = get_http_client()
+    start_time = time.perf_counter()
 
     for attempt in range(3):
         try:
-            response = await client.post(url, json=payload)
+            response = await client.post(url, json=payload, headers=_get_headers())
             response.raise_for_status()
             data = response.json()
-            logger.info(f"Received response from agent_api (attempt {attempt + 1})")
+            elapsed = time.perf_counter() - start_time
+            logger.info(
+                f"Received response from agent_api in {elapsed:.2f}s (attempt {attempt + 1})"
+            )
             return data
         except httpx.HTTPError as e:
             logger.warning(f"HTTP error on attempt {attempt + 1}: {e}")
@@ -96,13 +110,17 @@ async def send_receipt_to_agent(
         data["session_id"] = session_id
 
     client = get_http_client()
+    start_time = time.perf_counter()
 
     for attempt in range(3):
         try:
-            response = await client.post(url, files=files, data=data)
+            response = await client.post(url, files=files, data=data, headers=_get_headers())
             response.raise_for_status()
             result = response.json()
-            logger.info(f"Received OCR response from agent_api (attempt {attempt + 1})")
+            elapsed = time.perf_counter() - start_time
+            logger.info(
+                f"Received OCR response from agent_api in {elapsed:.2f}s (attempt {attempt + 1})"
+            )
             return result
         except httpx.HTTPError as e:
             logger.warning(f"HTTP error on attempt {attempt + 1}: {e}")
@@ -138,13 +156,17 @@ async def send_audio_to_agent(
         data["session_id"] = session_id
 
     client = get_http_client()
+    start_time = time.perf_counter()
 
     for attempt in range(3):
         try:
-            response = await client.post(url, files=files, data=data)
+            response = await client.post(url, files=files, data=data, headers=_get_headers())
             response.raise_for_status()
             result = response.json()
-            logger.info(f"Received audio response from agent_api (attempt {attempt + 1})")
+            elapsed = time.perf_counter() - start_time
+            logger.info(
+                f"Received audio response from agent_api in {elapsed:.2f}s (attempt {attempt + 1})"
+            )
             return result
         except httpx.HTTPError as e:
             logger.warning(f"HTTP error on attempt {attempt + 1}: {e}")
@@ -218,7 +240,7 @@ async def save_spent(details: dict) -> dict[str, Any]:
     logger.info(f"Sending POST request to {url}")
     client = get_http_client()
 
-    response = await client.post(url, json=details)
+    response = await client.post(url, json=details, headers=_get_headers())
     response.raise_for_status()
     logger.info("Finance API request successful")
     return response.json()
@@ -234,7 +256,69 @@ async def save_subscription(details: dict) -> dict[str, Any]:
     logger.info(f"Sending POST request to {url}")
     client = get_http_client()
 
-    response = await client.post(url, json=details)
+    response = await client.post(url, json=details, headers=_get_headers())
     response.raise_for_status()
     logger.info("Finance API request successful (subscription)")
     return response.json()
+
+
+async def get_balance_graph(
+    categories: set[str] | list[str] | None = None, mode: str = "saldo"
+) -> bytes | None:
+    """Fetch balances from finance_api, optionally filter by categories, and generate a graph from graph_api.
+
+    Args:
+        categories: Optional collection of category names to filter.
+        mode: Balance mode ("saldo" or "limites").
+
+    Returns:
+        Image bytes (decoded) of the bar chart, or None if no balances are found or format is invalid.
+
+    Raises:
+        httpx.HTTPError: If the HTTP request to finance_api or graph_api fails (excluding 404 on finance).
+    """
+    client = get_http_client()
+    start_time = time.perf_counter()
+
+    finance_url = f"{settings.FINANCE_SERVICE_URL}/limits/balance"
+    fin_resp = await client.get(finance_url, headers=_get_headers())
+    if fin_resp.status_code == 404:
+        logger.info("No balance limits registered for this month (404)")
+        return None
+
+    fin_resp.raise_for_status()
+    balances = fin_resp.json()
+
+    if not balances:
+        logger.info("No balance data available.")
+        return None
+
+    if categories:
+        selected_lower = {s.lower().strip() for s in categories}
+        filtered_balances = [
+            b
+            for b in balances
+            if b.get("category", "").lower() in selected_lower
+            or b.get("category_display_name", "").lower() in selected_lower
+        ] or balances
+    else:
+        filtered_balances = balances
+
+    graph_url = f"{settings.GRAPH_SERVICE_URL}/graphs/bar"
+    response = await client.post(
+        graph_url,
+        json={
+            "balances": filtered_balances,
+            "mode": mode,
+        },
+        headers=_get_headers(),
+    )
+    response.raise_for_status()
+    data = response.json()
+
+    elapsed = time.perf_counter() - start_time
+    logger.info(f"Balance graph generated in {elapsed:.2f}s")
+
+    if "image_base64" in data:
+        return base64.b64decode(data["image_base64"])
+    return None

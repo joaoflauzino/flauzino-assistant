@@ -3,7 +3,11 @@ from unittest.mock import AsyncMock
 from telegram.error import BadRequest
 from telegram.constants import ParseMode
 
-from telegram_api.core.formatter import markdown_to_telegram_html, send_agent_reply
+from telegram_api.core.formatter import (
+    markdown_to_telegram_html,
+    send_agent_reply,
+    build_options_keyboard,
+)
 
 
 def test_markdown_to_telegram_html_empty_or_none():
@@ -164,3 +168,28 @@ async def test_send_agent_reply_photo_fallback_on_parse_error():
     second_call_kwargs = msg.reply_photo.call_args_list[1][1]
     assert second_call_kwargs.get("caption") == "Legenda com erro"
     assert "parse_mode" not in second_call_kwargs
+
+
+def test_build_options_keyboard():
+    # Empty or None cases
+    assert build_options_keyboard(None) is None
+    assert build_options_keyboard([]) is None
+
+    # Normal options with default 2 columns
+    options = ["Opção 1", "Opção 2", "Opção 3"]
+    markup = build_options_keyboard(options)
+    assert markup is not None
+    assert len(markup.inline_keyboard) == 2
+    assert len(markup.inline_keyboard[0]) == 2
+    assert len(markup.inline_keyboard[1]) == 1
+
+    btn1 = markup.inline_keyboard[0][0]
+    assert btn1.text == "Opção 1"
+    assert btn1.callback_data == "agent_opt:Opção 1"
+
+    # Custom prefix and columns
+    markup_custom = build_options_keyboard(options, prefix="custom:", columns=3)
+    assert markup_custom is not None
+    assert len(markup_custom.inline_keyboard) == 1
+    assert len(markup_custom.inline_keyboard[0]) == 3
+    assert markup_custom.inline_keyboard[0][0].callback_data == "custom:Opção 1"
