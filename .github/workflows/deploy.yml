@@ -27,7 +27,8 @@ jobs:
         # This will run natively on your Raspberry Pi.
         # It spins up the containers using the code pulled by actions/checkout.
         run: |
-          docker compose --env-file .env -f infra/docker-compose.yml up -d --build
+          docker compose --env-file .env -f infra/docker-compose.yml up -d --build --remove-orphans
+          docker compose --env-file .env -f infra/docker-compose.yml restart prometheus grafana
 
       - name: Cleanup Docker
         run: |
