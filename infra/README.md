@@ -48,74 +48,23 @@ Para parar o banco de dados:
 make db-down
 ```
 
-> **Aviso para macOS (Apple Silicon):**
-> O serviço de banco especifica `platform: linux/arm64`. Caso use outra arquitetura, defina a variável `ARCH` se necessário.
+---
 
-### Logs dos Serviços
-Para visualizar e acompanhar os logs em tempo real:
-```bash
-# Todos os serviços:
-docker-compose -f infra/docker-compose.yml logs -f
+## Observabilidade (Prometheus & Grafana)
 
-# Apenas um serviço específico (ex: agent_api):
-docker-compose -f infra/docker-compose.yml logs -f agent_api
-```
+A stack inclui monitoramento de métricas em tempo real e visualização de dashboards através de contêineres dedicados:
+
+- **Prometheus:** Acessível em [http://localhost:9090](http://localhost:9090). Coleta métricas das rotas `/metrics` dos serviços Python a cada 10 segundos.
+- **Grafana:** Acessível em [http://localhost:3000](http://localhost:3000). Pré-configurado com login `admin`/`admin` e provisionamento automático de datasource e dashboards:
+  - **Overview Geral:** Métricas de tráfego HTTP, latência e status dos microsserviços.
+  - **Agent & LLM Metrics:** Contadores de tokens gerados, uso de MCP tools e execuções de OCR.
+  - **Telegram Bot Activity:** Contadores de mensagens recebidas e enviadas agrupadas por tipo.
 
 ---
 
-## Observabilidade (Prometheus + Grafana)
+## Guia de Variáveis de Ambiente (.env)
 
-A stack conta com monitoramento em tempo real de saúde, taxa de chamadas, latência, erros HTTP, consumo de LLMs e bot do Telegram:
-
-### Acessos
-- **Grafana**: [http://localhost:3000](http://localhost:3000) (Usuário: `admin` / Senha: `admin`)
-  - Dashboard provisionado automaticamente: **Flauzino Assistant - Observabilidade Geral**
-- **Prometheus**: [http://localhost:9090](http://localhost:9090)
-  - Alvos monitorados: [http://localhost:9090/targets](http://localhost:9090/targets)
-
-### O que é monitorado
-1. **Saúde & Liveness (UP/DOWN)**: Monitoramento ativo dos 4 serviços (`finance_api`, `agent_api`, `graph_api` e `telegram_bot`).
-2. **Tráfego HTTP & Erros**: Throughput (req/s), distribuição de códigos HTTP (`2xx`, `4xx`, `5xx`) e latência P95 por rota.
-3. **Telegram Bot**:
-   - `flauzino_telegram_messages_received_total`: Total e volume por tipo (texto, áudio, foto, comandos).
-   - Detecção de tentativas de acessos não autorizados.
-4. **Observabilidade de LLM**:
-   - `flauzino_llm_tokens_total`: Total de tokens de prompt e completion gerados.
-   - `flauzino_llm_requests_total`: Contagem de requisições enviadas ao provedor de LLM e taxas de erro.
-   - `flauzino_llm_request_duration_seconds`: Latência de resposta da OpenAI.
-   - `flauzino_agent_tool_executions_total`: Ferramentas acionadas pelo agente e seus tempos de execução.
-
----
-
-## Rastreabilidade Distribuída (`X-Request-ID`)
-
-O ecossistema implementa rastreabilidade distribuída de ponta a ponta com **Correlation ID** (`X-Request-ID`):
-
-1. **Geração na Borda:** Cada comando, texto, mensagem de voz ou foto enviada pelo usuário no Telegram recebe um novo `UUIDv4` gerado no `telegram_api`.
-2. **Propagação via HTTP:** O identificador é inserido no cabeçalho HTTP `X-Request-ID` de todas as chamadas feitas aos demais serviços (`agent_api` e `finance_api`).
-3. **Encaminhamento Interno:** Quando a `agent_api` se comunica com a `finance_api`, o mesmo `X-Request-ID` é mantido no contexto e propagado na requisição HTTP subsequente.
-4. **Logs Correlacionados:** Todos os serviços utilizam loggers que injetam automaticamente o `[request_id]` em cada linha de log. Isso permite acompanhar a jornada completa de uma requisição em todos os contêineres com um único filtro:
-   ```bash
-   docker-compose -f infra/docker-compose.yml logs | grep "seu-uuid-aqui"
-   ```
-
----
-
-## Banco de Dados (PostgreSQL)
-
-O arquivo `infra/db/init.sql` é montado automaticamente no diretório `/docker-entrypoint-initdb.d/` na inicialização do contêiner PostgreSQL para criar:
-- Extensão `uuid-ossp` para geração de identificadores universais.
-- Tabelas principais: `categories`, `spents`, `limits`, `payment_methods`, `payment_owners`, `invoices`, `installments`, `subscriptions` e `chat_sessions`.
-- Triggers automáticos para atualização de `updated_at`.
-- Carga inicial (*seed*) de categorias essenciais (`alimentacao`, `transporte`, `lazer`, etc.).
-
-Os dados do banco são mantidos no volume persistente `postgres_data`.
-
----
-
-## Guia de Variáveis de Ambiente (`.env`)
-
-Crie um arquivo `.env` na raiz do projeto baseado no `.env.example`.
+Todas as configurações sensíveis e URLs de integração entre microsserviços são parametrizadas no `.env`. Utilize o [.env.example](../.env.example) como modelo base.
 
 ### Banco de Dados
 | Variável | Serviços | Padrão | Obrigatória? | Descrição |
@@ -141,6 +90,18 @@ Crie um arquivo `.env` na raiz do projeto baseado no `.env.example`.
 | `AGENT_SERVICE_URL` / `AGENT_API_URL` | `telegram_bot`, `finance_api` | `http://localhost:8001` | `http://agent_api:8001` | URL base da Agent API |
 | `GRAPH_SERVICE_URL` / `MCP_SERVER_URL`| `finance_api`, `agent_api`, `telegram_bot` | `http://localhost:8002` | `http://graph_api:8002` | URL base da Graph API |
 | `FRONTEND_URL` | `frontend` | `http://localhost:5173` | `http://frontend:80` | URL base do Frontend |
+
+### Backup & Notificações
+| Variável | Serviços | Padrão | Obrigatória? | Descrição |
+|:---|:---|:---|:---:|:---|
+| `RCLONE_REMOTE` | Script de Backup | `onedrive:flauzino-backups` | Não | Destino do remote configurado no Rclone |
+| `TELEGRAM_CHAT_ID` | Script de Backup | — | Não | ID numérico do usuário/canal para alertas |
+
+---
+
+## Backup Automatizado e Retenção
+
+Para detalhes sobre o script de backup unificado (`scripts/backup_rclone.sh`), políticas de retenção (PostgreSQL por 180 dias e logs por 30 dias) e agendamento no Linux/Raspberry Pi com Systemd Timer, consulte o [`infra/server/README.md`](server/README.md).
 
 ---
 
