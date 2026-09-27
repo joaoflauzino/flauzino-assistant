@@ -1,4 +1,4 @@
-name: Deploy to Raspberry Pi
+name: Deploy to Server
 
 on:
   push:
@@ -22,9 +22,19 @@ jobs:
           echo "ALLOWED_TELEGRAM_USERNAMES=${{ secrets.ALLOWED_TELEGRAM_USERNAMES }}" >> .env
           echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
           echo "MODEL_NAME=${{ secrets.MODEL_NAME }}" >> .env
+          echo "RCLONE_REMOTE=${{ secrets.RCLONE_REMOTE || 'onedrive:flauzino-backups' }}" >> .env
+          echo "TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}" >> .env
+
+      - name: Pre-deploy Backup
+        run: |
+          # Snapshot preventivo antes de recriar os containers
+          if docker ps --format '{{.Names}}' | grep -q "^infra-db-1$"; then
+            chmod +x scripts/backup_rclone.sh
+            ./scripts/backup_rclone.sh || echo "Pre-deploy backup failed, continuing deploy..."
+          fi
 
       - name: Deploy with Docker Compose
-        # This will run natively on your Raspberry Pi.
+        # This will run natively on your server.
         # It spins up the containers using the code pulled by actions/checkout.
         run: |
           docker compose --env-file .env -f infra/docker-compose.yml up -d --build --remove-orphans
