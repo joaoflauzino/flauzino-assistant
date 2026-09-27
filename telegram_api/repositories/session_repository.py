@@ -1,12 +1,13 @@
 import uuid
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from sqlalchemy import select, delete
+from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from telegram_api.models.session import TelegramSession
 from telegram_api.core.logger import get_logger
+from telegram_api.models.session import TelegramSession
 
 logger = get_logger(__name__)
 
@@ -15,16 +16,32 @@ class SessionRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def get_session(self, chat_id: int) -> Optional[str]:
-        """Retrieve the session ID for a given chat ID."""
+    async def get_session(self, chat_id: int, ttl_minutes: int | None = None) -> Optional[str]:
+        """Retrieve the session ID for a given chat ID if not expired."""
         try:
-            query = select(TelegramSession.session_id).where(TelegramSession.chat_id == chat_id)
+            query = select(TelegramSession).where(TelegramSession.chat_id == chat_id)
             result = await self.session.execute(query)
-            session_id = result.scalar_one_or_none()
+            session_record = result.scalar_one_or_none()
 
-            if session_id:
-                return str(session_id)
-            return None
+            if not session_record:
+                return None
+
+            if ttl_minutes is not None and ttl_minutes > 0:
+                now = datetime.now(timezone.utc)
+                updated_at = session_record.updated_at
+                if updated_at.tzinfo is None:
+                    updated_at = updated_at.replace(tzinfo=timezone.utc)
+
+                if now - updated_at > timedelta(minutes=ttl_minutes):
+                    logger.info(
+                        f"Session {session_record.session_id} for chat_id {chat_id} "
+                        f"expired (inactive for > {ttl_minutes}m). Clearing session."
+                    )
+                    await self.session.delete(session_record)
+                    await self.session.commit()
+                    return None
+
+            return str(session_record.session_id)
         except Exception as e:
             logger.error(f"Error retrieving session for chat_id {chat_id}: {e}")
             return None
@@ -32,33 +49,18 @@ class SessionRepository:
     async def save_session(self, chat_id: int, session_id: str) -> None:
         """Save or update the session ID for a given chat ID."""
         try:
-            # Upsert logic common in Postgres
-            stmt = (
-                insert(TelegramSession)
-                .values(chat_id=chat_id, session_id=uuid.UUID(session_id))
-                .on_conflict_do_update(
-                    index_elements=[TelegramSession.chat_id],
-                    set_=dict(
-                        session_id=uuid.UUID(session_id),
-                        updated_at=TelegramSession.updated_at.default.arg,  # Re-trigger default or just now()
-                    ),
-                )
-            )
-            # Note: SQLAlchemy's defaults might not trigger on upsert automatically depending on setup.
-            # A cleaner way using explicit values:
-            from datetime import datetime
-
+            now = datetime.now(timezone.utc)
             stmt = (
                 insert(TelegramSession)
                 .values(
                     chat_id=chat_id,
                     session_id=uuid.UUID(session_id),
-                    created_at=datetime.utcnow(),
-                    updated_at=datetime.utcnow(),
+                    created_at=now,
+                    updated_at=now,
                 )
                 .on_conflict_do_update(
                     index_elements=[TelegramSession.chat_id],
-                    set_=dict(session_id=uuid.UUID(session_id), updated_at=datetime.utcnow()),
+                    set_=dict(session_id=uuid.UUID(session_id), updated_at=now),
                 )
             )
 

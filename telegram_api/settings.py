@@ -13,6 +13,7 @@ class TelegramApiSettings(BaseSettings):
     MCP_SERVER_URL: str = "http://localhost:8002"
     ALLOWED_TELEGRAM_USERNAMES: str = ""
     METRICS_PORT: int = 8003
+    SESSION_TTL_MINUTES: int = 30
 
 
 settings = TelegramApiSettings()

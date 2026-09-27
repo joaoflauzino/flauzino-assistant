@@ -17,7 +17,7 @@ async def test_session_service_get_session(mock_repo_cls, mock_get_db):
 
     result = await SessionService.get_session(chat_id=12345)
     assert result == "session-123"
-    mock_repo.get_session.assert_called_once_with(12345)
+    mock_repo.get_session.assert_called_once_with(12345, ttl_minutes=30)
 
 
 @pytest.mark.asyncio
