@@ -1,23 +1,23 @@
 # Configuração do Backup Automatizado no Servidor (Raspberry Pi / Linux)
 
-Este diretório contém os arquivos de serviço do **Systemd** para agendar o backup diário com **Rclone** e sincronização para o **Microsoft OneDrive**.
+Este diretório contém os arquivos de serviço do **Systemd** para agendar o backup diário com **Rclone** e sincronização para o **Google Drive**.
 
 ---
 
 ## 1. Pré-requisitos no Servidor
 
 1. **Rclone instalado e configurado:**
-   - Verifique se o remote do OneDrive está funcionando:
+   - Verifique se o remote do Google Drive está funcionando:
      ```bash
-     rclone lsd onedrive:
+     rclone lsd gdrive:
      ```
-   - Caso o nome do seu remote seja diferente de `onedrive:`, defina a variável `RCLONE_REMOTE` no arquivo `.env` do projeto:
+   - Caso o nome do seu remote seja diferente de `gdrive:`, defina a variável `RCLONE_REMOTE` no arquivo `.env` do projeto:
      ```env
      RCLONE_REMOTE=meu_remote:flauzino-backups
      ```
 
 2. **Permissões do usuário:**
-   - O usuário configurado no serviço (ex: `pi`) deve pertencer ao grupo `docker`:
+   - O usuário configurado no serviço (ex: `flauzino`) deve pertencer ao grupo `docker`:
      ```bash
      sudo usermod -aG docker $USER
      ```
@@ -40,7 +40,7 @@ Este diretório contém os arquivos de serviço do **Systemd** para agendar o ba
    ```
 
 2. **Ajuste o caminho e usuário se necessário:**
-   - Verifique se o diretório do projeto no servidor é `/home/pi/flauzino-assistant`. Caso seja diferente, edite `/etc/systemd/system/flauzino-backup.service`:
+   - Verifique se o diretório do projeto e usuário em `/etc/systemd/system/flauzino-backup.service` correspondem ao seu ambiente:
      ```bash
      sudo nano /etc/systemd/system/flauzino-backup.service
      ```

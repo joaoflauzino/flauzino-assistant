@@ -100,13 +100,13 @@ Para detalhes técnicos, contratos de endpoints e opções específicas de cada 
 | **Telegram Bot** | [`telegram_api/README.md`](telegram_api/README.md) | Interface conversacional, fluxos guiados e alertas agendados |
 | **Frontend** | [`frontend/README.md`](frontend/README.md) | Dashboard interativo e gestão orçamentária visual em React |
 | **Infraestrutura** | [`infra/README.md`](infra/README.md) | Docker Compose, banco PostgreSQL e guia completo de variáveis |
-| **Backup & Servidor** | [`infra/server/README.md`](infra/server/README.md) | Automação de backup com Rclone (OneDrive), Systemd e retenções |
+| **Backup & Servidor** | [`infra/server/README.md`](infra/server/README.md) | Automação de backup com Rclone (Google Drive), Systemd e retenções |
 
 ---
 
 ## Backup & Resiliência
 
-O ecossistema conta com uma rotina automatizada de backup em nuvem projetada para servidores Linux e Raspberry Pi, utilizando **Rclone** sincronizado com o **Microsoft OneDrive**:
+O ecossistema conta com uma rotina automatizada de backup em nuvem projetada para servidores Linux e Raspberry Pi, utilizando **Rclone** sincronizado com o **Google Drive**:
 
 - **PostgreSQL (`pg_dump`):** Snapshots diários compactados com retenção de **6 meses (180 dias)** localmente e na nuvem.
 - **Logs das Aplicações:** Coleta diária dos logs dos containers Docker com retenção de **7 dias local** e **30 dias (1 mês) na nuvem**.

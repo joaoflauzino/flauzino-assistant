@@ -1,14 +1,14 @@
 [Unit]
-Description=Flauzino Assistant Automated Backup to OneDrive
+Description=Flauzino Assistant Automated Backup to Google Drive
 After=docker.service
 Requires=docker.service
 
 [Service]
 Type=oneshot
-# Ajuste o User e os caminhos conforme o usuario no seu Raspberry Pi (ex: pi ou seu usuario)
-User=pi
-WorkingDirectory=/home/pi/flauzino-assistant
-ExecStart=/bin/bash /home/pi/flauzino-assistant/scripts/backup_rclone.sh
+# Ajuste o User e os caminhos conforme o usuario no seu servidor (ex: flauzino ou pi)
+User=flauzino
+WorkingDirectory=/home/flauzino/actions-runner/_work/flauzino-assistant/flauzino-assistant
+ExecStart=/bin/bash scripts/backup_rclone.sh
 StandardOutput=journal
 StandardError=journal
 

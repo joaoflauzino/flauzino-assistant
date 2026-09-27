@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Flauzino Assistant - Automated Backup & Retention with Rclone (OneDrive)
+# Flauzino Assistant - Automated Backup & Retention with Rclone (Google Drive)
 # ==============================================================================
 set -euo pipefail
 
@@ -25,7 +25,7 @@ fi
 POSTGRES_USER="${POSTGRES_USER:-flauzino}"
 POSTGRES_DB="${POSTGRES_DB:-assistant}"
 CONTAINER_DB="${CONTAINER_DB:-infra-db-1}"
-RCLONE_REMOTE="${RCLONE_REMOTE:-onedrive:flauzino-backups}"
+RCLONE_REMOTE="${RCLONE_REMOTE:-gdrive:flauzino-backups}"
 BACKUP_DIR="${BACKUP_DIR:-$PROJECT_DIR/backups}"
 DISK_ALERT_THRESHOLD="${DISK_ALERT_THRESHOLD:-85}"
 
@@ -115,9 +115,9 @@ fi
 rm -rf "$TEMP_LOG_DIR"
 
 # ------------------------------------------------------------------------------
-# 4. Sincronização com o Microsoft OneDrive via Rclone
+# 4. Sincronização com o Google Drive via Rclone
 # ------------------------------------------------------------------------------
-echo "4. Sincronizando com o OneDrive ($RCLONE_REMOTE)..."
+echo "4. Sincronizando com o Google Drive ($RCLONE_REMOTE)..."
 
 if command -v rclone &>/dev/null; then
   echo "Enviando dumps do PostgreSQL..."
@@ -127,9 +127,9 @@ if command -v rclone &>/dev/null; then
   rclone copy "$DIR_LOGS/" "${RCLONE_REMOTE}/logs/"
 
   # ----------------------------------------------------------------------------
-  # 5. Políticas de Retenção Remota (OneDrive)
+  # 5. Políticas de Retenção Remota (Google Drive)
   # ----------------------------------------------------------------------------
-  echo "5. Aplicando políticas de expiração no OneDrive..."
+  echo "5. Aplicando políticas de expiração no Google Drive..."
   # PostgreSQL: retenção de 6 meses (180 dias)
   rclone delete "${RCLONE_REMOTE}/postgres/" --min-age 180d --rmdirs || true
 
@@ -152,4 +152,4 @@ find "$DIR_LOGS" -name "apps_logs_*.tar.gz" -type f -mtime +7 -delete
 echo "=== [$(date '+%Y-%m-%d %H:%M:%S')] Backup concluído com sucesso! ==="
 
 # Enviar notificação de sucesso resumida
-send_telegram "✅ *Flauzino Backup: Sucesso!*%0A• Banco: \`${POSTGRES_DB}\` (${DUMP_SIZE})%0A• Retenção DB: 180 dias%0A• Retenção Logs: 30 dias%0A• Disco RPi: ${DISK_USAGE}% usado"
+send_telegram "✅ *Flauzino Backup: Sucesso!*%0A• Banco: \`${POSTGRES_DB}\` (${DUMP_SIZE})%0A• Retenção DB: 180 dias%0A• Retenção Logs: 30 dias%0A• Destino: Google Drive%0A• Disco RPi: ${DISK_USAGE}% usado"

@@ -94,7 +94,7 @@ Todas as configurações sensíveis e URLs de integração entre microsserviços
 ### Backup & Notificações
 | Variável | Serviços | Padrão | Obrigatória? | Descrição |
 |:---|:---|:---|:---:|:---|
-| `RCLONE_REMOTE` | Script de Backup | `onedrive:flauzino-backups` | Não | Destino do remote configurado no Rclone |
+| `RCLONE_REMOTE` | Script de Backup | `gdrive:flauzino-backups` | Não | Destino do remote configurado no Rclone |
 | `TELEGRAM_CHAT_ID` | Script de Backup | — | Não | ID numérico do usuário/canal para alertas |
 
 ---
