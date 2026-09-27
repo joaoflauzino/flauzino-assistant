@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'feature/**'
+      - 'feat/**'
       - 'fix/**'
 
 jobs:
@@ -22,7 +23,7 @@ jobs:
         run: |
           # Check if a PR already exists for this branch
           PR_EXISTS=$(gh pr list --head "${{ github.ref_name }}" --base main --json number -q 'length')
-          
+
           if [ "$PR_EXISTS" -eq "0" ]; then
             echo "Creating a new PR..."
             gh pr create \
