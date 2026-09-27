@@ -5,6 +5,7 @@ from typing import Any
 from telegram_api.core.database import get_db
 from telegram_api.core.logger import get_logger
 from telegram_api.repositories.session_repository import SessionRepository
+from telegram_api.settings import settings
 
 logger = get_logger(__name__)
 
@@ -13,11 +14,14 @@ class SessionService:
     """Service to handle conversation sessions between Telegram chats and Agent API."""
 
     @staticmethod
-    async def get_session(chat_id: int) -> str | None:
-        """Get the active session ID for a chat if one exists."""
+    async def get_session(chat_id: int, ttl_minutes: int | None = None) -> str | None:
+        """Get the active session ID for a chat if one exists and has not expired."""
+        if ttl_minutes is None:
+            ttl_minutes = settings.SESSION_TTL_MINUTES
+
         async with get_db() as session:
             repo = SessionRepository(session)
-            return await repo.get_session(chat_id)
+            return await repo.get_session(chat_id, ttl_minutes=ttl_minutes)
 
     @staticmethod
     async def sync_session(chat_id: int, response_data: dict[str, Any]) -> None:
