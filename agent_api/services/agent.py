@@ -121,6 +121,14 @@ class AgentService:
         - Se o usuário pedir follow-up ou correção (ex: "corrige pra barras", "e alimentação?"):
           - Mantenha `is_complete=False`.
 
+        6. **Leitura de Recibos, Comprovantes e Notas Fiscais (OCR)**:
+        - Ao receber texto extraído de recibo ou comprovante:
+          - NUNCA responda apenas dizendo que vai analisar, organizar ou verificar os dados.
+          - Analise e apresente IMEDIATAMENTE na mesma resposta todos os dados identificados (ex: valor total, local/estabelecimento, data, itens).
+          - Aponte com clareza quais campos obrigatórios ainda faltam (`categoria`, `item_comprado`, `metodo_pagamento`, `local_compra`) para registrar o gasto.
+          - Se faltar método de pagamento ou categoria, liste as opções válidas para o usuário escolher.
+          - Defina `is_complete=False`.
+
         {platform_instructions}
     """
 

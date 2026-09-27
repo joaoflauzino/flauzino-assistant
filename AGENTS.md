@@ -47,6 +47,7 @@ O tratamento de exceções não deve ter blocos `try/except` genéricos espalhad
 ### 3.5. Comportamento da IA (Anti-Alucinação e Segurança)
 - **Read Before Write:** A IA **nunca** deve presumir a estrutura de um arquivo, modelo ou banco de dados existente. Antes de sugerir ou modificar código, deve-se usar as ferramentas (ex: `view_file`, `grep_search`) para ler o código atual no repositório.
 - **Segurança Máxima:** Nunca insira chaves de API, senhas ou tokens de forma estática (hardcoded) no código fonte. Novas configurações devem ser mapeadas no arquivo `.env.example` e lidas via `pydantic-settings`.
+- **Zero Operações Não Autorizadas no Git:** A IA **nunca** deve realizar `git commit` ou `git push` por conta própria. Toda operação de commit ou push exige solicitação prévia e aprovação explícita do desenvolvedor.
 
 ## 4. Testes Unitários
 Toda nova feature ou modificação precisa estar acompanhada de **testes unitários** utilizando `pytest`. Nenhuma feature deve ser considerada completa sem testes.
@@ -70,3 +71,11 @@ Para qualquer solicitação de nova feature:
 4. **Implementar**: Somente após aprovação, iniciar a escrita do código respeitando os padrões descritos neste documento.
 5. **Testar**: Gerar o plano de testes e escrever/executar os testes automatizados.
 6. **Documentar**: Ao finalizar a tarefa, certifique-se de que os arquivos `implementation_plan.md` e `walkthrough.md` estejam atualizados dentro de `.specs/<feature-name>/`.
+
+## 7. Controle de Versão e Git (Git & Commits)
+- **Proibição Estrita de Commits/Push Não Autorizados:** A IA / assistente está estritamente **proibida** de executar comandos `git commit` ou `git push` sem a autorização prévia e expressa do usuário.
+- **Fluxo Obrigatório de Aprovação:**
+  1. Realizar as modificações nos arquivos.
+  2. Executar testes e linters (`make format`, `make lint`, `uv run pytest`).
+  3. Apresentar o `git diff` e o resumo das alterações de forma clara ao usuário.
+  4. **Aguardar a confirmação/autorização explícita do usuário** antes de executar qualquer `git commit` ou `git push`.

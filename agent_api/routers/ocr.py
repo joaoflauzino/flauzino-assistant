@@ -58,11 +58,15 @@ async def process_receipt_image(
         f"with {confidence:.2f}% confidence"
     )
 
-    # Process through chat service
+    # Process through chat service with direct and unambiguous instructions
     message = (
-        f"Aqui está o texto extraído de um recibo/nota fiscal:\n\n"
-        f"{extracted_text}\n\n"
-        f"Por favor, extraia as informações de gastos."
+        f"O usuário enviou a foto de um recibo/comprovante. O texto extraído via OCR foi:\n\n"
+        f"```\n{extracted_text}\n```\n\n"
+        "Analise o texto do recibo e apresente IMEDIATAMENTE os dados identificados "
+        "(valor total, local/estabelecimento, data, itens e método de pagamento se houver). "
+        "Pergunte com clareza quais informações obrigatórias ainda faltam para registrar o gasto "
+        "(categoria, item comprado, método de pagamento, local da compra). "
+        "NUNCA responda apenas com frases intermediárias como 'vou organizar as informações'."
     )
 
     response = await service.process_message(message, session_id, platform)
