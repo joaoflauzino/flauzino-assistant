@@ -439,7 +439,9 @@ async def test_get_installments_summary_success(test_client, mock_spent_reposito
     app.dependency_overrides.clear()
 
 
-async def test_get_dashboard_invoices_mode_with_mixed_payment_methods(test_client, mock_spent_repository, mocker):
+async def test_get_dashboard_invoices_mode_with_mixed_payment_methods(
+    test_client, mock_spent_repository, mocker
+):
     mock_db = AsyncMock()
     app.dependency_overrides[get_db] = lambda: mock_db
     mocker.patch("finance_api.routers.spents.SpentRepository", return_value=mock_spent_repository)
