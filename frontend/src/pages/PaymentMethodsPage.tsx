@@ -45,11 +45,20 @@ export const PaymentMethodsPage = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            const isCreditCard = Boolean(formData.is_credit_card);
+            const payload = {
+                key: formData.key.trim().toLowerCase(),
+                display_name: formData.display_name.trim(),
+                is_credit_card: isCreditCard,
+                closing_day: isCreditCard && formData.closing_day ? parseInt(formData.closing_day, 10) : null,
+                due_day: isCreditCard && formData.due_day ? parseInt(formData.due_day, 10) : null,
+            };
             if (editingMethod) {
-                await api.put(`/payment-methods/${editingMethod.id}`, formData);
+                await api.put(`/payment-methods/${editingMethod.id}`, payload);
             } else {
-                await api.post('/payment-methods/', formData);
+                await api.post('/payment-methods/', payload);
             }
+            setIsModalOpen(false);
             setEditingMethod(null);
             setFormData({ key: '', display_name: '', is_credit_card: false, closing_day: '', due_day: '' });
             fetchData(page);
@@ -162,7 +171,7 @@ export const PaymentMethodsPage = () => {
                 boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
                 display: 'flex',
                 flexDirection: 'column',
-                maxHeight: 'calc(100vh - 250px)' // Fixed height to enable scrolling
+                maxHeight: 'calc(100vh - 250px)'
             }}>
                 {loading ? (
                     <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
@@ -176,7 +185,7 @@ export const PaymentMethodsPage = () => {
                                     <tr style={{
                                         textAlign: 'left',
                                         borderBottom: '1px solid var(--border-color)',
-                                        backgroundColor: 'var(--bg-secondary)', // Opaque background for sticky header
+                                        backgroundColor: 'var(--bg-secondary)',
                                         position: 'sticky',
                                         top: 0,
                                         zIndex: 10
@@ -190,7 +199,7 @@ export const PaymentMethodsPage = () => {
                                 <tbody>
                                     {paymentMethods.length === 0 ? (
                                         <tr>
-                                            <td colSpan={3} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                            <td colSpan={4} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
                                                 No payment methods found. Create one to get started!
                                             </td>
                                         </tr>
@@ -434,7 +443,7 @@ export const PaymentMethodsPage = () => {
                                 fontWeight: 500
                             }}
                         >
-                            Cancel
+                            Cancelar
                         </button>
                         <button
                             type="submit"
@@ -445,24 +454,52 @@ export const PaymentMethodsPage = () => {
                                 border: 'none',
                                 borderRadius: '8px',
                                 cursor: 'pointer',
-                                fontWeight: 600,
-                                minWidth: '100px'
+                                fontWeight: 600
                             }}
                         >
-                            {editingMethod ? "Update" : "Create"}
+                            Salvar
                         </button>
                     </div>
                 </form>
             </Modal>
 
+            {/* Delete Confirmation Modal */}
             <Modal isOpen={!!itemToDelete} onClose={() => setItemToDelete(null)} title="Confirmar Exclusão">
-                <div style={{ padding: '1rem 0' }}>
-                    <p style={{ color: 'var(--text-primary)', fontSize: '1rem', marginBottom: '2rem' }}>
-                        Tem certeza que deseja excluir este método de pagamento? Gastos vinculados a ele podem ser afetados.
+                <div style={{ marginTop: '1rem' }}>
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+                        Tem certeza que deseja excluir este método de pagamento? Esta ação não pode ser desfeita.
                     </p>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                        <button type="button" onClick={() => setItemToDelete(null)} style={{ padding: '0.75rem 1.5rem', backgroundColor: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', fontWeight: 500 }}>Cancelar</button>
-                        <button type="button" onClick={confirmDelete} style={{ padding: '0.75rem 1.5rem', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, minWidth: '100px' }}>Excluir</button>
+                        <button
+                            type="button"
+                            onClick={() => setItemToDelete(null)}
+                            style={{
+                                padding: '0.75rem 1.5rem',
+                                backgroundColor: 'transparent',
+                                color: 'var(--text-secondary)',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontWeight: 500
+                            }}
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="button"
+                            onClick={confirmDelete}
+                            style={{
+                                padding: '0.75rem 1.5rem',
+                                backgroundColor: '#ef4444',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontWeight: 600
+                            }}
+                        >
+                            Excluir
+                        </button>
                     </div>
                 </div>
             </Modal>

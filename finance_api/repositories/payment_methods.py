@@ -46,8 +46,6 @@ class PaymentMethodRepository:
         result = await self.db.execute(query)
         items = result.scalars().all()
 
-        # Count total
-        # In a real app, optimize this count query
         count_query = select(PaymentMethod)
         total_result = await self.db.execute(count_query)
         total = len(total_result.scalars().all())
@@ -55,11 +53,26 @@ class PaymentMethodRepository:
         logger.debug(f"Repository: Found {len(items)} payment methods, total={total}")
         return items, total
 
+    async def list_credit_cards(self) -> Sequence[PaymentMethod]:
+        logger.debug("Repository: Listing credit cards")
+        query = (
+            select(PaymentMethod)
+            .where(PaymentMethod.is_credit_card.is_(True))
+            .order_by(PaymentMethod.display_name)
+        )
+        result = await self.db.execute(query)
+        items = result.scalars().all()
+        logger.debug(f"Repository: Found {len(items)} credit cards")
+        return items
+
     async def create(self, method_data: PaymentMethodCreate) -> PaymentMethod:
         logger.debug(f"Repository: Creating payment method with key: {method_data.key}")
         method = PaymentMethod(
             key=method_data.key.lower(),
             display_name=method_data.display_name,
+            is_credit_card=method_data.is_credit_card,
+            closing_day=method_data.closing_day,
+            due_day=method_data.due_day,
         )
         self.db.add(method)
         await self.db.commit()

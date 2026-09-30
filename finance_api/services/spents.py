@@ -107,7 +107,11 @@ class SpentService:
         inv_service: Optional[InvoiceService] = None,
         pm_repo: Optional[PaymentMethodRepository] = None,
     ) -> List[Tuple[str, date, date]]:
-        """Resolves invoice billing periods for all payment methods."""
+        """Resolves invoice billing periods for all payment methods.
+
+        For credit cards, uses the calculated or configured invoice dates.
+        For non-credit cards (Pix, Dinheiro, Débito, etc.), uses the civil month period.
+        """
         active_inv = inv_service or self.inv_service
         active_pm = pm_repo or self.pm_repo
         if not active_inv:
@@ -115,8 +119,17 @@ class SpentService:
 
         payment_methods, _ = await active_pm.list(page=1, size=1000)
         periods: List[Tuple[str, date, date]] = []
+
+        year, month = map(int, reference_month.split("-"))
+        _, last_day = calendar.monthrange(year, month)
+        civil_start = date(year, month, 1)
+        civil_end = date(year, month, last_day)
+
         for pm in payment_methods:
-            start_d, end_d = await active_inv.get_invoice_dates(pm, reference_month)
+            if pm.is_credit_card:
+                start_d, end_d = await active_inv.get_invoice_dates(pm, reference_month)
+            else:
+                start_d, end_d = civil_start, civil_end
             periods.append((pm.key, start_d, end_d))
         return periods
 

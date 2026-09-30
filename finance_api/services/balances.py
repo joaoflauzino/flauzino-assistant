@@ -1,3 +1,4 @@
+import calendar
 from datetime import date, datetime
 from typing import List, Optional, Sequence, Tuple
 from zoneinfo import ZoneInfo
@@ -34,9 +35,15 @@ class BalanceService:
         self.inv_service = inv_service
 
     @handle_service_errors
-    async def get_balance(self, reference_month: Optional[str] = None) -> List[CategoryBalance]:
+    async def get_balance(
+        self,
+        reference_month: Optional[str] = None,
+        categories: Optional[List[str]] = None,
+    ) -> List[CategoryBalance]:
         """Orchestrates fetching data and calculating category balances for a reference month."""
-        logger.info(f"Getting balances for reference_month={reference_month}")
+        logger.info(
+            f"Getting balances for reference_month={reference_month} categories={categories}"
+        )
         today = datetime.now(ZoneInfo("America/Sao_Paulo")).date()
 
         # 1. Fetch spending limits and payment methods
@@ -51,11 +58,18 @@ class BalanceService:
         spent_by_category = self._aggregate_spents_by_category(spents)
 
         # 4. Fetch category display names
-        categories, _ = await self.category_repo.list(skip=0, limit=1000)
-        cat_map = {c.key: c.display_name for c in categories}
+        categories_db, _ = await self.category_repo.list(skip=0, limit=1000)
+        cat_map = {c.key: c.display_name for c in categories_db}
 
         # 5. Build balances
-        return self._build_balances(limits, spent_by_category, cat_map)
+        balances = self._build_balances(limits, spent_by_category, cat_map)
+
+        if categories:
+            filter_cats = {c.strip().lower() for c in categories if c.strip()}
+            if filter_cats:
+                balances = [b for b in balances if b.category.lower() in filter_cats]
+
+        return balances
 
     async def _resolve_periods(
         self,
@@ -79,6 +93,12 @@ class BalanceService:
         today: date,
     ) -> Tuple[date, date]:
         """Resolves invoice start and end dates for a payment method based on current date or reference month."""
+        if not pm.is_credit_card:
+            target_month = reference_month or today.strftime("%Y-%m")
+            year, month = map(int, target_month.split("-"))
+            _, last_day = calendar.monthrange(year, month)
+            return date(year, month, 1), date(year, month, last_day)
+
         if reference_month:
             return await self.inv_service.get_invoice_dates(pm, reference_month)
 

@@ -1,4 +1,6 @@
+from datetime import datetime
 from typing import Any, NotRequired, cast
+from zoneinfo import ZoneInfo
 
 from langchain.agents import AgentState, create_agent
 from langchain.agents.structured_output import ToolStrategy
@@ -49,6 +51,10 @@ class AgentService:
             valid_categories = ""
             valid_payment_methods = ""
 
+        now_sp = datetime.now(ZoneInfo("America/Sao_Paulo"))
+        today_date = now_sp.strftime("%Y-%m-%d")
+        current_year_month = now_sp.strftime("%Y-%m")
+
         platform_instructions = ""
         if platform == "telegram":
             platform_instructions = (
@@ -68,6 +74,7 @@ class AgentService:
 
         return f"""
         Você é o assistente financeiro inteligente da Família Flauzino.
+        Hoje é {today_date} (mês de referência padrão atual: {current_year_month}).
         Seu objetivo é gerenciar as finanças familiares através das ferramentas disponíveis:
         - Consultar saldos e limites de gastos
         - Registrar novos gastos (despesas)
@@ -108,11 +115,14 @@ class AgentService:
         - Chame `cadastrar_limite` após confirmação e depois responda com `is_complete=True`.
 
         3. **Consulta de Saldos e Limites**:
-        - Chame `consultar_saldos(categorias=...)`.
+        - Chame `consultar_saldos(categorias=..., mes_referencia=...)`.
+        - Se o usuário especificar um mês histórico ou futuro (ex: "mês passado", "em agosto", "saldo de 2026-08"): calcule e forneça `mes_referencia="YYYY-MM"`.
+        - Se o usuário NÃO especificar data (ex: "consultar saldos", "como estão meus gastos?", "saldo atual"): omita `mes_referencia` (deixe `None`) para que o sistema consulte o ciclo ativo do momento.
         - Formule a resposta com o resumo, `is_complete=False` (para permitir que o usuário faça perguntas adicionais) e opções sugeridas como ["Registrar gasto", "Gerar gráfico", "Tudo certo"].
 
         4. **Geração de Gráficos e Ajustes Visuais**:
-        - Chame `gerar_grafico(...)`.
+        - Chame `gerar_grafico(tipo=..., tool_call_id=..., categorias=..., modo=..., mes_referencia=...)`.
+        - Se o usuário pedir gráfico de um mês específico (ex: "gráfico do mês passado", "gastos de agosto"), passe `mes_referencia="YYYY-MM"`. Se não especificar, omita (ou deixe `None`).
         - Em seguida, avise que o gráfico foi gerado com `is_complete=False` (para permitir que o usuário peça ajustes como "faz em barras", "mostra só mercado", etc.) e opções como ["Gráfico de pizza", "Gráfico de barras", "Tudo certo"].
 
         5. **Encerramento de Conversas**:
@@ -208,17 +218,16 @@ class AgentService:
         # 3. Fallback: Se o modelo respondeu com texto comum
         last_msg = msgs[-1] if msgs else None
         response_text = (
-            str(last_msg.content)
-            if last_msg and last_msg.content
-            else "Desculpe, não consegui processar sua mensagem."
+            last_msg.content
+            if (last_msg and isinstance(last_msg.content, str))
+            else "Entendido! Como posso ajudar?"
         )
         logger.warning(
-            f"⚠️ [AGENT:FALLBACK] Nenhuma structured_response encontrada. Usando texto da última mensagem: {repr(response_text)}"
+            f"⚠️ [AGENT:FALLBACK] Usando fallback para texto comum: {response_text[:100]}"
         )
-
         return AssistantResponse(
             response_message=response_text,
-            suggested_options=None,
-            image_base64=image_base64,
             is_complete=False,
+            suggested_options=[],
+            image_base64=image_base64,
         )

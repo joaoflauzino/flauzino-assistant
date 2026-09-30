@@ -23,15 +23,24 @@ def create_agent_tools(
 
     @tool
     @handle_tool_errors("consultar_saldos")
-    async def consultar_saldos(categorias: list[str] | None = None) -> str | list[dict]:
-        """Consulta os saldos e limites de gastos atuais da família.
+    async def consultar_saldos(
+        categorias: list[str] | None = None,
+        mes_referencia: str | None = None,
+    ) -> str | list[dict]:
+        """Consulta os saldos e limites de gastos da família.
 
         Args:
             categorias: Lista opcional de categorias a filtrar (ex: ['mercado', 'combustivel']).
                         Deixe vazio ou None para consultar todas as categorias disponíveis.
+            mes_referencia: Mês de referência no formato 'YYYY-MM' (ex: '2026-08').
+                            Deixe vazio ou None para consultar o ciclo/mês ativo atual.
         """
-        logger.info(f"Tool consultar_saldos chamada para categorias: {categorias}")
-        balances = await finance_service.get_balances(categories=categorias)
+        logger.info(
+            f"Tool consultar_saldos chamada para categorias={categorias}, mes_referencia={mes_referencia}"
+        )
+        balances = await finance_service.get_balances(
+            categories=categorias, reference_month=mes_referencia
+        )
         if not balances:
             return "Nenhum limite ou gasto encontrado para as categorias informadas."
         return balances
@@ -89,6 +98,7 @@ def create_agent_tools(
         tool_call_id: Annotated[str, InjectedToolCallId],
         categorias: list[str] | None = None,
         modo: Literal["saldo", "gastos"] = "saldo",
+        mes_referencia: str | None = None,
     ) -> Command | str:
         """Gera um gráfico visual com base nos dados financeiros e anexa à resposta.
 
@@ -96,11 +106,15 @@ def create_agent_tools(
             tipo: 'pie' para gráfico de pizza (proporção de gastos) ou 'bar' para gráfico de barras (comparativo).
             categorias: Lista opcional de categorias específicas para exibir no gráfico.
             modo: 'saldo' (comparativo limites vs gastos) ou 'gastos' (apenas gastos). Padrão 'saldo'.
+            mes_referencia: Mês de referência no formato 'YYYY-MM' (ex: '2026-08').
+                            Deixe vazio ou None para gerar o gráfico com o ciclo/mês ativo atual.
         """
         logger.info(
-            f"Tool gerar_grafico chamada: tipo={tipo}, modo={modo}, categorias={categorias}"
+            f"Tool gerar_grafico chamada: tipo={tipo}, modo={modo}, categorias={categorias}, mes_referencia={mes_referencia}"
         )
-        balances = await finance_service.get_balances(categories=categorias)
+        balances = await finance_service.get_balances(
+            categories=categorias, reference_month=mes_referencia
+        )
         if not balances:
             return "Não foram encontrados limites ou gastos para gerar o gráfico solicitado."
 
