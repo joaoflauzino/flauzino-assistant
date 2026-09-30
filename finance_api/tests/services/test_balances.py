@@ -152,13 +152,15 @@ async def test_get_balance_full_flow():
     limit_mercado = MagicMock(spec=SpendingLimit, category="mercado", amount=1000.0)
     limit_repo.list = AsyncMock(return_value=([limit_mercado], 1))
 
-    pm_card = MagicMock(spec=PaymentMethod, key="cartao_itau")
-    pm_repo.list = AsyncMock(return_value=([pm_card], 1))
+    pm_card = MagicMock(spec=PaymentMethod, key="cartao_itau", is_credit_card=True)
+    pm_pix = MagicMock(spec=PaymentMethod, key="pix_joao", is_credit_card=False)
+    pm_repo.list = AsyncMock(return_value=([pm_card, pm_pix], 2))
 
     inv_service.get_invoice_dates = AsyncMock(return_value=(date(2025, 5, 1), date(2025, 5, 31)))
 
     spent1 = MagicMock(spec=Spent, category="mercado", amount=350.0)
-    spent_repo.list_by_multiple_periods = AsyncMock(return_value=([spent1], 1))
+    spent2 = MagicMock(spec=Spent, category="mercado", amount=100.0)
+    spent_repo.list_by_multiple_periods = AsyncMock(return_value=([spent1, spent2], 2))
 
     cat_category = MagicMock(key="mercado", display_name="Supermercado")
     category_repo.list = AsyncMock(return_value=([cat_category], 1))
@@ -178,9 +180,9 @@ async def test_get_balance_full_flow():
     assert balance.category == "mercado"
     assert balance.category_display_name == "Supermercado"
     assert balance.limit == 1000.0
-    assert balance.spent == 350.0
-    assert balance.available == 650.0
-    assert balance.percentage_used == 35.0
+    assert balance.spent == 450.0
+    assert balance.available == 550.0
+    assert balance.percentage_used == 45.0
 
 
 def test_get_balance_service_dependency():
@@ -192,3 +194,16 @@ def test_get_balance_service_dependency():
     assert isinstance(service.category_repo, CategoryRepository)
     assert isinstance(service.pm_repo, PaymentMethodRepository)
     assert isinstance(service.inv_service, InvoiceService)
+
+
+@pytest.mark.asyncio
+async def test_resolve_pm_invoice_period_non_credit_card(balance_service):
+    pm = MagicMock(spec=PaymentMethod, key="pix_joao", is_credit_card=False)
+
+    start_d, end_d = await balance_service._resolve_pm_invoice_period(
+        pm=pm, reference_month="2026-09", today=date(2026, 9, 30)
+    )
+
+    assert start_d == date(2026, 9, 1)
+    assert end_d == date(2026, 9, 30)
+    balance_service.inv_service.get_invoice_dates.assert_not_awaited()

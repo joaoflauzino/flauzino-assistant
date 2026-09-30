@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -21,6 +22,16 @@ class InvoiceUpdate(BaseModel):
     real_closing_date: date | None = None
     real_due_date: date | None = None
     status: InvoiceStatus | None = None
+
+
+class UpdateClosingDateRequest(BaseModel):
+    closing_date: date
+
+
+class UpdateInvoiceDatesRequest(BaseModel):
+    closing_date: Optional[date] = None
+    due_date: Optional[date] = None
+    status: Optional[InvoiceStatus] = None
 
 
 class InvoiceResponse(InvoiceBase):

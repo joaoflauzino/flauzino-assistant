@@ -27,13 +27,27 @@ def tools_map(mock_finance_service, mock_graph_service):
 
 
 @pytest.mark.asyncio
-async def test_consultar_saldos_success(tools_map, mock_finance_service):
+async def test_consultar_saldos_success_without_mes_referencia(tools_map, mock_finance_service):
     mock_finance_service.get_balances.return_value = [{"category": "mercado", "available": 500.0}]
     tool = tools_map["consultar_saldos"]
     result = await tool.ainvoke({"categorias": ["mercado"]})
 
     assert result == [{"category": "mercado", "available": 500.0}]
-    mock_finance_service.get_balances.assert_awaited_once_with(categories=["mercado"])
+    mock_finance_service.get_balances.assert_awaited_once_with(
+        categories=["mercado"], reference_month=None
+    )
+
+
+@pytest.mark.asyncio
+async def test_consultar_saldos_success_with_mes_referencia(tools_map, mock_finance_service):
+    mock_finance_service.get_balances.return_value = [{"category": "mercado", "available": 300.0}]
+    tool = tools_map["consultar_saldos"]
+    result = await tool.ainvoke({"categorias": ["mercado"], "mes_referencia": "2026-08"})
+
+    assert result == [{"category": "mercado", "available": 300.0}]
+    mock_finance_service.get_balances.assert_awaited_once_with(
+        categories=["mercado"], reference_month="2026-08"
+    )
 
 
 @pytest.mark.asyncio
@@ -82,7 +96,9 @@ async def test_cadastrar_limite_success(tools_map, mock_finance_service):
 
 
 @pytest.mark.asyncio
-async def test_gerar_grafico_success(tools_map, mock_finance_service, mock_graph_service):
+async def test_gerar_grafico_success_without_mes_referencia(
+    tools_map, mock_finance_service, mock_graph_service
+):
     mock_finance_service.get_balances.return_value = [{"category": "mercado", "available": 500.0}]
     mock_graph_service.generate_chart.return_value = "fake_b64_chart"
     tool = tools_map["gerar_grafico"]
@@ -100,10 +116,47 @@ async def test_gerar_grafico_success(tools_map, mock_finance_service, mock_graph
     assert result.update["image_base64"] == "fake_b64_chart"
     assert len(result.update["messages"]) == 1
     assert result.update["messages"][0].tool_call_id == "call_123"
+    mock_finance_service.get_balances.assert_awaited_once_with(
+        categories=["mercado"], reference_month=None
+    )
     mock_graph_service.generate_chart.assert_awaited_once_with(
         chart_type="pie",
         balances=[{"category": "mercado", "available": 500.0}],
         mode="saldo",
+    )
+
+
+@pytest.mark.asyncio
+async def test_gerar_grafico_success_with_mes_referencia(
+    tools_map, mock_finance_service, mock_graph_service
+):
+    mock_finance_service.get_balances.return_value = [{"category": "mercado", "available": 300.0}]
+    mock_graph_service.generate_chart.return_value = "fake_b64_chart_aug"
+    tool = tools_map["gerar_grafico"]
+
+    result = await tool.ainvoke(
+        {
+            "name": "gerar_grafico",
+            "args": {
+                "tipo": "bar",
+                "categorias": ["mercado"],
+                "modo": "gastos",
+                "mes_referencia": "2026-08",
+            },
+            "id": "call_124",
+            "type": "tool_call",
+        }
+    )
+
+    assert isinstance(result, Command)
+    assert result.update["image_base64"] == "fake_b64_chart_aug"
+    mock_finance_service.get_balances.assert_awaited_once_with(
+        categories=["mercado"], reference_month="2026-08"
+    )
+    mock_graph_service.generate_chart.assert_awaited_once_with(
+        chart_type="bar",
+        balances=[{"category": "mercado", "available": 300.0}],
+        mode="gastos",
     )
 
 

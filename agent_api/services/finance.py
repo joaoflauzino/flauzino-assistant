@@ -114,12 +114,18 @@ class FinanceService(BaseHttpService):
         return data
 
     @handle_finance_errors
-    async def get_balances(self, categories: list[str] | None = None) -> list[dict]:
-        """Fetch balances from the finance API with optional category filtering."""
+    async def get_balances(
+        self,
+        categories: list[str] | None = None,
+        reference_month: str | None = None,
+    ) -> list[dict]:
+        """Fetch balances from the finance API with optional category and reference_month filtering."""
         url = f"{settings.FINANCE_SERVICE_URL}/limits/balance"
         params = {}
         if categories:
             params["categories"] = ",".join(categories)
+        if reference_month:
+            params["reference_month"] = reference_month
 
         logger.info(f"🌐 [FINANCE_API:REQ] GET {url} | Params: {params}")
         response = await self.client.get(url, params=params, headers=self._get_headers())

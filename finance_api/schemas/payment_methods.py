@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class PaymentMethodBase(BaseModel):
@@ -17,6 +17,13 @@ class PaymentMethodBase(BaseModel):
         default=None, ge=1, le=31, description="Day of the month the invoice is due"
     )
 
+    @field_validator("closing_day", "due_day", mode="before")
+    @classmethod
+    def empty_str_to_none(cls, v):
+        if v == "" or v is None:
+            return None
+        return v
+
 
 class PaymentMethodCreate(PaymentMethodBase): ...
 
@@ -27,6 +34,13 @@ class PaymentMethodUpdate(BaseModel):
     is_credit_card: bool | None = None
     closing_day: int | None = Field(default=None, ge=1, le=31)
     due_day: int | None = Field(default=None, ge=1, le=31)
+
+    @field_validator("closing_day", "due_day", mode="before")
+    @classmethod
+    def empty_str_to_none(cls, v):
+        if v == "" or v is None:
+            return None
+        return v
 
 
 class PaymentMethodResponse(PaymentMethodBase):

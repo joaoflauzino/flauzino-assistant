@@ -46,9 +46,11 @@ async def list_limits(
 @router.get("/balance", response_model=List[CategoryBalance])
 async def get_balance(
     reference_month: Optional[str] = None,
+    categories: Optional[str] = None,
     service: BalanceService = Depends(get_balance_service),
 ) -> List[CategoryBalance]:
-    return await service.get_balance(reference_month=reference_month)
+    category_list = [c.strip().lower() for c in categories.split(",")] if categories else None
+    return await service.get_balance(reference_month=reference_month, categories=category_list)
 
 
 @router.get("/{limit_id}", response_model=SpendingLimitResponse)

@@ -1,3 +1,4 @@
+from datetime import date
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
@@ -436,3 +437,72 @@ async def test_get_installments_summary_success(test_client, mock_spent_reposito
 
     # Cleanup dependency override
     app.dependency_overrides.clear()
+
+
+async def test_get_dashboard_invoices_mode_with_mixed_payment_methods(
+    test_client, mock_spent_repository, mocker
+):
+    mock_db = AsyncMock()
+    app.dependency_overrides[get_db] = lambda: mock_db
+    mocker.patch("finance_api.routers.spents.SpentRepository", return_value=mock_spent_repository)
+
+    card = MagicMock(key="nubank", is_credit_card=True)
+    pix = MagicMock(key="pix_joao", is_credit_card=False)
+
+    mock_pm_repo = MagicMock()
+    mock_pm_repo.list = AsyncMock(return_value=([card, pix], 2))
+    mocker.patch("finance_api.routers.spents.PaymentMethodRepository", return_value=mock_pm_repo)
+
+    mock_inv_service = MagicMock()
+    mock_inv_service.get_invoice_dates = AsyncMock(
+        return_value=(date(2026, 8, 25), date(2026, 9, 24))
+    )
+    mocker.patch("finance_api.routers.spents.InvoiceService", return_value=mock_inv_service)
+
+    spent_card = MagicMock(
+        id=uuid4(),
+        category="mercado",
+        amount=250.0,
+        item_bought="Compras Mercado",
+        created_at="2026-09-10T12:00:00",
+        payment_method="nubank",
+        payment_owner="joao",
+        location="Mercado",
+        is_installment=False,
+        installment_id=None,
+        current_installment=None,
+        total_installments=None,
+    )
+    spent_pix = MagicMock(
+        id=uuid4(),
+        category="lazer",
+        amount=80.0,
+        item_bought="Ingresso Cinema",
+        created_at="2026-09-15T12:00:00",
+        payment_method="pix_joao",
+        payment_owner="joao",
+        location="Cinema",
+        is_installment=False,
+        installment_id=None,
+        current_installment=None,
+        total_installments=None,
+    )
+
+    mock_spent_repository.list_by_multiple_periods = AsyncMock(
+        return_value=([spent_card, spent_pix], 2)
+    )
+
+    try:
+        response = await test_client.get("/spents/dashboard?reference_month=2026-09&mode=INVOICES")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 2
+        assert len(data["items"]) == 2
+
+        mock_spent_repository.list_by_multiple_periods.assert_awaited_once()
+        periods_arg = mock_spent_repository.list_by_multiple_periods.call_args[0][0]
+        assert len(periods_arg) == 2
+        assert periods_arg[0] == ("nubank", date(2026, 8, 25), date(2026, 9, 24))
+        assert periods_arg[1] == ("pix_joao", date(2026, 9, 1), date(2026, 9, 30))
+    finally:
+        app.dependency_overrides.clear()

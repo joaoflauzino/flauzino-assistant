@@ -32,7 +32,7 @@ class Invoice(Base):
     real_closing_date: Mapped[date] = mapped_column(Date, nullable=False)
     real_due_date: Mapped[date] = mapped_column(Date, nullable=False)
     status: Mapped[InvoiceStatus] = mapped_column(
-        Enum(InvoiceStatus, name="invoice_status_enum", create_type=False),
+        Enum(InvoiceStatus, native_enum=False, length=20),
         default=InvoiceStatus.OPEN,
         nullable=False,
     )
