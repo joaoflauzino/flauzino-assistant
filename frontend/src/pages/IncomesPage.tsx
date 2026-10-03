@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Trash2, Edit2, ChevronLeft, ChevronRight, TrendingUp } from 'lucide-react';
 import api from '../services/api';
-import type { Income, PaginatedResponse, IncomeCategory, PaymentMethod } from '../types';
+import type { Income, PaginatedResponse, IncomeCategory, Account } from '../types';
 import { Modal } from '../components/Modal';
 
 export const IncomesPage = () => {
@@ -16,7 +16,7 @@ export const IncomesPage = () => {
 
     // Options States
     const [categories, setCategories] = useState<IncomeCategory[]>([]);
-    const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+    const [accounts, setAccounts] = useState<Account[]>([]);
 
     const getCurrentMonthDates = () => {
         const now = new Date();
@@ -70,12 +70,12 @@ export const IncomesPage = () => {
     useEffect(() => {
         const fetchOptions = async () => {
             try {
-                const [catRes, pmRes] = await Promise.all([
+                const [catRes, accRes] = await Promise.all([
                     api.get<PaginatedResponse<IncomeCategory>>('/income-categories/?size=1000'),
-                    api.get<PaginatedResponse<PaymentMethod>>('/payment-methods/?size=1000')
+                    api.get<PaginatedResponse<Account>>('/accounts/?size=1000')
                 ]);
                 setCategories(catRes.data.items);
-                setPaymentMethods(pmRes.data.items);
+                setAccounts(accRes.data.items);
             } catch (error) {
                 console.error("Failed to fetch options", error);
             }
@@ -135,29 +135,28 @@ export const IncomesPage = () => {
         }
     };
 
-    const handleFilter = (e: React.FormEvent) => {
+    const handleFilterSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setPage(1);
         fetchData(1);
     };
 
-    const getCategoryDisplay = (key: string) => {
-        const cat = categories.find(c => c.key === key);
-        return cat ? cat.display_name : key;
-    };
-
-    const getPaymentMethodDisplay = (key?: string) => {
-        if (!key) return '-';
-        const pm = paymentMethods.find(p => p.key === key);
-        return pm ? pm.display_name : key;
+    const formatCurrency = (val: number) => {
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
     };
 
     return (
         <div>
+            {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <TrendingUp size={28} color="var(--accent-color)" />
-                    <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 700 }}>Receitas</h1>
+                <div>
+                    <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <TrendingUp size={28} color="var(--success)" />
+                        Receitas e Entradas
+                    </h1>
+                    <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+                        Controle seus salários, rendimentos, pix recebidos e outras entradas financeiras
+                    </p>
                 </div>
                 <button
                     onClick={() => {
@@ -166,36 +165,40 @@ export const IncomesPage = () => {
                         setIsModalOpen(true);
                     }}
                     style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        padding: '0.6rem 1.2rem',
-                        backgroundColor: 'var(--accent-color)',
+                        backgroundColor: 'var(--success)',
                         color: 'white',
                         border: 'none',
                         borderRadius: '8px',
-                        cursor: 'pointer',
+                        padding: '0.75rem 1.5rem',
                         fontWeight: 600,
-                        transition: 'opacity 0.2s'
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 6px rgba(34, 197, 94, 0.2)'
                     }}
                 >
-                    <Plus size={18} /> Nova Receita
+                    <Plus size={20} />
+                    Nova Receita
                 </button>
             </div>
 
-            {/* Filter */}
-            <form onSubmit={handleFilter} style={{
+            {/* Filtros de Data */}
+            <form onSubmit={handleFilterSubmit} style={{
                 display: 'flex',
                 gap: '1rem',
+                alignItems: 'flex-end',
                 backgroundColor: 'var(--bg-secondary)',
-                padding: '1.2rem',
+                padding: '1.25rem 1.5rem',
                 borderRadius: '12px',
                 marginBottom: '1.5rem',
-                alignItems: 'flex-end',
-                flexWrap: 'wrap'
+                flexWrap: 'wrap',
+                border: '1px solid rgba(255, 255, 255, 0.05)'
             }}>
                 <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.3rem' }}>Data Inicial</label>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        Data Inicial
+                    </label>
                     <input
                         type="date"
                         value={startDate}
@@ -205,12 +208,15 @@ export const IncomesPage = () => {
                             borderRadius: '6px',
                             border: '1px solid var(--border-color)',
                             background: 'var(--bg-tertiary)',
-                            color: 'white'
+                            color: 'white',
+                            fontSize: '0.9rem'
                         }}
                     />
                 </div>
                 <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.3rem' }}>Data Final</label>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        Data Final
+                    </label>
                     <input
                         type="date"
                         value={endDate}
@@ -220,7 +226,8 @@ export const IncomesPage = () => {
                             borderRadius: '6px',
                             border: '1px solid var(--border-color)',
                             background: 'var(--bg-tertiary)',
-                            color: 'white'
+                            color: 'white',
+                            fontSize: '0.9rem'
                         }}
                     />
                 </div>
@@ -253,7 +260,7 @@ export const IncomesPage = () => {
                             <th style={{ padding: '1rem' }}>Data</th>
                             <th style={{ padding: '1rem' }}>Descrição</th>
                             <th style={{ padding: '1rem' }}>Categoria</th>
-                            <th style={{ padding: '1rem' }}>Conta / Método</th>
+                            <th style={{ padding: '1rem' }}>Conta de Destino</th>
                             <th style={{ padding: '1rem' }}>Valor</th>
                             <th style={{ padding: '1rem', textAlign: 'center' }}>Ações</th>
                         </tr>
@@ -280,33 +287,44 @@ export const IncomesPage = () => {
                                     <td style={{ padding: '1rem', fontWeight: 500 }}>{income.description}</td>
                                     <td style={{ padding: '1rem' }}>
                                         <span style={{
-                                            padding: '0.2rem 0.6rem',
-                                            borderRadius: '12px',
-                                            backgroundColor: 'rgba(34, 197, 94, 0.15)',
-                                            color: '#22c55e',
+                                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                            padding: '0.25rem 0.5rem',
+                                            borderRadius: '4px',
                                             fontSize: '0.85rem'
                                         }}>
-                                            {getCategoryDisplay(income.category)}
+                                            {income.category}
                                         </span>
                                     </td>
-                                    <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>
-                                        {getPaymentMethodDisplay(income.payment_method)}
+                                    <td style={{ padding: '1rem', color: 'var(--accent-color)', fontWeight: 500 }}>
+                                        {income.payment_method || '-'}
                                     </td>
-                                    <td style={{ padding: '1rem', fontWeight: 600, color: '#22c55e' }}>
-                                        + R$ {income.amount.toFixed(2)}
+                                    <td style={{ padding: '1rem', fontWeight: 600, color: 'var(--success)' }}>
+                                        {formatCurrency(income.amount)}
                                     </td>
                                     <td style={{ padding: '1rem', textAlign: 'center' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
+                                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
                                             <button
                                                 onClick={() => handleEdit(income)}
-                                                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                                                style={{
+                                                    background: 'transparent',
+                                                    border: 'none',
+                                                    color: 'var(--accent-color)',
+                                                    cursor: 'pointer',
+                                                    padding: '0.25rem'
+                                                }}
                                                 title="Editar"
                                             >
                                                 <Edit2 size={16} />
                                             </button>
                                             <button
                                                 onClick={() => setIncomeToDelete(income.id)}
-                                                style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                                                style={{
+                                                    background: 'transparent',
+                                                    border: 'none',
+                                                    color: 'var(--danger)',
+                                                    cursor: 'pointer',
+                                                    padding: '0.25rem'
+                                                }}
                                                 title="Excluir"
                                             >
                                                 <Trash2 size={16} />
@@ -319,13 +337,12 @@ export const IncomesPage = () => {
                     </tbody>
                 </table>
 
-                {/* Pagination */}
+                {/* Paginação */}
                 <div style={{
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     padding: '1rem',
-                    borderTop: '1px solid var(--border-color)',
                     color: 'var(--text-secondary)',
                     fontSize: '0.9rem'
                 }}>
@@ -433,7 +450,7 @@ export const IncomesPage = () => {
                         </select>
                     </div>
                     <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Conta / Método de Recebimento</label>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Conta Bancária de Recebimento</label>
                         <select
                             value={formData.payment_method}
                             onChange={e => setFormData({ ...formData, payment_method: e.target.value })}
@@ -447,8 +464,8 @@ export const IncomesPage = () => {
                             }}
                         >
                             <option value="">Não especificado / Outro</option>
-                            {paymentMethods.map(p => (
-                                <option key={p.id} value={p.key}>{p.display_name}</option>
+                            {accounts.map(a => (
+                                <option key={a.id} value={a.key}>{a.name} ({a.bank})</option>
                             ))}
                         </select>
                     </div>
@@ -469,7 +486,8 @@ export const IncomesPage = () => {
                             }}
                         />
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.8rem', marginTop: '1rem' }}>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
                         <button
                             type="button"
                             onClick={() => {
@@ -477,11 +495,11 @@ export const IncomesPage = () => {
                                 setEditingIncome(null);
                             }}
                             style={{
-                                padding: '0.6rem 1rem',
+                                padding: '0.6rem 1.2rem',
                                 borderRadius: '6px',
                                 border: '1px solid var(--border-color)',
                                 background: 'transparent',
-                                color: 'white',
+                                color: 'var(--text-secondary)',
                                 cursor: 'pointer'
                             }}
                         >
@@ -493,7 +511,7 @@ export const IncomesPage = () => {
                                 padding: '0.6rem 1.2rem',
                                 borderRadius: '6px',
                                 border: 'none',
-                                background: 'var(--accent-color)',
+                                background: 'var(--success)',
                                 color: 'white',
                                 fontWeight: 600,
                                 cursor: 'pointer'
@@ -509,21 +527,21 @@ export const IncomesPage = () => {
             <Modal
                 isOpen={!!incomeToDelete}
                 onClose={() => setIncomeToDelete(null)}
-                title="Confirmar Exclusão"
+                title="Excluir Receita"
             >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                    <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
-                        Tem certeza que deseja excluir esta receita? Essa ação não pode ser desfeita.
+                <div>
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+                        Tem certeza que deseja excluir esta receita? Esta ação não pode ser desfeita.
                     </p>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.8rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
                         <button
                             onClick={() => setIncomeToDelete(null)}
                             style={{
-                                padding: '0.6rem 1rem',
+                                padding: '0.6rem 1.2rem',
                                 borderRadius: '6px',
                                 border: '1px solid var(--border-color)',
                                 background: 'transparent',
-                                color: 'white',
+                                color: 'var(--text-secondary)',
                                 cursor: 'pointer'
                             }}
                         >
@@ -535,7 +553,7 @@ export const IncomesPage = () => {
                                 padding: '0.6rem 1.2rem',
                                 borderRadius: '6px',
                                 border: 'none',
-                                background: '#ef4444',
+                                background: 'var(--danger)',
                                 color: 'white',
                                 fontWeight: 600,
                                 cursor: 'pointer'

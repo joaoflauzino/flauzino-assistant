@@ -10,7 +10,11 @@ from agent_api.core.exceptions import (
 )
 from agent_api.schemas.assistant import AssistantResponse
 from agent_api.schemas.spending import SpendingDetails
-from agent_api.services.finance import FinanceService
+from agent_api.services.finance import (
+    DEFAULT_ACCOUNTS,
+    DEFAULT_CREDIT_CARDS,
+    FinanceService,
+)
 
 
 @pytest.fixture
@@ -164,6 +168,54 @@ async def test_get_payment_methods_success(mock_client):
     # Use cache=False to test network retrieval
     methods = await service.get_payment_methods(use_cache=False)
     assert methods == ["pix", "nubank"]
+
+
+@pytest.mark.asyncio
+async def test_get_accounts_success(mock_client):
+    service = FinanceService(client=mock_client)
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {"items": [{"key": "itau_joao"}, {"key": "nubank_joao"}]}
+    mock_client.get.return_value = mock_response
+
+    accounts = await service.get_accounts(use_cache=False)
+    assert accounts == ["itau_joao", "nubank_joao"]
+
+
+@pytest.mark.asyncio
+async def test_get_accounts_fallback(mock_client):
+    FinanceService._cached_accounts = None
+    FinanceService._accounts_expiry = 0.0
+    service = FinanceService(client=mock_client)
+    mock_client.get.side_effect = httpx.ConnectError("API down")
+
+    accounts = await service.get_accounts(use_cache=False)
+    assert accounts == DEFAULT_ACCOUNTS
+
+
+@pytest.mark.asyncio
+async def test_get_credit_cards_success(mock_client):
+    service = FinanceService(client=mock_client)
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "items": [{"key": "itau_card_joao"}, {"key": "c6_card_joao"}]
+    }
+    mock_client.get.return_value = mock_response
+
+    cards = await service.get_credit_cards(use_cache=False)
+    assert cards == ["itau_card_joao", "c6_card_joao"]
+
+
+@pytest.mark.asyncio
+async def test_get_credit_cards_fallback(mock_client):
+    FinanceService._cached_credit_cards = None
+    FinanceService._credit_cards_expiry = 0.0
+    service = FinanceService(client=mock_client)
+    mock_client.get.side_effect = httpx.ConnectError("API down")
+
+    cards = await service.get_credit_cards(use_cache=False)
+    assert cards == DEFAULT_CREDIT_CARDS
 
 
 @pytest.mark.asyncio

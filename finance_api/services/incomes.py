@@ -3,6 +3,7 @@ from datetime import date, datetime
 from typing import List, Optional
 from uuid import UUID
 from zoneinfo import ZoneInfo
+from sqlalchemy import select
 
 from finance_api.core.decorators import handle_service_errors
 from finance_api.core.exceptions import EntityNotFoundError, ValidationError
@@ -90,7 +91,20 @@ class IncomeService:
     async def create(self, income_data: IncomeCreate) -> IncomeResponse:
         await self._validate_category(income_data.category)
         if income_data.payment_method:
-            await self._validate_payment_method(income_data.payment_method)
+            matched_pm = await self._validate_payment_method(income_data.payment_method)
+            income_data.payment_method = matched_pm.key
+            if not income_data.account_id:
+                try:
+                    from finance_api.models.accounts import Account
+
+                    acc_res = await self.repo.db.execute(
+                        select(Account).where(Account.key == matched_pm.key)
+                    )
+                    acc = acc_res.scalar_one_or_none()
+                    if acc:
+                        income_data.account_id = acc.id
+                except Exception:
+                    pass
 
         logger.info(f"Creating income: {income_data.description} ({income_data.amount})")
         income = await self.repo.create(income_data)
@@ -129,7 +143,20 @@ class IncomeService:
         if update_data.category:
             await self._validate_category(update_data.category)
         if update_data.payment_method:
-            await self._validate_payment_method(update_data.payment_method)
+            matched_pm = await self._validate_payment_method(update_data.payment_method)
+            update_data.payment_method = matched_pm.key
+            if not getattr(update_data, "account_id", None):
+                try:
+                    from finance_api.models.accounts import Account
+
+                    acc_res = await self.repo.db.execute(
+                        select(Account).where(Account.key == matched_pm.key)
+                    )
+                    acc = acc_res.scalar_one_or_none()
+                    if acc:
+                        update_data.account_id = acc.id
+                except Exception:
+                    pass
 
         logger.info(f"Updating income: {income_id}")
         income = await self.repo.update(income_id, update_data)
@@ -154,31 +181,32 @@ class IncomeService:
 
         incomes = await self.repo.list_by_period(start_date, end_date)
         spents, _ = await self.spent_repo.list(
-            skip=0, limit=100000, start_date=start_date, end_date=end_date
+            skip=0, limit=10000, start_date=start_date, end_date=end_date
         )
 
-        total_incomes = round(sum(i.amount for i in incomes), 2)
-        total_spents = round(sum(s.amount for s in spents), 2)
+        total_incomes = sum(inc.amount for inc in incomes)
+        total_spents = sum(sp.amount for sp in spents)
         net_balance = round(total_incomes - total_spents, 2)
         is_positive = net_balance >= 0
-        savings_rate = round((net_balance / total_incomes) * 100, 2) if total_incomes > 0 else 0.0
+
+        savings_rate = 0.0
+        if total_incomes > 0:
+            savings_rate = round((net_balance / total_incomes) * 100, 2)
 
         incomes_by_category: dict[str, float] = {}
         for inc in incomes:
-            incomes_by_category[inc.category] = round(
-                incomes_by_category.get(inc.category, 0.0) + inc.amount, 2
-            )
+            cat = inc.category
+            incomes_by_category[cat] = round(incomes_by_category.get(cat, 0.0) + inc.amount, 2)
 
         spents_by_category: dict[str, float] = {}
         for sp in spents:
-            spents_by_category[sp.category] = round(
-                spents_by_category.get(sp.category, 0.0) + sp.amount, 2
-            )
+            cat = sp.category
+            spents_by_category[cat] = round(spents_by_category.get(cat, 0.0) + sp.amount, 2)
 
         return MonthlyBalanceSummary(
             reference_month=ref_month,
-            total_incomes=total_incomes,
-            total_spents=total_spents,
+            total_incomes=round(total_incomes, 2),
+            total_spents=round(total_spents, 2),
             net_balance=net_balance,
             is_positive=is_positive,
             savings_rate=savings_rate,

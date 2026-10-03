@@ -38,7 +38,7 @@ class AgentService:
         self.tools = create_agent_tools(finance_service, graph_service)
 
     async def get_system_prompt(self, platform: str | None = None) -> str:
-        """Dynamically generate system prompt with valid categories, income categories, and payment methods."""
+        """Dynamically generate system prompt with valid categories, income categories, accounts and cards."""
         try:
             categories = await self.finance_service.get_categories()
             valid_categories = ", ".join([f"'{c}'" for c in categories])
@@ -46,6 +46,10 @@ class AgentService:
             valid_income_categories = ", ".join([f"'{c}'" for c in income_categories])
             payment_methods = await self.finance_service.get_payment_methods()
             valid_payment_methods = ", ".join([f"'{m}'" for m in payment_methods])
+            accounts = await self.finance_service.get_accounts()
+            valid_accounts = ", ".join([f"'{a}'" for a in accounts])
+            credit_cards = await self.finance_service.get_credit_cards()
+            valid_credit_cards = ", ".join([f"'{cc}'" for cc in credit_cards])
         except Exception as e:
             logger.warning(
                 f"Failed to fetch dynamic financial metadata for system prompt: {e}. Falling back to empty lists."
@@ -53,6 +57,8 @@ class AgentService:
             valid_categories = ""
             valid_income_categories = ""
             valid_payment_methods = ""
+            valid_accounts = ""
+            valid_credit_cards = ""
 
         now_sp = datetime.now(ZoneInfo("America/Sao_Paulo"))
         today_date = now_sp.strftime("%Y-%m-%d")
@@ -95,8 +101,13 @@ class AgentService:
         [{valid_income_categories}]
 
         **MÉTODOS DE PAGAMENTO / RECEBIMENTO VÁLIDOS**:
-        O campo `metodo_pagamento` ou `metodo_recebimento` DEVE ser estritamente uma destas opções:
         [{valid_payment_methods}]
+
+        **CONTAS BANCÁRIAS DISPONÍVEIS (para Débito, Pix, Dinheiro e Recebimentos)**:
+        [{valid_accounts}]
+
+        **CARTÕES DE CRÉDITO DISPONÍVEIS (para Compras a Crédito)**:
+        [{valid_credit_cards}]
 
         ### REGRAS DE NEGÓCIO:
 
@@ -109,6 +120,7 @@ class AgentService:
 
         1. **Registro de Gastos (REGRA CRÍTICA DE CONFIRMAÇÃO)**:
         - Para registrar um gasto, você precisa de: `categoria`, `valor`, `item_comprado`, `metodo_pagamento`, `local_compra`.
+        - Se a despesa foi no crédito, escolha um dos cartões de crédito em `metodo_pagamento`. Se foi no débito/pix, escolha uma das contas em `metodo_pagamento`.
         - Se faltar qualquer informação:
           - Pergunte ao usuário os dados faltantes com `suggested_options=[]` e `is_complete=False`.
         - Quando o usuário fornecer todos os dados:
@@ -120,10 +132,10 @@ class AgentService:
           - E em seguida responda confirmando o sucesso do registro com `is_complete=True`.
 
         2. **Registro de Receitas (REGRA CRÍTICA DE CONFIRMAÇÃO)**:
-        - Para registrar uma receita, você precisa de: `fonte` (descrição), `valor`, `categoria` e opcionalmente `metodo_recebimento`.
-        - Se faltar qualquer informação essencial (`fonte`, `valor`, `categoria`):
+        - Para registrar uma receita, você precisa de: `fonte` (origem da receita, ex: 'Salário'), `valor`, `categoria` e `metodo_recebimento` (conta onde o dinheiro entrou, opcional).
+        - Se faltar qualquer informação fundamental (valor ou categoria):
           - Pergunte ao usuário os dados faltantes com `suggested_options=[]` e `is_complete=False`.
-        - Quando todos os dados forem fornecidos:
+        - Quando o usuário fornecer todos os dados:
           - Apresente os dados em formato de lista com hífens (-).
           - Pergunte a confirmação ao usuário com `suggested_options=["Sim", "Não"]` e `is_complete=False`.
           - NUNCA chame `registrar_receita` antes de receber o "Sim" / confirmação do usuário.

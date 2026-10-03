@@ -3,7 +3,7 @@ import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Toolti
 import { Bar } from 'react-chartjs-2';
 import { CheckSquare, Square, TrendingUp, TrendingDown, Scale, Percent } from 'lucide-react';
 import api from '../services/api';
-import type { Spent, SpendingLimit, PaymentMethod, Subscription, MonthlyBalanceSummary } from '../types';
+import type { Spent, SpendingLimit, Account, CreditCard, Subscription, MonthlyBalanceSummary } from '../types';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
@@ -121,11 +121,17 @@ export const Dashboard = () => {
 
     const fetchPaymentMethods = async () => {
         try {
-            const res = await api.get<{ items: PaymentMethod[] }>('/payment-methods/?size=1000');
-            const pmMap = res.data.items.reduce((acc, pm) => {
-                acc[pm.key] = pm.display_name;
-                return acc;
-            }, {} as Record<string, string>);
+            const [accRes, cardRes] = await Promise.all([
+                api.get<{ items: Account[] }>('/accounts/?size=1000').catch(() => ({ data: { items: [] } })),
+                api.get<{ items: CreditCard[] }>('/credit-cards/?size=1000').catch(() => ({ data: { items: [] } })),
+            ]);
+            const pmMap: Record<string, string> = {};
+            accRes.data.items.forEach(a => {
+                pmMap[a.key] = `${a.name} (${a.bank})`;
+            });
+            cardRes.data.items.forEach(c => {
+                pmMap[c.key] = c.name;
+            });
             setPaymentMethodNames(pmMap);
         } catch (error) {
             console.error("Error fetching payment methods", error);

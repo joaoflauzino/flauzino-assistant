@@ -7,7 +7,7 @@ import { SubscriptionsPage } from './pages/SubscriptionsPage';
 import { InstallmentsPage } from './pages/InstallmentsPage';
 import { LimitsPage } from './pages/LimitsPage';
 import { CategoriesPage } from './pages/CategoriesPage';
-import { PaymentMethodsPage } from './pages/PaymentMethodsPage';
+import { AccountsPage } from './pages/AccountsPage';
 import { InvoicesPage } from './pages/InvoicesPage';
 import { ToastContainer } from './components/Toast';
 import './index.css';
@@ -21,11 +21,11 @@ const Navigation = () => {
     { path: '/', label: 'Painel', icon: <LayoutDashboard size={20} /> },
     { path: '/incomes', label: 'Receitas', icon: <TrendingUp size={20} /> },
     { path: '/spents', label: 'Gastos', icon: <Wallet size={20} /> },
+    { path: '/accounts', label: 'Contas & Cartões', icon: <CreditCard size={20} /> },
     { path: '/installments', label: 'Parcelamentos', icon: <Layers size={20} /> },
     { path: '/subscriptions', label: 'Assinaturas', icon: <Repeat size={20} /> },
     { path: '/limits', label: 'Limites', icon: <PiggyBank size={20} /> },
     { path: '/categories', label: 'Categorias', icon: <Tags size={20} /> },
-    { path: '/payment-methods', label: 'Métodos de Pagamento', icon: <CreditCard size={20} /> },
     { path: '/invoices', label: 'Faturas', icon: <CalendarDays size={20} /> },
   ];
 
@@ -78,11 +78,11 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/incomes" element={<IncomesPage />} />
             <Route path="/spents" element={<SpentsPage />} />
+            <Route path="/accounts" element={<AccountsPage />} />
             <Route path="/installments" element={<InstallmentsPage />} />
             <Route path="/subscriptions" element={<SubscriptionsPage />} />
             <Route path="/limits" element={<LimitsPage />} />
             <Route path="/categories" element={<CategoriesPage />} />
-            <Route path="/payment-methods" element={<PaymentMethodsPage />} />
             <Route path="/invoices" element={<InvoicesPage />} />
           </Routes>
         </main>

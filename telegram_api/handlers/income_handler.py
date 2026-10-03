@@ -13,8 +13,8 @@ from telegram.warnings import PTBUserWarning
 
 from telegram_api.core.correlation import set_request_id
 from telegram_api.core.http_client import (
+    get_valid_accounts,
     get_valid_income_categories,
-    get_valid_payment_methods,
     save_income,
 )
 from telegram_api.core.logger import get_logger
@@ -98,12 +98,12 @@ async def type_value(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
     logger.info(f"Typed income value: {value}")
 
-    payment_methods = await get_valid_payment_methods()
-    methods_with_skip = payment_methods + ["Pular / Nenhuma"]
-    reply_markup = build_inline_keyboard(methods_with_skip)
+    accounts = await get_valid_accounts()
+    options_with_skip = accounts + ["Pular / Nenhuma"]
+    reply_markup = build_inline_keyboard(options_with_skip)
 
     await update.message.reply_text(
-        "Em qual conta ou método esse valor foi recebido?",
+        "Em qual conta bancária esse valor foi creditado?",
         reply_markup=reply_markup,
     )
     return SELECT_PAYMENT_METHOD
@@ -116,7 +116,7 @@ async def select_payment_method(update: Update, context: ContextTypes.DEFAULT_TY
     selected = query.data
     pm = None if selected == "Pular / Nenhuma" else selected
     context.user_data["income"]["payment_method"] = pm
-    logger.info(f"Selected income payment method: {pm}")
+    logger.info(f"Selected income account: {pm}")
 
     inc = context.user_data["income"]
     pm_display = pm if pm else "Não especificado"
@@ -125,21 +125,20 @@ async def select_payment_method(update: Update, context: ContextTypes.DEFAULT_TY
         f"• *Categoria:* {inc['category']}\n"
         f"• *Descrição:* {inc['description']}\n"
         f"• *Valor:* R$ {inc['amount']:,.2f}\n"
-        f"• *Conta/Método:* {pm_display}\n\n"
+        f"• *Conta de Destino:* {pm_display}\n\n"
         f"Deseja registrar essa entrada?"
     )
 
-    confirm_keyboard = InlineKeyboardMarkup(
+    keyboard = [
         [
-            [
-                InlineKeyboardButton("✅ Confirmar", callback_data="confirm"),
-                InlineKeyboardButton("❌ Cancelar", callback_data="cancel"),
-            ]
+            InlineKeyboardButton("✅ Sim, registrar", callback_data="confirm_yes"),
+            InlineKeyboardButton("❌ Cancelar", callback_data="confirm_no"),
         ]
-    )
-
+    ]
     await query.edit_message_text(
-        text=summary_msg, reply_markup=confirm_keyboard, parse_mode="Markdown"
+        text=summary_msg,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode="Markdown",
     )
     return CONFIRMATION
 
@@ -148,35 +147,43 @@ async def confirm_income(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     query = update.callback_query
     await query.answer()
 
-    if query.data == "confirm":
-        inc = context.user_data.get("income", {})
-        payload = {
-            "category": inc.get("category"),
-            "description": inc.get("description"),
-            "amount": inc.get("amount"),
-            "payment_method": inc.get("payment_method"),
-        }
-        try:
-            await save_income(payload)
-            await query.edit_message_text(
-                "✅ *Receita registrada com sucesso no sistema financeiro!*",
-                parse_mode="Markdown",
-            )
-        except Exception as e:
-            logger.error(f"Erro ao salvar receita: {e}")
-            await query.edit_message_text(
-                "❌ Ocorreu um erro ao salvar a receita. Tente novamente mais tarde."
-            )
-    else:
-        await query.edit_message_text("Operação de receita cancelada.")
+    if query.data == "confirm_no":
+        logger.info("Income registration cancelled by user")
+        await query.edit_message_text("❌ Registro de receita cancelado.")
+        context.user_data.pop("income", None)
+        return ConversationHandler.END
+
+    inc = context.user_data["income"]
+    logger.info(f"Saving income: {inc}")
+
+    try:
+        await save_income(
+            {
+                "description": inc["description"],
+                "amount": inc["amount"],
+                "category": inc["category"],
+                "payment_method": inc.get("payment_method"),
+            }
+        )
+        await query.edit_message_text(
+            f"🎉 *Receita registrada com sucesso!*\n\n"
+            f"Valor de *R$ {inc['amount']:,.2f}* lançado em *{inc['category']}*.",
+            parse_mode="Markdown",
+        )
+    except Exception as e:
+        logger.error(f"Failed to save income: {e}", exc_info=True)
+        await query.edit_message_text(
+            "❌ Ocorreu um erro ao salvar a receita no sistema financeiro. Tente novamente mais tarde."
+        )
 
     context.user_data.pop("income", None)
     return ConversationHandler.END
 
 
 async def cancel_income(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    logger.info(f"User {update.effective_user.id} cancelled income flow")
+    await update.message.reply_text("Operação de receita cancelada.")
     context.user_data.pop("income", None)
-    await update.message.reply_text("Registro de receita cancelado.")
     return ConversationHandler.END
 
 
@@ -189,10 +196,8 @@ with warnings.catch_warnings():
             TYPE_DESCRIPTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, type_description)],
             TYPE_VALUE: [MessageHandler(filters.TEXT & ~filters.COMMAND, type_value)],
             SELECT_PAYMENT_METHOD: [CallbackQueryHandler(select_payment_method)],
-            CONFIRMATION: [CallbackQueryHandler(confirm_income, pattern="^(confirm|cancel)$")],
+            CONFIRMATION: [CallbackQueryHandler(confirm_income)],
         },
-        fallbacks=[
-            CommandHandler("cancelar", cancel_income),
-            CommandHandler("cancel", cancel_income),
-        ],
+        fallbacks=[CommandHandler("cancelar", cancel_income)],
+        per_message=False,
     )

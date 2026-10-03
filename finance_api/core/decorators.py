@@ -29,6 +29,8 @@ def handle_service_errors(func: Callable[..., Any]) -> Callable[..., Any]:
             raise DatabaseError(f"Database operation failed: {str(e)}")
         except EntityNotFoundError:
             raise
+        except EntityConflictError:
+            raise
         except ValidationError:
             raise
         except Exception as e:

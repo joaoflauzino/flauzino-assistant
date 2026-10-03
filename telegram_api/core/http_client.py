@@ -227,7 +227,56 @@ async def get_valid_payment_methods() -> list[str]:
             return [item["key"] for item in data.get("items", [])]
     except Exception as e:
         logger.warning(f"Failed to fetch payment methods: {e}")
-    return ["itau", "nubank", "picpay", "xp", "c6"]
+    return [
+        "itau_card_joao",
+        "nubank_card_joao",
+        "nubank_card_lailla",
+        "picpay_card_joao",
+        "c6_card_joao",
+        "itau_joao",
+        "nubank_joao",
+        "nubank_lailla",
+        "picpay_joao",
+        "c6_joao",
+    ]
+
+
+async def get_valid_accounts() -> list[str]:
+    """Fetch valid accounts from finance API."""
+    try:
+        client = get_http_client()
+        response = await client.get(f"{settings.FINANCE_SERVICE_URL}/accounts/?size=100")
+        if response.status_code == 200:
+            data = response.json()
+            return [item["key"] for item in data.get("items", [])]
+    except Exception as e:
+        logger.warning(f"Failed to fetch accounts: {e}")
+    return [
+        "itau_joao",
+        "nubank_joao",
+        "nubank_lailla",
+        "picpay_joao",
+        "c6_joao",
+    ]
+
+
+async def get_valid_credit_cards() -> list[str]:
+    """Fetch valid credit cards from finance API."""
+    try:
+        client = get_http_client()
+        response = await client.get(f"{settings.FINANCE_SERVICE_URL}/credit-cards/?size=100")
+        if response.status_code == 200:
+            data = response.json()
+            return [item["key"] for item in data.get("items", [])]
+    except Exception as e:
+        logger.warning(f"Failed to fetch credit cards: {e}")
+    return [
+        "itau_card_joao",
+        "nubank_card_joao",
+        "nubank_card_lailla",
+        "picpay_card_joao",
+        "c6_card_joao",
+    ]
 
 
 async def get_valid_owners() -> list[str]:

@@ -74,9 +74,9 @@ async def test_type_description(mock_update, mock_context):
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.handlers.income_handler.get_valid_payment_methods")
-async def test_type_value_success(mock_get_pm, mock_update, mock_context):
-    mock_get_pm.return_value = ["itau_joao"]
+@patch("telegram_api.handlers.income_handler.get_valid_accounts")
+async def test_type_value_success(mock_get_accs, mock_update, mock_context):
+    mock_get_accs.return_value = ["itau_joao"]
     mock_context.user_data["income"] = {}
     mock_update.message.text = "5000,50"
 

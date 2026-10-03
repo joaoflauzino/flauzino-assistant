@@ -7,7 +7,9 @@ from pydantic import Field
 
 from finance_api.core.database import AsyncSessionLocal
 from finance_api.core.dependencies import (
+    get_account_service,
     get_balance_service,
+    get_credit_card_service,
     get_income_category_service,
     get_income_service,
     get_spent_service,
@@ -149,6 +151,62 @@ async def get_monthly_cashflow(
         service = get_income_service(db)
         summary = await service.get_monthly_summary(reference_month=reference_month)
         return summary.model_dump(mode="json")
+
+
+@mcp.tool()
+async def list_accounts(
+    owner: Annotated[
+        str | None,
+        Field(description="Filtro opcional por proprietário da conta (ex: 'joao', 'lailla')."),
+    ] = None,
+) -> list[dict]:
+    """Lista todas as contas financeiras cadastradas com seus respectivos cartões vinculados."""
+    async with AsyncSessionLocal() as db:
+        service = get_account_service(db)
+        items, _ = await service.list(page=1, size=100, owner=owner)
+        return [
+            {
+                "id": str(item.id),
+                "key": item.key,
+                "name": item.name,
+                "bank": item.bank,
+                "owner": item.owner,
+                "type": item.type,
+                "credit_cards": [
+                    {
+                        "id": str(c.id),
+                        "key": c.key,
+                        "name": c.name,
+                        "closing_day": c.closing_day,
+                        "due_day": c.due_day,
+                        "credit_limit": c.credit_limit,
+                    }
+                    for c in (item.credit_cards or [])
+                ],
+            }
+            for item in items
+        ]
+
+
+@mcp.tool()
+async def list_credit_cards() -> list[dict]:
+    """Lista todos os cartões de crédito cadastrados no sistema com detalhes de fechamento e vencimento."""
+    async with AsyncSessionLocal() as db:
+        service = get_credit_card_service(db)
+        items, _ = await service.list(page=1, size=100)
+        return [
+            {
+                "id": str(item.id),
+                "key": item.key,
+                "name": item.name,
+                "account_id": str(item.account_id),
+                "account_name": item.account.name if item.account else None,
+                "closing_day": item.closing_day,
+                "due_day": item.due_day,
+                "credit_limit": item.credit_limit,
+            }
+            for item in items
+        ]
 
 
 @mcp.tool()

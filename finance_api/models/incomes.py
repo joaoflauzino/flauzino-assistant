@@ -25,7 +25,12 @@ class Income(Base):
     )
     payment_method: Mapped[str | None] = mapped_column(
         String(50),
-        ForeignKey("payment_methods.key", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    account_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("accounts.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )

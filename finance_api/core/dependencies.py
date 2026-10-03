@@ -2,14 +2,18 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from finance_api.core.database import get_db
+from finance_api.repositories.accounts import AccountRepository
 from finance_api.repositories.categories import CategoryRepository
+from finance_api.repositories.credit_cards import CreditCardRepository
 from finance_api.repositories.income_categories import IncomeCategoryRepository
 from finance_api.repositories.incomes import IncomeRepository
 from finance_api.repositories.invoices import InvoiceRepository
 from finance_api.repositories.limits import SpendingLimitRepository
 from finance_api.repositories.payment_methods import PaymentMethodRepository
 from finance_api.repositories.spents import SpentRepository
+from finance_api.services.accounts import AccountService
 from finance_api.services.balances import BalanceService
+from finance_api.services.credit_cards import CreditCardService
 from finance_api.services.income_categories import IncomeCategoryService
 from finance_api.services.incomes import IncomeService
 from finance_api.services.invoices import InvoiceService
@@ -62,4 +66,17 @@ def get_income_service(db: AsyncSession = Depends(get_db)) -> IncomeService:
         category_repo=IncomeCategoryRepository(db),
         pm_repo=PaymentMethodRepository(db),
         spent_repo=SpentRepository(db),
+    )
+
+
+def get_account_service(db: AsyncSession = Depends(get_db)) -> AccountService:
+    """FastAPI dependency provider for AccountService."""
+    return AccountService(repository=AccountRepository(db))
+
+
+def get_credit_card_service(db: AsyncSession = Depends(get_db)) -> CreditCardService:
+    """FastAPI dependency provider for CreditCardService."""
+    return CreditCardService(
+        repository=CreditCardRepository(db),
+        account_repository=AccountRepository(db),
     )

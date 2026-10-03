@@ -46,6 +46,22 @@ DEFAULT_INCOME_CATEGORIES = [
 
 DEFAULT_PAYMENT_METHODS = ["itau", "nubank", "picpay", "xp", "c6", "pix"]
 
+DEFAULT_ACCOUNTS = [
+    "itau_joao",
+    "nubank_joao",
+    "nubank_lailla",
+    "picpay_joao",
+    "c6_joao",
+]
+
+DEFAULT_CREDIT_CARDS = [
+    "itau_card_joao",
+    "nubank_card_joao",
+    "nubank_card_lailla",
+    "picpay_card_joao",
+    "c6_card_joao",
+]
+
 
 class FinanceService(BaseHttpService):
     _cached_categories: List[str] | None = None
@@ -54,6 +70,10 @@ class FinanceService(BaseHttpService):
     _income_categories_expiry: float = 0.0
     _cached_payment_methods: List[str] | None = None
     _payment_methods_expiry: float = 0.0
+    _cached_accounts: List[str] | None = None
+    _accounts_expiry: float = 0.0
+    _cached_credit_cards: List[str] | None = None
+    _credit_cards_expiry: float = 0.0
 
     def __init__(self, client: httpx.AsyncClient):
         super().__init__(client)
@@ -111,6 +131,52 @@ class FinanceService(BaseHttpService):
             logger.warning(f"Failed to fetch income categories from finance API: {e}")
 
         return FinanceService._cached_income_categories or DEFAULT_INCOME_CATEGORIES
+
+    async def get_accounts(self, use_cache: bool = True) -> List[str]:
+        """Fetch valid account keys with in-memory TTL caching."""
+        now = time.monotonic()
+        if use_cache and FinanceService._cached_accounts and now < FinanceService._accounts_expiry:
+            return FinanceService._cached_accounts
+
+        url = f"{settings.FINANCE_SERVICE_URL}/accounts/?size=100"
+        try:
+            response = await self.client.get(url, headers=self._get_headers())
+            if response.status_code == 200:
+                data = response.json()
+                accounts = [item["key"] for item in data.get("items", [])]
+                if accounts:
+                    FinanceService._cached_accounts = accounts
+                    FinanceService._accounts_expiry = now + _CACHE_TTL_SECONDS
+                    return accounts
+        except Exception as e:
+            logger.warning(f"Failed to fetch accounts from finance API: {e}")
+
+        return FinanceService._cached_accounts or DEFAULT_ACCOUNTS
+
+    async def get_credit_cards(self, use_cache: bool = True) -> List[str]:
+        """Fetch valid credit card keys with in-memory TTL caching."""
+        now = time.monotonic()
+        if (
+            use_cache
+            and FinanceService._cached_credit_cards
+            and now < FinanceService._credit_cards_expiry
+        ):
+            return FinanceService._cached_credit_cards
+
+        url = f"{settings.FINANCE_SERVICE_URL}/credit-cards/?size=100"
+        try:
+            response = await self.client.get(url, headers=self._get_headers())
+            if response.status_code == 200:
+                data = response.json()
+                cards = [item["key"] for item in data.get("items", [])]
+                if cards:
+                    FinanceService._cached_credit_cards = cards
+                    FinanceService._credit_cards_expiry = now + _CACHE_TTL_SECONDS
+                    return cards
+        except Exception as e:
+            logger.warning(f"Failed to fetch credit cards from finance API: {e}")
+
+        return FinanceService._cached_credit_cards or DEFAULT_CREDIT_CARDS
 
     async def get_payment_methods(self, use_cache: bool = True) -> List[str]:
         """Fetch valid payment methods with in-memory TTL caching."""
@@ -205,6 +271,7 @@ class FinanceService(BaseHttpService):
 
     @handle_finance_errors
     async def save_spent(self, details: SpendingDetails) -> dict:
+        """Save a spending record in the finance API."""
         payload = {
             "category": details.categoria,
             "amount": details.valor,
@@ -215,15 +282,8 @@ class FinanceService(BaseHttpService):
         return await self._post_to_finance_api("spents", payload)
 
     @handle_finance_errors
-    async def save_limit(self, details: LimitDetails) -> dict:
-        payload = {
-            "category": details.categoria,
-            "amount": details.valor,
-        }
-        return await self._post_to_finance_api("limits", payload)
-
-    @handle_finance_errors
     async def save_income(self, details: IncomeDetails) -> dict:
+        """Save an income record in the finance API."""
         payload = {
             "description": details.fonte,
             "amount": details.valor,
@@ -231,3 +291,12 @@ class FinanceService(BaseHttpService):
             "payment_method": details.metodo_recebimento,
         }
         return await self._post_to_finance_api("incomes", payload)
+
+    @handle_finance_errors
+    async def save_limit(self, details: LimitDetails) -> dict:
+        """Save or update a spending limit in the finance API."""
+        payload = {
+            "category": details.categoria,
+            "amount": details.valor,
+        }
+        return await self._post_to_finance_api("limits", payload)

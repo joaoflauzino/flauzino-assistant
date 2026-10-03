@@ -13,6 +13,7 @@ class IncomeBase(BaseModel):
     payment_method: str | None = Field(
         default=None, max_length=50, description="Chave da conta/método de recebimento"
     )
+    account_id: UUID | None = Field(default=None, description="ID da conta bancária de recebimento")
     received_at: datetime | None = Field(
         default=None, description="Data/hora em que a receita foi recebida"
     )
@@ -37,6 +38,7 @@ class IncomeUpdate(BaseModel):
     amount: float | None = Field(default=None, gt=0)
     category: str | None = Field(default=None, min_length=1, max_length=50)
     payment_method: str | None = Field(default=None, max_length=50)
+    account_id: UUID | None = None
     received_at: datetime | None = None
 
     @field_validator("category")
@@ -56,6 +58,7 @@ class IncomeResponse(BaseModel):
     amount: float
     category: str
     payment_method: str | None = None
+    account_id: UUID | None = None
     received_at: datetime
     created_at: datetime
 
