@@ -2,6 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from agent_api.schemas.income import IncomeDetails
 from agent_api.schemas.limit import LimitDetails
 from agent_api.schemas.spending import SpendingDetails
 
@@ -32,6 +33,10 @@ class AssistantResponse(BaseModel):
     limit_details: LimitDetails | None = Field(
         default=None,
         description="Detalhes do limite se houver.",
+    )
+    income_details: IncomeDetails | None = Field(
+        default=None,
+        description="Detalhes da receita se houver.",
     )
     is_confirmed: bool = Field(
         default=False,

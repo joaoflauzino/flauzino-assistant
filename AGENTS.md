@@ -37,9 +37,12 @@ O tratamento de exceções não deve ter blocos `try/except` genéricos espalhad
 - Sempre utilize `async` / `await` para operações de banco de dados, requisições HTTP (`httpx`) e operações de arquivos (I/O).
 - O SQLAlchemy deve obrigatoriamente utilizar a sessão assíncrona (`AsyncSession`). Não faça chamadas síncronas ao banco.
 
-### 3.4. Qualidade do Código e Padrões (PEP 8)
-- **Regra Crítica para Imports:** Jamais os imports podem ficar espalhados ou no meio do código! Todos os imports de bibliotecas, módulos ou pacotes locais devem ser organizados **exclusivamente no topo** de cada arquivo.
-- O código deve ser claro, com type hints (tipagem) **obrigatórios** para argumentos de funções e retornos.
+### 3.4. Qualidade do Código e Padrões (PEP 8 & Clean Code)
+- **Regra Crítica para Imports:** Jamais os imports podem ficar espalhados ou no meio do código! Todos os imports de bibliotecas, módulos ou pacotes locais devem ser organizados **exclusivamente no topo** de cada arquivo, separados nos 3 blocos da PEP 8 (Stdlib, Third-party, Local). Proibido `import *`.
+- **Injeção de Dependências (DI & IoC):** Classes e serviços não devem instanciar dependências pesadas (clients HTTP, conexões de banco, SDKs externos) internamente nos métodos. Devem sempre recebê-las via construtor (`__init__`) ou injeção de dependência do framework (`Depends()` no FastAPI) para permitir testabilidade com mocks.
+- **Responsabilidade Única (SRP):** Cada função ou método deve fazer apenas uma coisa. Funções que acumulam validação, regras de negócio e I/O devem ser decompostas em funções auxiliares coesas.
+- **Limite de Condicionais (Máximo 3 por Função):** Evite encadeamentos excessivos de `if/elif/else`. Quando houver mais de 3 condições de negócio, quebre a lógica em funções auxiliares menores, utilize Guard Clauses (retorno antecipado) ou tabelas de despacho/dicionários de estratégia.
+- **Tipagem Obrigatória:** O código deve conter type hints completos e estritos para argumentos de funções e retornos.
 - Após qualquer alteração, execute obrigatoriamente:
   - `make format`: Para formatar via `black`.
   - `make lint`: Para validação via `ruff`.
@@ -63,14 +66,11 @@ Toda nova feature ou modificação precisa estar acompanhada de **testes unitár
 ## 6. Workflow de Desenvolvimento (Development Workflow)
 Para qualquer solicitação de nova feature:
 1. **Planejar e Analisar**: Analisar os requisitos e o estado atual do repositório, verificando se as alterações afetam a `finance_api`, `agent_api` e/ou `frontend`.
-2. **Especificar (Planning Mode)**: Criar o plano de implementação detalhado (Models -> Repositories -> Services -> Routers). Sempre salvar todos os detalhes de planejamento com exemplos de código e desenhos (formato mermaid) se necessário. Este plano e a documentação final da feature devem ser persistidos no repositório:
-   - A IA deve criar um diretório `.specs/<feature-name>/`.
-   - O plano de implementação e especificações devem ser salvos em `.specs/<feature-name>/implementation_plan.md`.
-   - Ao final, o resumo do que foi feito deve ser salvo em `.specs/<feature-name>/walkthrough.md`.
+2. **Especificar (Planning Mode)**: Acionar o comando `/plan` para gerar a especificação técnica seguindo o protocolo oficial global de planejamento (Modo 1 para implementação em `.specs/` ou Modo 2 para avaliação de QA).
 3. **Aprovação**: Aguardar a aprovação humana do plano de implementação/especificação.
 4. **Implementar**: Somente após aprovação, iniciar a escrita do código respeitando os padrões descritos neste documento.
-5. **Testar**: Gerar o plano de testes e escrever/executar os testes automatizados.
-6. **Documentar**: Ao finalizar a tarefa, certifique-se de que os arquivos `implementation_plan.md` e `walkthrough.md` estejam atualizados dentro de `.specs/<feature-name>/`.
+5. **Testar**: Executar a suíte de testes automatizados e linters do projeto.
+6. **Documentar**: Ao finalizar a tarefa, atualizar a documentação correspondente dentro de `.specs/`.
 
 ## 7. Controle de Versão e Git (Git & Commits)
 - **Proibição Estrita de Commits/Push Não Autorizados:** A IA / assistente está estritamente **proibida** de executar comandos `git commit` ou `git push` sem a autorização prévia e expressa do usuário.

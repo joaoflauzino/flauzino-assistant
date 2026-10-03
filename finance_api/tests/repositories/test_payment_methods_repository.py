@@ -1,7 +1,10 @@
 from unittest.mock import AsyncMock, MagicMock
+from uuid import uuid4
 
 import pytest
 
+from finance_api.models.credit_cards import CreditCard
+from finance_api.models.accounts import Account
 from finance_api.models.payment_methods import PaymentMethod
 from finance_api.repositories.payment_methods import PaymentMethodRepository
 from finance_api.schemas.payment_methods import PaymentMethodCreate
@@ -67,3 +70,62 @@ async def test_list_credit_cards(mock_db_session):
     assert len(results) == 2
     assert results[0].key == "c6"
     assert results[1].key == "nubank"
+
+
+async def test_get_by_key_falls_back_to_credit_card():
+    mock_session = AsyncMock()
+    # 1st execute for PaymentMethod table (returns None), 2nd for CreditCard table (returns card)
+    fake_card = CreditCard(
+        id=uuid4(),
+        key="c6_card_joao",
+        name="C6 Carbon Black",
+        account_id=uuid4(),
+        closing_day=2,
+        due_day=10,
+        credit_limit=12000.0,
+    )
+    res_pm = MagicMock()
+    res_pm.scalar_one_or_none.return_value = None
+    res_card = MagicMock()
+    res_card.scalar_one_or_none.return_value = fake_card
+
+    mock_session.execute.side_effect = [res_pm, res_card]
+
+    repo = PaymentMethodRepository(mock_session)
+    result = await repo.get_by_key("c6_card_joao")
+
+    assert result is not None
+    assert result.key == "c6_card_joao"
+    assert result.display_name == "C6 Carbon Black"
+    assert result.is_credit_card is True
+    assert result.closing_day == 2
+    assert result.due_day == 10
+
+
+async def test_get_by_key_falls_back_to_account():
+    mock_session = AsyncMock()
+    # 1st execute for PaymentMethod table (None), 2nd for CreditCard (None), 3rd for Account
+    fake_account = Account(
+        id=uuid4(),
+        key="c6_joao",
+        name="C6 João",
+        bank="c6",
+        owner="joao",
+        type="CHECKING",
+    )
+    res_pm = MagicMock()
+    res_pm.scalar_one_or_none.return_value = None
+    res_card = MagicMock()
+    res_card.scalar_one_or_none.return_value = None
+    res_acc = MagicMock()
+    res_acc.scalar_one_or_none.return_value = fake_account
+
+    mock_session.execute.side_effect = [res_pm, res_card, res_acc]
+
+    repo = PaymentMethodRepository(mock_session)
+    result = await repo.get_by_key("c6_joao")
+
+    assert result is not None
+    assert result.key == "c6_joao"
+    assert result.display_name == "C6 João"
+    assert result.is_credit_card is False

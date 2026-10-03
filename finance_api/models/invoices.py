@@ -1,9 +1,9 @@
+import enum
 import uuid
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
-import enum
 
-from sqlalchemy import Date, DateTime, String, ForeignKey, Enum
+from sqlalchemy import Date, DateTime, Enum, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -24,8 +24,13 @@ class Invoice(Base):
     )
     payment_method_key: Mapped[str] = mapped_column(
         String(50),
-        ForeignKey("payment_methods.key", ondelete="CASCADE"),
         nullable=False,
+        index=True,
+    )
+    credit_card_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("credit_cards.id", ondelete="CASCADE"),
+        nullable=True,
         index=True,
     )
     reference_month: Mapped[str] = mapped_column(String(7), nullable=False, index=True)

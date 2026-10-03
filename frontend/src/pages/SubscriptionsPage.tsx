@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Trash2, Edit2, ChevronLeft, ChevronRight, Repeat, CheckCircle2, XCircle } from 'lucide-react';
 import api from '../services/api';
-import type { Subscription, PaginatedResponse, Category, PaymentMethod } from '../types';
+import type { Subscription, PaginatedResponse, Category, Account, CreditCard } from '../types';
 import { Modal } from '../components/Modal';
 
 export const SubscriptionsPage = () => {
@@ -16,7 +16,8 @@ export const SubscriptionsPage = () => {
 
     // Options States
     const [categories, setCategories] = useState<Category[]>([]);
-    const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+    const [accounts, setAccounts] = useState<Account[]>([]);
+    const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
 
     const defaultDate = new Date().toISOString().split('T')[0];
 
@@ -47,12 +48,14 @@ export const SubscriptionsPage = () => {
     useEffect(() => {
         const fetchOptions = async () => {
             try {
-                const [catRes, pmRes] = await Promise.all([
+                const [catRes, accRes, cardRes] = await Promise.all([
                     api.get<PaginatedResponse<Category>>('/categories/?size=1000'),
-                    api.get<PaginatedResponse<PaymentMethod>>('/payment-methods/?size=1000')
+                    api.get<PaginatedResponse<Account>>('/accounts/?size=1000'),
+                    api.get<PaginatedResponse<CreditCard>>('/credit-cards/?size=1000')
                 ]);
                 setCategories(catRes.data.items);
-                setPaymentMethods(pmRes.data.items);
+                setAccounts(accRes.data.items);
+                setCreditCards(cardRes.data.items);
             } catch (error) {
                 console.error("Failed to fetch options", error);
             }
@@ -63,6 +66,14 @@ export const SubscriptionsPage = () => {
     useEffect(() => {
         fetchData(page);
     }, [page]);
+
+    const getPaymentLabel = (key: string) => {
+        const card = creditCards.find(c => c.key === key);
+        if (card) return card.name;
+        const acc = accounts.find(a => a.key === key);
+        if (acc) return `${acc.name} (${acc.bank})`;
+        return key;
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -202,6 +213,7 @@ export const SubscriptionsPage = () => {
                                         <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>VALOR</th>
                                         <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>MÉTODO</th>
                                         <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>DATA INÍCIO</th>
+                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>STATUS</th>
                                         <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem', textAlign: 'right' }}>AÇÕES</th>
                                     </tr>
                                 </thead>
@@ -232,7 +244,7 @@ export const SubscriptionsPage = () => {
                                             <td style={{ padding: '1.25rem 1.5rem', fontWeight: 600, fontSize: '1rem', color: 'var(--text-primary)' }}>
                                                 R$ {s.amount.toFixed(2)}
                                             </td>
-                                            <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)' }}>{s.payment_method}</td>
+                                            <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)' }}>{getPaymentLabel(s.payment_method)}</td>
                                             <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)' }}>{new Date(s.created_at).toLocaleDateString()}</td>
                                             <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)' }}>
                                                 <button
@@ -451,30 +463,39 @@ export const SubscriptionsPage = () => {
                             }}
                         />
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Método</label>
-                            <select
-                                required
-                                value={formData.payment_method}
-                                onChange={e => setFormData({ ...formData, payment_method: e.target.value })}
-                                style={{
-                                    width: '100%',
-                                    padding: '0.9rem',
-                                    borderRadius: '8px',
-                                    border: '1px solid var(--border-color)',
-                                    backgroundColor: 'var(--bg-primary)',
-                                    color: 'white',
-                                    fontSize: '1rem',
-                                    appearance: 'none'
-                                }}
-                            >
-                                <option value="" disabled>Selecione...</option>
-                                {paymentMethods.map(pm => (
-                                    <option key={pm.id} value={pm.key}>{pm.display_name}</option>
-                                ))}
-                            </select>
-                        </div>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Método de Pagamento</label>
+                        <select
+                            required
+                            value={formData.payment_method}
+                            onChange={e => setFormData({ ...formData, payment_method: e.target.value })}
+                            style={{
+                                width: '100%',
+                                padding: '0.9rem',
+                                borderRadius: '8px',
+                                border: '1px solid var(--border-color)',
+                                backgroundColor: 'var(--bg-primary)',
+                                color: 'white',
+                                fontSize: '1rem',
+                                appearance: 'none'
+                            }}
+                        >
+                            <option value="" disabled>Selecione um cartão ou conta...</option>
+                            {creditCards.length > 0 && (
+                                <optgroup label="Cartões de Crédito">
+                                    {creditCards.map(cc => (
+                                        <option key={cc.id} value={cc.key}>{cc.name}</option>
+                                    ))}
+                                </optgroup>
+                            )}
+                            {accounts.length > 0 && (
+                                <optgroup label="Contas Bancárias">
+                                    {accounts.map(acc => (
+                                        <option key={acc.id} value={acc.key}>{acc.name} ({acc.bank})</option>
+                                    ))}
+                                </optgroup>
+                            )}
+                        </select>
                     </div>
 
                     <div>

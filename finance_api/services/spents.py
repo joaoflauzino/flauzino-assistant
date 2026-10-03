@@ -5,6 +5,7 @@ import uuid
 from uuid import UUID
 from zoneinfo import ZoneInfo
 from dateutil.relativedelta import relativedelta
+from sqlalchemy import select
 
 from finance_api.core.decorators import handle_service_errors
 from finance_api.core.exceptions import EntityNotFoundError, ValidationError
@@ -61,31 +62,30 @@ class SpentService:
         return None
 
     async def _validate_category(self, category_key: str) -> Category:
-        """Validates that a category exists in the repository."""
-        category_repo = self.category_repo
-        category = await category_repo.get_by_key(category_key)
+        category = await self.category_repo.get_by_key(category_key)
         if not category:
             raise ValidationError(
                 f"Categoria '{category_key}' não existe. Por favor, crie-a primeiro."
             )
         return category
 
-    async def _validate_payment_method(self, pm_key: str) -> PaymentMethod:
-        """Validates that a payment method exists in the repository."""
-        pm_repo = self.pm_repo
-        pm = await pm_repo.get_by_key(pm_key)
-        if not pm:
-            raise ValidationError(f"Método de pagamento '{pm_key}' não existe.")
-        return pm
+    async def _validate_payment_method(self, payment_method_key: str) -> PaymentMethod:
+        payment_method = await self.pm_repo.get_by_key(payment_method_key)
+        if not payment_method:
+            raise ValidationError(
+                f"Método de pagamento '{payment_method_key}' não existe. Por favor, crie-o primeiro."
+            )
+        return payment_method
 
     def _build_installments(self, spent: SpentCreate) -> List[Spent]:
-        """Generates multiple Spent records for each installment month."""
+        spents_to_create = []
         installment_id = uuid.uuid4()
         current = spent.current_installment or 1
-        total = spent.total_installments or current
+        total = spent.total_installments or 2
 
-        spents_to_create: List[Spent] = []
-        base_date = datetime.now(ZoneInfo("America/Sao_Paulo"))
+        base_date = spent.created_at
+        if base_date is None:
+            base_date = datetime.now(ZoneInfo("America/Sao_Paulo"))
 
         months_to_add = 0
         for i in range(current, total + 1):
@@ -142,6 +142,46 @@ class SpentService:
 
         matched_pm = await self._validate_payment_method(spent.payment_method)
         spent.payment_method = matched_pm.key
+
+        user_payment_type = (
+            spent.payment_type
+            if spent.payment_type in ("PIX", "DEBIT", "CASH", "TRANSFER", "OTHER")
+            else None
+        )
+
+        card = None
+        try:
+            from finance_api.models.credit_cards import CreditCard
+
+            card_res = await self.repo.db.execute(
+                select(CreditCard).where(CreditCard.key == matched_pm.key)
+            )
+            card = card_res.scalar_one_or_none()
+            if card:
+                spent.credit_card_id = card.id
+                spent.account_id = card.account_id
+                spent.payment_type = "CREDIT"
+        except Exception:
+            pass
+
+        if not card:
+            try:
+                from finance_api.models.accounts import Account
+
+                acc_res = await self.repo.db.execute(
+                    select(Account).where(Account.key == matched_pm.key)
+                )
+                acc = acc_res.scalar_one_or_none()
+                if acc:
+                    spent.account_id = acc.id
+                    spent.payment_type = user_payment_type or "DEBIT"
+            except Exception:
+                pass
+
+        if not getattr(spent, "account_id", None) and not card:
+            spent.payment_type = user_payment_type or (
+                "CREDIT" if getattr(matched_pm, "is_credit_card", False) else "DEBIT"
+            )
 
         if spent.is_installment:
             spents_to_create = self._build_installments(spent)
@@ -214,6 +254,41 @@ class SpentService:
         if update_data.payment_method:
             matched_pm = await self._validate_payment_method(update_data.payment_method)
             update_data.payment_method = matched_pm.key
+            user_payment_type = update_data.payment_type
+
+            card = None
+            try:
+                from finance_api.models.credit_cards import CreditCard
+
+                card_res = await self.repo.db.execute(
+                    select(CreditCard).where(CreditCard.key == matched_pm.key)
+                )
+                card = card_res.scalar_one_or_none()
+                if card:
+                    update_data.credit_card_id = card.id
+                    update_data.account_id = card.account_id
+                    update_data.payment_type = "CREDIT"
+            except Exception:
+                pass
+
+            if not card:
+                try:
+                    from finance_api.models.accounts import Account
+
+                    acc_res = await self.repo.db.execute(
+                        select(Account).where(Account.key == matched_pm.key)
+                    )
+                    acc = acc_res.scalar_one_or_none()
+                    if acc:
+                        update_data.account_id = acc.id
+                        update_data.payment_type = user_payment_type or "DEBIT"
+                except Exception:
+                    pass
+
+            if not getattr(update_data, "account_id", None) and not card:
+                update_data.payment_type = user_payment_type or (
+                    "CREDIT" if getattr(matched_pm, "is_credit_card", False) else "DEBIT"
+                )
 
         current_spent = await self.repo.get_by_id(spent_id)
         if not current_spent:
