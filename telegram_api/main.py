@@ -22,8 +22,10 @@ from telegram_api.core.metrics import (
     start_metrics_server,
 )
 from telegram_api.handlers.balance_handler import balance_handlers
+from telegram_api.handlers.balance_summary_handler import balanco_handler
 from telegram_api.handlers.command_handler import help_command, start_command
 from telegram_api.handlers.expense_handler import expense_conv_handler
+from telegram_api.handlers.income_handler import income_conv_handler
 from telegram_api.handlers.message_handler import agent_callback_handler, handle_text_message
 from telegram_api.handlers.photo_handler import handle_photo_message
 from telegram_api.handlers.voice_handler import handle_voice_message
@@ -80,9 +82,11 @@ def main() -> None:
     # Register command handlers
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(balanco_handler)
 
     # Register conversation handlers
     application.add_handler(expense_conv_handler)
+    application.add_handler(income_conv_handler)
     for handler in balance_handlers:
         application.add_handler(handler)
 

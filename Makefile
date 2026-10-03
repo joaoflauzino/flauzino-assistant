@@ -1,4 +1,4 @@
-.PHONY: install db-up db-down run-finance run-agent run-mcp run-telegram run-frontend docker-up docker-down format lint test test-mcp
+.PHONY: install db-up db-down db-init run-finance run-agent run-mcp run-telegram run-frontend docker-up docker-down format lint test test-graph test-mcp
 
 install:
 	uv sync --all-packages
@@ -12,6 +12,9 @@ db-up:
 
 db-down:
 	docker-compose -f infra/docker-compose.yml down
+
+db-init:
+	docker exec -i infra-db-1 psql -U $${POSTGRES_USER:-flauzino} -d $${POSTGRES_DB:-assistant} < infra/db/init.sql
 
 run-finance:
 	uv run uvicorn finance_api.main:app --port 8000 --reload

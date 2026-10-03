@@ -6,10 +6,18 @@ from mcp.server.fastmcp import Image
 from pydantic import Field
 
 from finance_api.core.database import AsyncSessionLocal
-from finance_api.core.dependencies import get_balance_service, get_spent_service
+from finance_api.core.dependencies import (
+    get_account_service,
+    get_balance_service,
+    get_credit_card_service,
+    get_income_category_service,
+    get_income_service,
+    get_spent_service,
+)
 from finance_api.core.logger import get_logger
 from finance_api.mcp.server import mcp
 from finance_api.repositories.categories import CategoryRepository
+from finance_api.schemas.incomes import IncomeCreate
 from finance_api.schemas.spents import SpentCreate
 from finance_api.services.categories import CategoryService
 from finance_api.settings import settings
@@ -87,6 +95,118 @@ async def list_categories() -> list[dict]:
         service = CategoryService(repo)
         items, _ = await service.list(page=1, size=100)
         return [item.model_dump(mode="json") for item in items]
+
+
+@mcp.tool()
+async def create_income(
+    description: Annotated[
+        str,
+        Field(
+            description="Descrição da receita (ex: 'Salário de Agosto', 'Pix recebido de cliente')."
+        ),
+    ],
+    amount: Annotated[float, Field(description="Valor da receita em reais.")],
+    category: Annotated[
+        str,
+        Field(description="Chave da categoria de receita (ex: 'salario', 'pix', 'investimentos')."),
+    ],
+    payment_method: Annotated[
+        str | None,
+        Field(description="Método/conta de recebimento opcional (ex: 'itau_joao', 'nubank_joao')."),
+    ] = None,
+) -> dict:
+    """Registra uma nova entrada/receita financeira no sistema."""
+    async with AsyncSessionLocal() as db:
+        service = get_income_service(db)
+        income_create = IncomeCreate(
+            description=description,
+            amount=amount,
+            category=category,
+            payment_method=payment_method,
+        )
+        created = await service.create(income_create)
+        return created.model_dump(mode="json")
+
+
+@mcp.tool()
+async def list_income_categories() -> list[dict]:
+    """Lista todas as categorias de receitas cadastradas no sistema."""
+    async with AsyncSessionLocal() as db:
+        service = get_income_category_service(db)
+        items, _ = await service.list(page=1, size=100)
+        return [item.model_dump(mode="json") for item in items]
+
+
+@mcp.tool()
+async def get_monthly_cashflow(
+    reference_month: Annotated[
+        str | None,
+        Field(
+            description="Mês de referência no formato 'YYYY-MM' (ex: '2026-08'). Opcional; padrão é o mês atual."
+        ),
+    ] = None,
+) -> dict:
+    """Consulta o balanço mensal consolidado de receitas vs despesas, saldo líquido e taxa de economia."""
+    async with AsyncSessionLocal() as db:
+        service = get_income_service(db)
+        summary = await service.get_monthly_summary(reference_month=reference_month)
+        return summary.model_dump(mode="json")
+
+
+@mcp.tool()
+async def list_accounts(
+    owner: Annotated[
+        str | None,
+        Field(description="Filtro opcional por proprietário da conta (ex: 'joao', 'lailla')."),
+    ] = None,
+) -> list[dict]:
+    """Lista todas as contas financeiras cadastradas com seus respectivos cartões vinculados."""
+    async with AsyncSessionLocal() as db:
+        service = get_account_service(db)
+        items, _ = await service.list(page=1, size=100, owner=owner)
+        return [
+            {
+                "id": str(item.id),
+                "key": item.key,
+                "name": item.name,
+                "bank": item.bank,
+                "owner": item.owner,
+                "type": item.type,
+                "credit_cards": [
+                    {
+                        "id": str(c.id),
+                        "key": c.key,
+                        "name": c.name,
+                        "closing_day": c.closing_day,
+                        "due_day": c.due_day,
+                        "credit_limit": c.credit_limit,
+                    }
+                    for c in (item.credit_cards or [])
+                ],
+            }
+            for item in items
+        ]
+
+
+@mcp.tool()
+async def list_credit_cards() -> list[dict]:
+    """Lista todos os cartões de crédito cadastrados no sistema com detalhes de fechamento e vencimento."""
+    async with AsyncSessionLocal() as db:
+        service = get_credit_card_service(db)
+        items, _ = await service.list(page=1, size=100)
+        return [
+            {
+                "id": str(item.id),
+                "key": item.key,
+                "name": item.name,
+                "account_id": str(item.account_id),
+                "account_name": item.account.name if item.account else None,
+                "closing_day": item.closing_day,
+                "due_day": item.due_day,
+                "credit_limit": item.credit_limit,
+            }
+            for item in items
+        ]
 
 
 @mcp.tool()

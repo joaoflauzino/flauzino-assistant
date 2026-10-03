@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, Edit2, CheckCircle, RotateCcw } from 'lucide-react';
 import api from '../services/api';
-import type { Invoice, PaymentMethod } from '../types';
+import type { Invoice, CreditCard } from '../types';
 import { Modal } from '../components/Modal';
 
 export const InvoicesPage = () => {
     const [invoices, setInvoices] = useState<Invoice[]>([]);
-    const [paymentMethods, setPaymentMethods] = useState<Record<string, PaymentMethod>>({});
+    const [creditCards, setCreditCards] = useState<Record<string, CreditCard>>({});
     const [loading, setLoading] = useState(true);
     const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
-    
+
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
     const [newClosingDate, setNewClosingDate] = useState('');
@@ -24,17 +24,17 @@ export const InvoicesPage = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [invoicesRes, pmRes] = await Promise.all([
+            const [invoicesRes, cardsRes] = await Promise.all([
                 api.get<Invoice[]>(`/invoices/${referenceMonth}`),
-                api.get('/payment-methods/?page=1&size=100')
+                api.get<{ items: CreditCard[] }>('/credit-cards/?page=1&size=100')
             ]);
             setInvoices(invoicesRes.data);
-            
-            const pmMap: Record<string, PaymentMethod> = {};
-            pmRes.data.items.forEach((pm: PaymentMethod) => {
-                pmMap[pm.key] = pm;
+
+            const cardMap: Record<string, CreditCard> = {};
+            cardsRes.data.items.forEach((card: CreditCard) => {
+                cardMap[card.key] = card;
             });
-            setPaymentMethods(pmMap);
+            setCreditCards(cardMap);
         } catch (error) {
             console.error("Failed to fetch invoices", error);
         } finally {
@@ -49,7 +49,7 @@ export const InvoicesPage = () => {
     const handleUpdateDates = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingInvoice) return;
-        
+
         try {
             await api.put(`/invoices/${editingInvoice.payment_method_key}/${referenceMonth}`, {
                 closing_date: newClosingDate || null,
@@ -64,10 +64,10 @@ export const InvoicesPage = () => {
         }
     };
 
-    const handlePayInvoice = async (paymentMethodKey: string) => {
-        setPayingKey(paymentMethodKey);
+    const handlePayInvoice = async (cardKey: string) => {
+        setPayingKey(cardKey);
         try {
-            await api.post(`/invoices/${paymentMethodKey}/${referenceMonth}/pay`);
+            await api.post(`/invoices/${cardKey}/${referenceMonth}/pay`);
             await fetchData();
         } catch (error) {
             console.error("Error marking invoice as paid", error);
@@ -76,10 +76,10 @@ export const InvoicesPage = () => {
         }
     };
 
-    const handleReopenInvoice = async (paymentMethodKey: string) => {
-        setReopeningKey(paymentMethodKey);
+    const handleReopenInvoice = async (cardKey: string) => {
+        setReopeningKey(cardKey);
         try {
-            await api.post(`/invoices/${paymentMethodKey}/${referenceMonth}/reopen`);
+            await api.post(`/invoices/${cardKey}/${referenceMonth}/reopen`);
             await fetchData();
         } catch (error) {
             console.error("Error reopening invoice", error);
@@ -154,7 +154,7 @@ export const InvoicesPage = () => {
                     <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0 }}>Faturas</h1>
                     <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>Acompanhe o fechamento, vencimento e status das faturas de cartão de crédito</p>
                 </div>
-                
+
                 <div style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -207,7 +207,7 @@ export const InvoicesPage = () => {
                                 </tr>
                             ) : (
                                 invoices.map((inv) => {
-                                    const pm = paymentMethods[inv.payment_method_key];
+                                    const card = creditCards[inv.payment_method_key];
                                     const isPaid = inv.status?.toUpperCase() === 'PAID';
                                     const isPaying = payingKey === inv.payment_method_key;
                                     const isReopening = reopeningKey === inv.payment_method_key;
@@ -215,16 +215,16 @@ export const InvoicesPage = () => {
                                     return (
                                         <tr key={inv.payment_method_key} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
                                             <td style={{ padding: '1.25rem 1.5rem', fontWeight: 500 }}>
-                                                {pm?.display_name || inv.payment_method_key}
+                                                {card?.name || inv.payment_method_key}
                                             </td>
                                             <td style={{ padding: '1.25rem 1.5rem' }}>
                                                 {renderStatusBadge(inv.status)}
                                             </td>
                                             <td style={{ padding: '1.25rem 1.5rem' }}>
-                                                <span style={{ 
-                                                    backgroundColor: 'rgba(99, 102, 241, 0.1)', 
-                                                    color: 'var(--accent-color)', 
-                                                    padding: '0.25rem 0.75rem', 
+                                                <span style={{
+                                                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                                                    color: 'var(--accent-color)',
+                                                    padding: '0.25rem 0.75rem',
                                                     borderRadius: '16px',
                                                     fontWeight: 600,
                                                     fontSize: '0.9rem'
@@ -314,9 +314,9 @@ export const InvoicesPage = () => {
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Editar Fatura">
                 <form onSubmit={handleUpdateDates} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1rem' }}>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0 }}>
-                        Ajuste as datas reais e status da fatura de <strong>{paymentMethods[editingInvoice?.payment_method_key || '']?.display_name || editingInvoice?.payment_method_key}</strong> ({referenceMonth}).
+                        Ajuste as datas reais e status da fatura de <strong>{creditCards[editingInvoice?.payment_method_key || '']?.name || editingInvoice?.payment_method_key}</strong> ({referenceMonth}).
                     </p>
-                    
+
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>

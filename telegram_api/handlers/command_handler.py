@@ -11,9 +11,11 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     welcome_message = (
         "👋 Olá! Sou o assistente financeiro da Família Flauzino.\n\n"
         "Você pode:\n"
-        "• Registrar gastos usando o comando /gasto de forma interativa\n"
-        "• Consultar limites e saldos usando os comandos /limites ou /saldo\n"
-        "• Mandar mensagens de texto/áudio como 'quanto posso gastar no mercado?'\n\n"
+        "• Registrar despesas usando o comando /gasto de forma interativa\n"
+        "• Registrar receitas usando o comando /receita de forma interativa\n"
+        "• Ver o balanço mensal integrado usando o comando /balanco\n"
+        "• Consultar limites e saldos de gastos usando /limites ou /saldo\n"
+        "• Mandar mensagens de texto/áudio como 'quanto posso gastar no mercado?' ou 'registra salário de 5000'\n\n"
         "Use /help para mais informações!"
     )
 
@@ -25,21 +27,20 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     """Handle /help command."""
     help_message = (
         "📋 *Como usar o bot:*\n\n"
-        "*Registrar gastos (Guiado):*\n"
-        "Envie o comando /gasto. O bot vai te guiar passo a passo com botões para completar as informações:\n"
-        "• Categoria\n"
-        "• Valor\n"
-        "• Item comprado\n"
-        "• Método de pagamento\n"
-        "• Local da compra\n\n"
-        "*Consultas de Saldo e Limites:*\n"
-        "• Envie /saldo ou /limites para receber um relatório completo de todos os seus limites e gastos do mês com base no fechamento das faturas.\n\n"
+        "*Registrar despesas (Guiado):*\n"
+        "Envie o comando /gasto. O bot vai te guiar passo a passo para registrar uma despesa.\n\n"
+        "*Registrar receitas (Guiado):*\n"
+        "Envie o comando /receita. O bot vai te guiar passo a passo para registrar uma entrada financeira (salário, pix, etc.).\n\n"
+        "*Balanço Mensal Integrado:*\n"
+        "Envie /balanco para ver o resultado executivo do mês (Receitas vs Despesas, Saldo Líquido e Taxa de Economia).\n\n"
+        "*Consultas de Saldo e Limites de Gastos:*\n"
+        "• Envie /saldo ou /limites para receber um relatório completo por categoria de gastos.\n\n"
         "*Consultas e Registros Livres (IA):*\n"
-        "Você também pode conversar naturalmente comigo enviando texto ou áudio! Eu consigo entender o que você quer fazer.\n"
-        "Exemplos do que você pode me mandar:\n"
+        "Você também pode conversar naturalmente comigo enviando texto ou áudio! Exemplos:\n"
         '- _"Quanto ainda tenho de mercado?"_\n'
         '- _"Comprei um lanche no McDonald\'s por 45 reais no cartão nubank"_\n'
-        '- _"Cadastre um limite de 1000 reais para a categoria lazer"_\n'
+        '- _"Recebi meu salário de 5000 no Itaú"_\n'
+        '- _"Fechei o mês no positivo?"_\n'
     )
 
     logger.info(f"User {update.effective_user.id} requested help")

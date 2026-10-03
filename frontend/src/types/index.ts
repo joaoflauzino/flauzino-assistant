@@ -3,6 +3,9 @@ export interface Spent {
     category: string;
     amount: number;
     payment_method: string;
+    payment_type?: string;
+    account_id?: string;
+    credit_card_id?: string;
     item_bought: string;
     location: string;
     is_installment?: boolean;
@@ -18,6 +21,9 @@ export interface Subscription {
     category: string;
     amount: number;
     payment_method: string;
+    payment_type?: string;
+    account_id?: string;
+    credit_card_id?: string;
     is_active: boolean;
     created_at: string;
 }
@@ -42,6 +48,58 @@ export interface Category {
     key: string;
     display_name: string;
     created_at: string;
+}
+
+export interface IncomeCategory {
+    id: string;
+    key: string;
+    display_name: string;
+    created_at: string;
+}
+
+export interface Income {
+    id: string;
+    description: string;
+    amount: number;
+    category: string;
+    payment_method?: string;
+    account_id?: string;
+    received_at: string;
+    created_at: string;
+}
+
+export interface MonthlyBalanceSummary {
+    reference_month: string;
+    total_incomes: number;
+    total_spents: number;
+    net_balance: number;
+    is_positive: boolean;
+    savings_rate: number;
+    incomes_by_category: Record<string, number>;
+    spents_by_category: Record<string, number>;
+}
+
+export interface Account {
+    id: string;
+    key: string;
+    name: string;
+    bank: string;
+    owner: string;
+    type: string;
+    created_at?: string;
+    credit_cards?: CreditCard[];
+}
+
+export interface CreditCard {
+    id: string;
+    key: string;
+    name: string;
+    account_id: string;
+    account_name?: string;
+    closing_day: number;
+    due_day: number;
+    credit_limit: number;
+    created_at?: string;
 }
 
 export interface PaymentMethod {

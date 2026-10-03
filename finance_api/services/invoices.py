@@ -1,18 +1,18 @@
+import calendar
 from datetime import date, datetime
 from typing import List, Tuple
 from uuid import UUID
-import calendar
 from dateutil.relativedelta import relativedelta
 import holidays
 
+from finance_api.core.decorators import handle_service_errors
+from finance_api.core.exceptions import EntityNotFoundError
+from finance_api.core.logger import get_logger
 from finance_api.models.invoices import InvoiceStatus
 from finance_api.models.payment_methods import PaymentMethod
 from finance_api.repositories.invoices import InvoiceRepository
 from finance_api.repositories.payment_methods import PaymentMethodRepository
-from finance_api.schemas.invoices import InvoiceCreate, InvoiceUpdate, InvoiceResponse
-from finance_api.core.decorators import handle_service_errors
-from finance_api.core.exceptions import EntityNotFoundError
-from finance_api.core.logger import get_logger
+from finance_api.schemas.invoices import InvoiceCreate, InvoiceResponse, InvoiceUpdate
 
 logger = get_logger(__name__)
 
@@ -102,6 +102,7 @@ class InvoiceService:
                     InvoiceResponse(
                         id=UUID("00000000-0000-0000-0000-000000000000"),
                         payment_method_key=cc.key,
+                        credit_card_id=cc.id,
                         reference_month=reference_month,
                         real_closing_date=real_closing,
                         real_due_date=real_due,
@@ -122,6 +123,10 @@ class InvoiceService:
         status: InvoiceStatus | None = None,
     ) -> InvoiceResponse:
         """Updates or creates an invoice with custom closing_date, due_date, and/or status."""
+        pm = await self.pm_repo.get_by_key(payment_method_key)
+        if not pm or not pm.is_credit_card:
+            raise EntityNotFoundError(f"Cartão de crédito {payment_method_key} não encontrado")
+
         invoice = await self.repo.get_by_payment_method_and_month(
             payment_method_key, reference_month
         )
@@ -133,12 +138,10 @@ class InvoiceService:
                 update_data.real_due_date = due_date
             if status is not None:
                 update_data.status = status
+            if not invoice.credit_card_id and pm.id:
+                update_data.credit_card_id = pm.id
             updated = await self.repo.update(invoice.id, update_data)
             return InvoiceResponse.model_validate(updated)
-
-        pm = await self.pm_repo.get_by_key(payment_method_key)
-        if not pm or not pm.is_credit_card:
-            raise EntityNotFoundError(f"Cartão de crédito {payment_method_key} não encontrado")
 
         closing_d = pm.closing_day or (closing_date.day if closing_date else 1)
         due_d = pm.due_day or (due_date.day if due_date else 1)
@@ -150,6 +153,7 @@ class InvoiceService:
 
         new_inv = InvoiceCreate(
             payment_method_key=payment_method_key,
+            credit_card_id=pm.id,
             reference_month=reference_month,
             real_closing_date=final_closing,
             real_due_date=final_due,

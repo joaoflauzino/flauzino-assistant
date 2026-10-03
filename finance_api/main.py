@@ -20,7 +20,11 @@ from finance_api.core.handlers import (
 )
 from finance_api.core.middlewares import CorrelationIdMiddleware
 from finance_api.routers import (
+    accounts,
     categories,
+    credit_cards,
+    income_categories,
+    incomes,
     invoices,
     limits,
     payment_methods,
@@ -64,9 +68,15 @@ async def health_check():
 
 
 # Register routers
+app.include_router(accounts.router, prefix="/accounts", tags=["accounts"])
+app.include_router(credit_cards.router, prefix="/credit-cards", tags=["credit-cards"])
 app.include_router(spents.router, prefix="/spents", tags=["spents"])
 app.include_router(limits.router, prefix="/limits", tags=["limits"])
 app.include_router(categories.router, prefix="/categories", tags=["categories"])
+app.include_router(
+    income_categories.router, prefix="/income-categories", tags=["income-categories"]
+)
+app.include_router(incomes.router, prefix="/incomes", tags=["incomes"])
 app.include_router(payment_methods.router, prefix="/payment-methods", tags=["payment-methods"])
 app.include_router(subscriptions.router, prefix="/subscriptions", tags=["subscriptions"])
 app.include_router(invoices.router, prefix="/invoices", tags=["invoices"])
