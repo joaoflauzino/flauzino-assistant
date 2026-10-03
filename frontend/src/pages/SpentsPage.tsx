@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Trash2, Edit2, ChevronLeft, ChevronRight, Wallet } from 'lucide-react';
 import api from '../services/api';
-import type { Spent, PaginatedResponse, Category, PaymentMethod } from '../types';
+import type { Spent, PaginatedResponse, Category, Account, CreditCard as CreditCardType } from '../types';
 import { Modal } from '../components/Modal';
 
 export const SpentsPage = () => {
@@ -16,7 +16,9 @@ export const SpentsPage = () => {
 
     // Options States
     const [categories, setCategories] = useState<Category[]>([]);
-    const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+    const [accounts, setAccounts] = useState<Account[]>([]);
+    const [creditCards, setCreditCards] = useState<CreditCardType[]>([]);
+
     // Helper to get the first and last day de current month
     const getCurrentMonthDates = () => {
         const now = new Date();
@@ -74,12 +76,14 @@ export const SpentsPage = () => {
     useEffect(() => {
         const fetchOptions = async () => {
             try {
-                const [catRes, pmRes] = await Promise.all([
+                const [catRes, accRes, cardsRes] = await Promise.all([
                     api.get<PaginatedResponse<Category>>('/categories/?size=1000'),
-                    api.get<PaginatedResponse<PaymentMethod>>('/payment-methods/?size=1000')
+                    api.get<PaginatedResponse<Account>>('/accounts/?size=1000'),
+                    api.get<PaginatedResponse<CreditCardType>>('/credit-cards/?size=1000'),
                 ]);
                 setCategories(catRes.data.items);
-                setPaymentMethods(pmRes.data.items);
+                setAccounts(accRes.data.items);
+                setCreditCards(cardsRes.data.items);
             } catch (error) {
                 console.error("Failed to fetch options", error);
             }
@@ -111,13 +115,23 @@ export const SpentsPage = () => {
             }
 
             if (editingSpent) {
-                await api.patch(`/spents/${editingSpent.id}`, payload);
+                await api.put(`/spents/${editingSpent.id}`, payload);
             } else {
                 await api.post('/spents/', payload);
             }
             setIsModalOpen(false);
             setEditingSpent(null);
-            setFormData({ category: '', amount: '', item_bought: '', payment_method: '', location: '', created_at: monthDates.end, is_installment: false, current_installment: 1, total_installments: 2 });
+            setFormData({
+                category: '',
+                amount: '',
+                item_bought: '',
+                payment_method: '',
+                location: '',
+                created_at: monthDates.end,
+                is_installment: false,
+                current_installment: 1,
+                total_installments: 2
+            });
             fetchData(page);
         } catch (error) {
             console.error("Error saving spent", error);
@@ -147,7 +161,7 @@ export const SpentsPage = () => {
             item_bought: spent.item_bought,
             payment_method: spent.payment_method,
             location: spent.location,
-            created_at: spent.created_at ? spent.created_at.substring(0, 10) : monthDates.end,
+            created_at: spent.created_at.split('T')[0],
             is_installment: spent.is_installment || false,
             current_installment: spent.current_installment || 1,
             total_installments: spent.total_installments || 2
@@ -157,14 +171,22 @@ export const SpentsPage = () => {
 
     const openCreate = () => {
         setEditingSpent(null);
-        setFormData({ category: '', amount: '', item_bought: '', payment_method: '', location: '', created_at: monthDates.end, is_installment: false, current_installment: 1, total_installments: 2 });
+        setFormData({
+            category: '',
+            amount: '',
+            item_bought: '',
+            payment_method: '',
+            location: '',
+            created_at: monthDates.end,
+            is_installment: false,
+            current_installment: 1,
+            total_installments: 2
+        });
         setIsModalOpen(true);
     };
 
-    const handleFilter = (e?: React.FormEvent) => {
-        e?.preventDefault();
-        setPage(1); // Reset to first page when filtering
-        fetchData(1);
+    const formatCurrency = (val: number) => {
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
     };
 
     return (
@@ -172,100 +194,86 @@ export const SpentsPage = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <div>
                     <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0 }}>Gastos</h1>
-                    <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>Acompanhe e gerencie suas despesas</p>
-                </div>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <form onSubmit={handleFilter} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
-                        <div>
-                            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.3rem', fontWeight: 500 }}>Data Inicial</label>
-                            <input
-                                type="date"
-                                value={startDate}
-                                onChange={e => setStartDate(e.target.value)}
-                                style={{
-                                    padding: '0.6rem 0.8rem',
-                                    borderRadius: '8px',
-                                    border: '1px solid var(--border-color)',
-                                    background: 'var(--bg-tertiary)',
-                                    color: 'white',
-                                    fontSize: '0.9rem',
-                                    transition: 'all 0.2s',
-                                    cursor: 'pointer'
-                                }}
-                            />
-                        </div>
-                        <div>
-                            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.3rem', fontWeight: 500 }}>Data Final</label>
-                            <input
-                                type="date"
-                                value={endDate}
-                                onChange={e => setEndDate(e.target.value)}
-                                style={{
-                                    padding: '0.6rem 0.8rem',
-                                    borderRadius: '8px',
-                                    border: '1px solid var(--border-color)',
-                                    background: 'var(--bg-tertiary)',
-                                    color: 'white',
-                                    fontSize: '0.9rem',
-                                    transition: 'all 0.2s',
-                                    cursor: 'pointer'
-                                }}
-                            />
-                        </div>
-                        <button
-                            type="submit"
-                            style={{
-                                backgroundColor: 'var(--accent-color)',
-                                color: 'white',
-                                height: '38px',
-                                padding: '0 1.5rem',
-                                borderRadius: '8px',
-                                border: 'none',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                transition: 'all 0.2s',
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
-                            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                        >
-                            Filtrar
-                        </button>
-                    </form>
-
+                    <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>Acompanhe e filtre os lançamentos financeiros da família</p>
                 </div>
             </div>
 
-            {/* Stats Summary */}
+            {/* Top Bar: Dates & Total Spent */}
             <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-                gap: '1.5rem',
-                marginBottom: '2rem'
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                backgroundColor: 'var(--bg-secondary)',
+                padding: '1.25rem 1.5rem',
+                borderRadius: '12px',
+                border: '1px solid rgba(255, 255, 255, 0.05)',
+                marginBottom: '2rem',
+                gap: '1rem',
+                flexWrap: 'wrap'
             }}>
-                <div style={{
-                    backgroundColor: 'var(--bg-secondary)',
-                    padding: '1.5rem',
-                    borderRadius: '12px',
-                    border: '1px solid rgba(255, 255, 255, 0.05)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '1rem',
-                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-                }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>De:</label>
+                        <input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            style={{
+                                backgroundColor: 'var(--bg-primary)',
+                                border: '1px solid var(--border-color)',
+                                color: 'white',
+                                padding: '0.4rem 0.6rem',
+                                borderRadius: '6px',
+                                fontSize: '0.85rem'
+                            }}
+                        />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Até:</label>
+                        <input
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            style={{
+                                backgroundColor: 'var(--bg-primary)',
+                                border: '1px solid var(--border-color)',
+                                color: 'white',
+                                padding: '0.4rem 0.6rem',
+                                borderRadius: '6px',
+                                fontSize: '0.85rem'
+                            }}
+                        />
+                    </div>
+                    <button
+                        onClick={() => fetchData(1)}
+                        style={{
+                            backgroundColor: 'var(--border-color)',
+                            color: 'white',
+                            border: 'none',
+                            padding: '0.45rem 1rem',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '0.85rem',
+                            fontWeight: 500
+                        }}
+                    >
+                        Filtrar
+                    </button>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                     <div style={{
                         backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                        padding: '1rem',
-                        borderRadius: '12px'
+                        padding: '0.75rem',
+                        borderRadius: '10px'
                     }}>
-                        <Wallet size={24} color="var(--accent-color)" />
+                        <Wallet size={20} color="var(--accent-color)" />
                     </div>
                     <div>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0, marginBottom: '0.25rem' }}>Total de Gastos Encontrados</p>
-                        <h2 style={{ fontSize: '1.8rem', fontWeight: 700, margin: 0 }}>{totalItems}</h2>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0 }}>Total de Registros</p>
+                        <h3 style={{ fontSize: '1.4rem', fontWeight: 700, margin: 0 }}>{totalItems}</h3>
                     </div>
                 </div>
-                {/* Optional: Add more stats here like "Total Amount" if we had that from API */}
             </div>
 
             <div style={{
@@ -276,7 +284,7 @@ export const SpentsPage = () => {
                 boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
                 display: 'flex',
                 flexDirection: 'column',
-                maxHeight: 'calc(100vh - 280px)' // Fixed height to enable scrolling
+                maxHeight: 'calc(100vh - 250px)'
             }}>
                 {loading ? (
                     <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
@@ -296,88 +304,92 @@ export const SpentsPage = () => {
                                         zIndex: 10
                                     }}>
                                         <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>ITEM</th>
-                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>CATEGORIA</th>
                                         <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>VALOR</th>
-                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>MÉTODO</th>
-                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>LOCALIZAÇÃO</th>
+                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>CATEGORIA</th>
+                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>FORMA PGTO</th>
+                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>LOCAL</th>
+                                        <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>PARCELAS</th>
                                         <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem' }}>DATA</th>
                                         <th style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.9rem', textAlign: 'right' }}>AÇÕES</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {spents.map((s) => (
-                                        <tr key={s.id} style={{
-                                            borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-                                            transition: 'background-color 0.2s'
-                                        }}
-                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.02)'}
-                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                        >
-                                            <td style={{ padding: '1.25rem 1.5rem', fontWeight: 500, color: 'var(--text-primary)' }}>
-                                                {s.item_bought}
-                                                {s.current_installment && s.total_installments && (
-                                                    <span style={{ color: 'var(--accent-color)', fontSize: '0.85rem', marginLeft: '0.5rem', fontWeight: 600 }}>
-                                                        ({s.current_installment}/{s.total_installments})
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td style={{ padding: '1.25rem 1.5rem' }}>
-                                                <span style={{
-                                                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                                                    padding: '0.25rem 0.6rem',
-                                                    borderRadius: '4px',
-                                                    fontSize: '0.85rem',
-                                                    fontWeight: 500
-                                                }}>
-                                                    {s.category}
-                                                </span>
-                                            </td>
-                                            <td style={{ padding: '1.25rem 1.5rem', fontWeight: 600, fontSize: '1rem', color: 'var(--text-primary)' }}>
-                                                R$ {s.amount.toFixed(2)}
-                                            </td>
-                                            <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)' }}>{s.payment_method}</td>
-                                            <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)' }}>{s.location}</td>
-                                            <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)' }}>{new Date(s.created_at).toLocaleDateString()}</td>
-                                            <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
-                                                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); openEdit(s); }}
-                                                        style={{
-                                                            padding: '0.5rem',
-                                                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                                                            border: '1px solid rgba(245, 158, 11, 0.2)',
-                                                            borderRadius: '8px',
-                                                            cursor: 'pointer',
-                                                            transition: 'all 0.2s',
-                                                            display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                                        }}
-                                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.2)'}
-                                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.1)'}
-                                                    >
-                                                        <Edit2 size={16} color="#f59e0b" />
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(s.id); }}
-                                                        style={{
-                                                            padding: '0.5rem',
-                                                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                                                            border: '1px solid rgba(239, 68, 68, 0.2)',
-                                                            borderRadius: '8px',
-                                                            cursor: 'pointer',
-                                                            transition: 'all 0.2s',
-                                                            display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                                        }}
-                                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.2)'}
-                                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)'}
-                                                    >
-                                                        <Trash2 size={16} color="#ef4444" />
-                                                    </button>
-                                                </div>
+                                    {spents.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={8} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                                Nenhum gasto encontrado para os filtros selecionados.
                                             </td>
                                         </tr>
-                                    ))}
+                                    ) : (
+                                        spents.map((s) => (
+                                            <tr key={s.id} style={{
+                                                borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                                                transition: 'background-color 0.2s'
+                                            }}
+                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.02)'}
+                                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                            >
+                                                <td style={{ padding: '1.25rem 1.5rem', fontWeight: 600 }}>{s.item_bought}</td>
+                                                <td style={{ padding: '1.25rem 1.5rem', fontWeight: 600, color: 'var(--text-primary)' }}>{formatCurrency(s.amount)}</td>
+                                                <td style={{ padding: '1.25rem 1.5rem' }}>
+                                                    <span style={{
+                                                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                                        padding: '0.25rem 0.5rem',
+                                                        borderRadius: '4px',
+                                                        fontSize: '0.85rem'
+                                                    }}>
+                                                        {s.category}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '1.25rem 1.5rem', fontSize: '0.9rem', color: 'var(--accent-color)', fontWeight: 500 }}>
+                                                    {s.payment_method}
+                                                </td>
+                                                <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)' }}>{s.location}</td>
+                                                <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)' }}>
+                                                    {s.total_installments ? `${s.current_installment}/${s.total_installments}` : '-'}
+                                                </td>
+                                                <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)' }}>{new Date(s.created_at).toLocaleDateString()}</td>
+                                                <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
+                                                    <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); openEdit(s); }}
+                                                            style={{
+                                                                padding: '0.5rem',
+                                                                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                                                                border: '1px solid rgba(245, 158, 11, 0.2)',
+                                                                borderRadius: '8px',
+                                                                cursor: 'pointer',
+                                                                transition: 'all 0.2s',
+                                                                display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                                            }}
+                                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.2)'}
+                                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.1)'}
+                                                        >
+                                                            <Edit2 size={16} color="#f59e0b" />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(s.id); }}
+                                                            style={{
+                                                                padding: '0.5rem',
+                                                                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                                                border: '1px solid rgba(239, 68, 68, 0.2)',
+                                                                borderRadius: '8px',
+                                                                cursor: 'pointer',
+                                                                transition: 'all 0.2s',
+                                                                display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                                            }}
+                                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.2)'}
+                                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)'}
+                                                        >
+                                                            <Trash2 size={16} color="#ef4444" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
                                 </tbody>
                             </table>
                         </div>
@@ -512,11 +524,11 @@ export const SpentsPage = () => {
                         />
                     </div>
                     <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Amount (R$)</label>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Valor</label>
                         <input
-                            required
                             type="number"
                             step="0.01"
+                            required
                             className="form-input"
                             value={formData.amount}
                             onChange={e => setFormData({ ...formData, amount: e.target.value })}
@@ -533,30 +545,39 @@ export const SpentsPage = () => {
                             }}
                         />
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Método</label>
-                            <select
-                                required
-                                value={formData.payment_method}
-                                onChange={e => setFormData({ ...formData, payment_method: e.target.value })}
-                                style={{
-                                    width: '100%',
-                                    padding: '0.9rem',
-                                    borderRadius: '8px',
-                                    border: '1px solid var(--border-color)',
-                                    backgroundColor: 'var(--bg-primary)',
-                                    color: 'white',
-                                    fontSize: '1rem',
-                                    appearance: 'none'
-                                }}
-                            >
-                                <option value="" disabled>Selecione...</option>
-                                {paymentMethods.map(pm => (
-                                    <option key={pm.id} value={pm.key}>{pm.display_name}</option>
-                                ))}
-                            </select>
-                        </div>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Forma de Pagamento</label>
+                        <select
+                            required
+                            value={formData.payment_method}
+                            onChange={e => setFormData({ ...formData, payment_method: e.target.value })}
+                            style={{
+                                width: '100%',
+                                padding: '0.9rem',
+                                borderRadius: '8px',
+                                border: '1px solid var(--border-color)',
+                                backgroundColor: 'var(--bg-primary)',
+                                color: 'white',
+                                fontSize: '1rem',
+                                appearance: 'none'
+                            }}
+                        >
+                            <option value="" disabled>Selecione...</option>
+                            {creditCards.length > 0 && (
+                                <optgroup label="Cartões de Crédito">
+                                    {creditCards.map(cc => (
+                                        <option key={cc.id} value={cc.key}>{cc.name}</option>
+                                    ))}
+                                </optgroup>
+                            )}
+                            {accounts.length > 0 && (
+                                <optgroup label="Contas (Débito / Pix / Dinheiro)">
+                                    {accounts.map(acc => (
+                                        <option key={acc.id} value={acc.key}>{acc.name} ({acc.bank})</option>
+                                    ))}
+                                </optgroup>
+                            )}
+                        </select>
                     </div>
                     <div>
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Localização</label>
@@ -564,7 +585,7 @@ export const SpentsPage = () => {
                             required
                             value={formData.location}
                             onChange={e => setFormData({ ...formData, location: e.target.value })}
-                            placeholder="e.g. Supermarket"
+                            placeholder="e.g. Restaurante do Zé"
                             style={{
                                 width: '100%',
                                 padding: '0.9rem',
@@ -576,13 +597,11 @@ export const SpentsPage = () => {
                             }}
                         />
                     </div>
-
                     <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Data da Compra</label>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Data do Gasto</label>
                         <input
-                            required
                             type="date"
-                            className="form-input"
+                            required
                             value={formData.created_at}
                             onChange={e => setFormData({ ...formData, created_at: e.target.value })}
                             style={{
@@ -597,62 +616,69 @@ export const SpentsPage = () => {
                         />
                     </div>
 
-                    <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center' }}>
-                        <input
-                            type="checkbox"
-                            id="is_installment"
-                            checked={formData.is_installment}
-                            onChange={e => setFormData({ ...formData, is_installment: e.target.checked })}
-                            style={{ marginRight: '0.5rem', width: '1.2rem', height: '1.2rem' }}
-                        />
-                        <label htmlFor="is_installment" style={{ fontSize: '0.95rem', color: 'var(--text-primary)', fontWeight: 500, cursor: 'pointer' }}>
-                            Compra Parcelada?
-                        </label>
-                    </div>
-
-                    {formData.is_installment && (
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', padding: '1rem', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Total de Parcelas</label>
-                                <input
-                                    required
-                                    type="number"
-                                    min="2"
-                                    value={formData.total_installments}
-                                    onChange={e => setFormData({ ...formData, total_installments: parseInt(e.target.value) || 2 })}
-                                    style={{
-                                        width: '100%',
-                                        padding: '0.9rem',
-                                        borderRadius: '8px',
-                                        border: '1px solid var(--border-color)',
-                                        backgroundColor: 'var(--bg-primary)',
-                                        color: 'white',
-                                        fontSize: '1rem'
-                                    }}
-                                />
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Parcela Atual</label>
-                                <input
-                                    required
-                                    type="number"
-                                    min="1"
-                                    max={formData.total_installments}
-                                    value={formData.current_installment}
-                                    onChange={e => setFormData({ ...formData, current_installment: parseInt(e.target.value) || 1 })}
-                                    style={{
-                                        width: '100%',
-                                        padding: '0.9rem',
-                                        borderRadius: '8px',
-                                        border: '1px solid var(--border-color)',
-                                        backgroundColor: 'var(--bg-primary)',
-                                        color: 'white',
-                                        fontSize: '1rem'
-                                    }}
-                                />
-                            </div>
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '1rem',
+                        padding: '1rem',
+                        backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-color)'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <input
+                                type="checkbox"
+                                id="is_installment"
+                                checked={formData.is_installment}
+                                onChange={e => setFormData({ ...formData, is_installment: e.target.checked })}
+                                style={{ width: '1.2rem', height: '1.2rem', accentColor: 'var(--accent-color)' }}
+                            />
+                            <label htmlFor="is_installment" style={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 500, cursor: 'pointer' }}>
+                                É uma compra parcelada?
+                            </label>
                         </div>
-                    )}
+
+                        {formData.is_installment && (
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.5rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Parcela Atual</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={formData.current_installment}
+                                        onChange={e => setFormData({ ...formData, current_installment: parseInt(e.target.value) || 1 })}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.75rem',
+                                            borderRadius: '6px',
+                                            border: '1px solid var(--border-color)',
+                                            backgroundColor: 'var(--bg-primary)',
+                                            color: 'white',
+                                            fontSize: '0.9rem'
+                                        }}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Total de Parcelas</label>
+                                    <input
+                                        type="number"
+                                        min="2"
+                                        value={formData.total_installments}
+                                        onChange={e => setFormData({ ...formData, total_installments: parseInt(e.target.value) || 2 })}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.75rem',
+                                            borderRadius: '6px',
+                                            border: '1px solid var(--border-color)',
+                                            backgroundColor: 'var(--bg-primary)',
+                                            color: 'white',
+                                            fontSize: '0.9rem'
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </div>
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
                         <button
@@ -660,38 +686,37 @@ export const SpentsPage = () => {
                             onClick={() => setIsModalOpen(false)}
                             style={{
                                 padding: '0.75rem 1.5rem',
-                                backgroundColor: 'transparent',
-                                color: 'var(--text-secondary)',
-                                border: '1px solid var(--border-color)',
                                 borderRadius: '8px',
-                                cursor: 'pointer',
-                                fontWeight: 500
+                                border: '1px solid var(--border-color)',
+                                background: 'transparent',
+                                color: 'var(--text-secondary)',
+                                fontWeight: 600,
+                                cursor: 'pointer'
                             }}
                         >
-                            Cancel
+                            Cancelar
                         </button>
                         <button
                             type="submit"
                             style={{
                                 padding: '0.75rem 1.5rem',
+                                borderRadius: '8px',
+                                border: 'none',
                                 backgroundColor: 'var(--accent-color)',
                                 color: 'white',
-                                border: 'none',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
                                 fontWeight: 600,
-                                minWidth: '100px'
+                                cursor: 'pointer'
                             }}
                         >
-                            {editingSpent ? "Update" : "Create"}
+                            {editingSpent ? 'Salvar Alterações' : 'Criar Gasto'}
                         </button>
                     </div>
                 </form>
             </Modal>
 
-            <Modal isOpen={!!spentToDelete} onClose={() => setSpentToDelete(null)} title="Confirmar Exclusão">
-                <div style={{ padding: '1rem 0' }}>
-                    <p style={{ color: 'var(--text-primary)', fontSize: '1rem', marginBottom: '2rem' }}>
+            <Modal isOpen={!!spentToDelete} onClose={() => setSpentToDelete(null)} title="Excluir Gasto">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1rem' }}>
+                    <p style={{ color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
                         Tem certeza que deseja excluir este gasto? Essa ação não pode ser desfeita.
                     </p>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
@@ -700,12 +725,12 @@ export const SpentsPage = () => {
                             onClick={() => setSpentToDelete(null)}
                             style={{
                                 padding: '0.75rem 1.5rem',
-                                backgroundColor: 'transparent',
-                                color: 'var(--text-secondary)',
-                                border: '1px solid var(--border-color)',
                                 borderRadius: '8px',
-                                cursor: 'pointer',
-                                fontWeight: 500
+                                border: '1px solid var(--border-color)',
+                                background: 'transparent',
+                                color: 'var(--text-secondary)',
+                                fontWeight: 600,
+                                cursor: 'pointer'
                             }}
                         >
                             Cancelar
@@ -715,13 +740,12 @@ export const SpentsPage = () => {
                             onClick={confirmDelete}
                             style={{
                                 padding: '0.75rem 1.5rem',
-                                backgroundColor: '#ef4444',
-                                color: 'white',
-                                border: 'none',
                                 borderRadius: '8px',
-                                cursor: 'pointer',
+                                border: 'none',
+                                backgroundColor: 'var(--danger)',
+                                color: 'white',
                                 fontWeight: 600,
-                                minWidth: '100px'
+                                cursor: 'pointer'
                             }}
                         >
                             Excluir

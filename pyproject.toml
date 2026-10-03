@@ -33,6 +33,9 @@ testpaths = [
     "telegram_api/tests",
     "graph_api/tests",
 ]
+filterwarnings = [
+    "ignore::telegram.warnings.PTBUserWarning",
+]
 
 [tool.black]
 line-length = 100

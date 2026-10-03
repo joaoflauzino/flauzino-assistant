@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
-import { CheckSquare, Square } from 'lucide-react';
+import { CheckSquare, Square, TrendingUp, TrendingDown, Scale, Percent } from 'lucide-react';
 import api from '../services/api';
-import type { Spent, SpendingLimit, PaymentMethod, Subscription } from '../types';
+import type { Spent, SpendingLimit, Account, CreditCard, Subscription, MonthlyBalanceSummary } from '../types';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
-// Category display names will be fetched from API
 interface Category {
     id: string;
     key: string;
@@ -15,7 +14,6 @@ interface Category {
     created_at: string;
 }
 
-// Helper to get the current reference month
 const getCurrentMonth = () => {
     const now = new Date();
     const year = now.getFullYear();
@@ -39,47 +37,23 @@ const generateMonthOptions = () => {
     return options;
 };
 
-// Helper to get current month start and end dates
-const getCurrentMonthDates = () => {
-    const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-    const formatDate = (date: Date) => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    };
-
-    return {
-        start: formatDate(firstDay),
-        end: formatDate(today)
-    };
-};
-
 export const Dashboard = () => {
     const [spents, setSpents] = useState<Spent[]>([]);
     const [limits, setLimits] = useState<SpendingLimit[]>([]);
     const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+    const [monthlySummary, setMonthlySummary] = useState<MonthlyBalanceSummary | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // Initialize with current month
     const [referenceMonth, setReferenceMonth] = useState(getCurrentMonth());
     const [mode, setMode] = useState<'CIVIL_MONTH' | 'INVOICES' | 'CUSTOM'>('CIVIL_MONTH');
     
-    // Dates for CUSTOM mode
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
 
-    // Category selection state - all categories selected by default
     const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
-    // Payment method selection state - all selected by default
     const [selectedPaymentMethods, setSelectedPaymentMethods] = useState<Set<string>>(new Set());
 
-    // Dynamic categories from API
     const [categoryNames, setCategoryNames] = useState<Record<string, string>>({});
-    // Dynamic payment methods from API
     const [paymentMethodNames, setPaymentMethodNames] = useState<Record<string, string>>({});
 
     const fetchData = async () => {
@@ -94,16 +68,22 @@ export const Dashboard = () => {
                 query = `/spents/dashboard?reference_month=${referenceMonth}&mode=${mode}&size=1000`;
             }
 
-            const [spentsRes, limitsRes, subscriptionsRes] = await Promise.all([
+            const targetSummaryMonth = mode === 'CUSTOM' && startDate ? startDate.substring(0, 7) : referenceMonth;
+
+            const [spentsRes, limitsRes, subscriptionsRes, summaryRes] = await Promise.all([
                 api.get(query),
                 api.get('/limits/?size=1000'),
-                api.get('/subscriptions/?active_only=true&size=1000')
+                api.get('/subscriptions/?active_only=true&size=1000'),
+                api.get<MonthlyBalanceSummary>(`/incomes/summary?reference_month=${targetSummaryMonth}`).catch(() => null)
             ]);
+
             setSpents(spentsRes.data.items);
             setLimits(limitsRes.data.items);
             setSubscriptions(subscriptionsRes.data.items);
+            if (summaryRes) {
+                setMonthlySummary(summaryRes.data);
+            }
 
-            // Initialize selected categories with all available categories
             if (selectedCategories.size === 0) {
                 const allCategories = Array.from(new Set([
                     ...spentsRes.data.items.map((s: Spent) => s.category),
@@ -112,7 +92,6 @@ export const Dashboard = () => {
                 ]));
                 setSelectedCategories(new Set(allCategories));
             }
-            // Initialize selected payment methods with all available
             if (selectedPaymentMethods.size === 0) {
                 const allPMs = Array.from(new Set([
                     ...spentsRes.data.items.map((s: Spent) => s.payment_method),
@@ -127,7 +106,6 @@ export const Dashboard = () => {
         }
     };
 
-    // Fetch categories from API
     const fetchCategories = async () => {
         try {
             const res = await api.get<{ items: Category[] }>('/categories/');
@@ -141,14 +119,19 @@ export const Dashboard = () => {
         }
     };
 
-    // Fetch payment methods from API
     const fetchPaymentMethods = async () => {
         try {
-            const res = await api.get<{ items: PaymentMethod[] }>('/payment-methods/?size=1000');
-            const pmMap = res.data.items.reduce((acc, pm) => {
-                acc[pm.key] = pm.display_name;
-                return acc;
-            }, {} as Record<string, string>);
+            const [accRes, cardRes] = await Promise.all([
+                api.get<{ items: Account[] }>('/accounts/?size=1000').catch(() => ({ data: { items: [] } })),
+                api.get<{ items: CreditCard[] }>('/credit-cards/?size=1000').catch(() => ({ data: { items: [] } })),
+            ]);
+            const pmMap: Record<string, string> = {};
+            accRes.data.items.forEach(a => {
+                pmMap[a.key] = `${a.name} (${a.bank})`;
+            });
+            cardRes.data.items.forEach(c => {
+                pmMap[c.key] = c.name;
+            });
             setPaymentMethodNames(pmMap);
         } catch (error) {
             console.error("Error fetching payment methods", error);
@@ -156,26 +139,13 @@ export const Dashboard = () => {
     };
 
     useEffect(() => {
-        // Fetch categories first
-        // Fetch categories and payment methods
         fetchCategories();
         fetchPaymentMethods();
-
-        // Set default values on initial mount
-        const monthDates = getCurrentMonthDates();
-        setReferenceMonth(getCurrentMonth());
-        setStartDate(monthDates.start);
-        setEndDate(monthDates.end);
-    }, []); // Run only once on mount
+    }, []);
 
     useEffect(() => {
-        // Fetch data when filter changes
-        if (mode === 'CUSTOM') {
-            if (startDate && endDate) fetchData();
-        } else if (referenceMonth) {
-            fetchData();
-        }
-    }, [referenceMonth, mode, startDate, endDate]); // Re-fetch when dependencies change
+        fetchData();
+    }, [referenceMonth, mode]);
 
     const handleFilter = (e: React.FormEvent) => {
         e.preventDefault();
@@ -205,7 +175,6 @@ export const Dashboard = () => {
         setSelectedCategories(new Set());
     };
 
-    // Payment method toggle/select/deselect functions
     const togglePaymentMethod = (pm: string) => {
         const newSelected = new Set(selectedPaymentMethods);
         if (newSelected.has(pm)) {
@@ -230,7 +199,6 @@ export const Dashboard = () => {
 
     if (loading) return <div style={{ color: 'white', fontSize: '1.2rem' }}>Carregando painel...</div>;
 
-    // Process Data - filter by selected categories
     const allCategories = Array.from(new Set([
         ...spents.map(s => s.category), 
         ...limits.map(l => l.category),
@@ -238,7 +206,6 @@ export const Dashboard = () => {
     ]));
     const categories = allCategories.filter(cat => selectedCategories.has(cat));
 
-    // Filter data by selected payment methods for category-level aggregation
     const pmFilteredSpents = spents.filter(s => selectedPaymentMethods.has(s.payment_method));
     const pmFilteredSubscriptions = subscriptions.filter(sub => selectedPaymentMethods.has(sub.payment_method));
 
@@ -260,27 +227,20 @@ export const Dashboard = () => {
     });
 
     const exactSpentScale = categories.map((_cat, index) => {
-        const spent = spentByCategory[index];
-        return spent;
+        return spentByCategory[index];
     });
 
-    // All unique payment methods from the data (for selection panel)
     const allPaymentMethods = Array.from(new Set([
         ...spents.map(s => s.payment_method),
         ...subscriptions.map(sub => sub.payment_method)
     ]));
 
-    // Payment Method Data Processing
-    // Filter by BOTH selected categories AND selected payment methods
     const filteredSpents = spents.filter(s => selectedCategories.has(s.category) && selectedPaymentMethods.has(s.payment_method));
     const filteredSubscriptions = subscriptions.filter(sub => selectedCategories.has(sub.category) && selectedPaymentMethods.has(sub.payment_method));
     const uniquePaymentMethods = Array.from(new Set([
         ...filteredSpents.map(s => s.payment_method),
         ...filteredSubscriptions.map(sub => sub.payment_method)
     ]));
-
-    // 2. Aggregate spent amount by payment method
-
 
     const barData = {
         labels: categories.map(cat => categoryNames[cat] || cat),
@@ -354,6 +314,66 @@ export const Dashboard = () => {
         }
     };
 
+    // Gráfico comparativo Entradas vs Saídas
+    const cashFlowChartData = {
+        labels: ['Receitas (Entradas)', 'Despesas (Saídas)'],
+        datasets: [
+            {
+                label: 'Total em R$',
+                data: [
+                    monthlySummary ? monthlySummary.total_incomes : 0,
+                    monthlySummary ? monthlySummary.total_spents : 0,
+                ],
+                backgroundColor: ['rgba(34, 197, 94, 0.85)', 'rgba(239, 68, 68, 0.85)'],
+                borderRadius: 8,
+                barThickness: 50,
+            }
+        ]
+    };
+
+    const cashFlowChartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            title: {
+                display: true,
+                text: 'Entradas vs Saídas do Mês',
+                color: '#f3f4f6',
+                font: { size: 16, weight: 'bold' as const },
+                padding: 20
+            },
+            tooltip: {
+                backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                titleColor: '#f3f4f6',
+                bodyColor: '#e5e7eb',
+                borderColor: '#374151',
+                borderWidth: 1,
+                padding: 12,
+                callbacks: {
+                    label: function (context: any) {
+                        return `Total: R$ ${context.raw.toFixed(2)}`;
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                grid: { display: false },
+                ticks: { color: '#e5e7eb', font: { size: 13, weight: 'bold' as const } }
+            },
+            y: {
+                grid: { color: 'rgba(75, 85, 99, 0.2)' },
+                ticks: {
+                    color: '#9ca3af',
+                    callback: function (value: any) {
+                        return 'R$ ' + value.toLocaleString();
+                    }
+                }
+            }
+        }
+    };
+
     const horizontalBarOptions = {
         indexAxis: 'y' as const,
         responsive: true,
@@ -369,7 +389,7 @@ export const Dashboard = () => {
                 padding: 12,
                 callbacks: {
                     label: function (context: any) {
-                        return `Spent: R$ ${context.raw.toFixed(2)}`;
+                        return `Gasto: R$ ${context.raw.toFixed(2)}`;
                     }
                 }
             }
@@ -394,13 +414,11 @@ export const Dashboard = () => {
         }
     };
 
-    // Prepare Top 5 Categories Data
     const categoryDataList = categories.map((cat, index) => ({
         name: categoryNames[cat] || cat,
         amount: spentByCategory[index]
     }));
 
-    // Sort descending and take top 5
     const top5Categories = categoryDataList
         .sort((a, b) => b.amount - a.amount)
         .slice(0, 5);
@@ -420,7 +438,6 @@ export const Dashboard = () => {
         ],
     };
 
-    // Prepare Top 5 Payment Methods Data
     const paymentMethodDataList = uniquePaymentMethods.map(pm => {
         const amountSpents = filteredSpents
             .filter(s => s.payment_method === pm)
@@ -453,7 +470,6 @@ export const Dashboard = () => {
         ],
     };
 
-    // Prepare Top 10 Items Data
     const allItemsSet = new Set([
         ...filteredSpents.map(s => s.item_bought),
         ...filteredSubscriptions.map(sub => sub.name)
@@ -491,7 +507,8 @@ export const Dashboard = () => {
         ],
     };
 
-
+    const netBalance = monthlySummary?.net_balance ?? 0;
+    const isPositiveBalance = monthlySummary ? monthlySummary.is_positive : netBalance >= 0;
 
     return (
         <div>
@@ -579,31 +596,126 @@ export const Dashboard = () => {
                                 outline: 'none'
                             }}
                         >
-                            <option value="CIVIL_MONTH">Mês Civil</option>
-                            <option value="INVOICES">Fechamento de Faturas</option>
-                            <option value="CUSTOM">Intervalo Livre</option>
+                            <option value="CIVIL_MONTH">Mês Civil (1 a 31)</option>
+                            <option value="INVOICES">Ciclo das Faturas</option>
+                            <option value="CUSTOM">Período Customizado</option>
                         </select>
                     </div>
                     <button
                         type="submit"
                         style={{
+                            padding: '0.6rem 1.2rem',
                             backgroundColor: 'var(--accent-color)',
                             color: 'white',
-                            height: '38px',
-                            padding: '0 1.5rem',
-                            borderRadius: '8px',
                             border: 'none',
-                            fontWeight: 600,
+                            borderRadius: '8px',
                             cursor: 'pointer',
-                            transition: 'all 0.2s',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                            fontWeight: 600,
+                            fontSize: '0.9rem',
+                            transition: 'all 0.2s'
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
-                        onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                     >
                         Filtrar
                     </button>
                 </form>
+            </div>
+
+            {/* Top KPI Cards (Balanço Mensal Integrado) */}
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: '1.2rem',
+                marginBottom: '2rem'
+            }}>
+                {/* Receitas */}
+                <div style={{
+                    backgroundColor: 'var(--bg-secondary)',
+                    padding: '1.5rem',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(34, 197, 94, 0.2)',
+                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>RECEITAS DO MÊS</span>
+                        <div style={{ padding: '0.4rem', borderRadius: '8px', backgroundColor: 'rgba(34, 197, 94, 0.15)' }}>
+                            <TrendingUp size={20} color="#22c55e" />
+                        </div>
+                    </div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#22c55e', marginBottom: '0.25rem' }}>
+                        R$ {monthlySummary ? monthlySummary.total_incomes.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '0,00'}
+                    </div>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Entradas financeiras registradas</span>
+                </div>
+
+                {/* Despesas */}
+                <div style={{
+                    backgroundColor: 'var(--bg-secondary)',
+                    padding: '1.5rem',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>DESPESAS DO MÊS</span>
+                        <div style={{ padding: '0.4rem', borderRadius: '8px', backgroundColor: 'rgba(239, 68, 68, 0.15)' }}>
+                            <TrendingDown size={20} color="#ef4444" />
+                        </div>
+                    </div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#ef4444', marginBottom: '0.25rem' }}>
+                        R$ {monthlySummary ? monthlySummary.total_spents.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '0,00'}
+                    </div>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Total de gastos e faturas</span>
+                </div>
+
+                {/* Saldo Líquido */}
+                <div style={{
+                    backgroundColor: 'var(--bg-secondary)',
+                    padding: '1.5rem',
+                    borderRadius: '12px',
+                    border: `1px solid ${isPositiveBalance ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`,
+                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>RESULTADO LÍQUIDO</span>
+                        <div style={{ padding: '0.4rem', borderRadius: '8px', backgroundColor: isPositiveBalance ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)' }}>
+                            <Scale size={20} color={isPositiveBalance ? '#22c55e' : '#ef4444'} />
+                        </div>
+                    </div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 700, color: isPositiveBalance ? '#22c55e' : '#ef4444', marginBottom: '0.25rem' }}>
+                        {netBalance >= 0 ? '+' : ''} R$ {netBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </div>
+                    <span style={{
+                        display: 'inline-block',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        padding: '0.15rem 0.5rem',
+                        borderRadius: '6px',
+                        backgroundColor: isPositiveBalance ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                        color: isPositiveBalance ? '#22c55e' : '#ef4444'
+                    }}>
+                        {isPositiveBalance ? 'SUPERÁVIT (POSITIVO)' : 'DÉFICIT (NEGATIVO)'}
+                    </span>
+                </div>
+
+                {/* Taxa de Economia */}
+                <div style={{
+                    backgroundColor: 'var(--bg-secondary)',
+                    padding: '1.5rem',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(99, 102, 241, 0.2)',
+                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>TAXA DE ECONOMIA</span>
+                        <div style={{ padding: '0.4rem', borderRadius: '8px', backgroundColor: 'rgba(99, 102, 241, 0.15)' }}>
+                            <Percent size={20} color="#6366f1" />
+                        </div>
+                    </div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#6366f1', marginBottom: '0.25rem' }}>
+                        {monthlySummary ? monthlySummary.savings_rate.toFixed(1) : '0.0'}%
+                    </div>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Da receita total poupada</span>
+                </div>
             </div>
 
             {/* Category Selection Panel */}
@@ -849,8 +961,20 @@ export const Dashboard = () => {
                 </div>
             ) : (
                 <>
-                    {/* Top Row - 2 Charts */}
+                    {/* Linha de Balanço Comparativo e Orçamento */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '2rem', marginBottom: '2rem' }}>
+                        <div style={{
+                            backgroundColor: 'var(--bg-secondary)',
+                            padding: '1.5rem',
+                            borderRadius: '12px',
+                            border: '1px solid rgba(34, 197, 94, 0.15)',
+                            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                        }}>
+                            <div style={{ height: '400px' }}>
+                                <Bar data={cashFlowChartData} options={cashFlowChartOptions} />
+                            </div>
+                        </div>
+
                         <div style={{
                             backgroundColor: 'var(--bg-secondary)',
                             padding: '1.5rem',
@@ -862,7 +986,10 @@ export const Dashboard = () => {
                                 <Bar data={barData} options={barOptions} />
                             </div>
                         </div>
+                    </div>
 
+                    {/* Bottom Row - 3 Charts */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
                         <div style={{
                             backgroundColor: 'var(--bg-secondary)',
                             padding: '1.5rem',
@@ -870,15 +997,12 @@ export const Dashboard = () => {
                             border: '1px solid rgba(99, 102, 241, 0.1)',
                             boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
                         }}>
-                            <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: 600 }}>Top 5 Distribuição de Despesas</h3>
-                            <div style={{ height: '350px' }}>
+                            <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: 600 }}>Top 5 Despesas por Categoria</h3>
+                            <div style={{ height: '320px' }}>
                                 <Bar data={top5CategoriesData} options={horizontalBarOptions} />
                             </div>
                         </div>
-                    </div>
 
-                    {/* Bottom Row - 2 Charts */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '2rem' }}>
                         <div style={{
                             backgroundColor: 'var(--bg-secondary)',
                             padding: '1.5rem',
@@ -886,8 +1010,8 @@ export const Dashboard = () => {
                             border: '1px solid rgba(99, 102, 241, 0.1)',
                             boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
                         }}>
-                            <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: 600 }}>Top 5 Gastos por Método de Pagamento</h3>
-                            <div style={{ height: '350px' }}>
+                            <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: 600 }}>Top 5 Gastos por Método</h3>
+                            <div style={{ height: '320px' }}>
                                 <Bar data={top5PaymentMethodsChartData} options={horizontalBarOptions} />
                             </div>
                         </div>
@@ -900,7 +1024,7 @@ export const Dashboard = () => {
                             boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
                         }}>
                             <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: 600 }}>Top 10 Itens Comprados</h3>
-                            <div style={{ height: '350px' }}>
+                            <div style={{ height: '320px' }}>
                                 <Bar data={top10ItemsChartData} options={horizontalBarOptions} />
                             </div>
                         </div>

@@ -5,12 +5,17 @@ from mcp.server.fastmcp import Image
 
 from finance_api.mcp.server import mcp
 from finance_api.mcp.tools import (
+    create_income,
     create_spent,
     get_balance_chart,
     get_category_balance,
+    get_monthly_cashflow,
     list_categories,
+    list_income_categories,
 )
 from finance_api.schemas.categories import CategoryResponse
+from finance_api.schemas.income_categories import IncomeCategoryResponse
+from finance_api.schemas.incomes import IncomeResponse, MonthlyBalanceSummary
 from finance_api.schemas.limits import CategoryBalance
 from finance_api.schemas.spents import SpentResponse
 
@@ -23,6 +28,9 @@ async def test_mcp_tools_registered():
     assert "create_spent" in tool_names
     assert "list_categories" in tool_names
     assert "get_balance_chart" in tool_names
+    assert "create_income" in tool_names
+    assert "list_income_categories" in tool_names
+    assert "get_monthly_cashflow" in tool_names
 
 
 @pytest.mark.asyncio
@@ -118,6 +126,92 @@ async def test_list_categories_tool(mocker):
     result = await list_categories()
     assert len(result) == 1
     assert result[0]["key"] == "mercado"
+
+
+@pytest.mark.asyncio
+async def test_create_income_tool(mocker):
+    mock_db = AsyncMock()
+    mock_session_local = MagicMock()
+    mock_session_local.return_value.__aenter__.return_value = mock_db
+    mocker.patch("finance_api.mcp.tools.AsyncSessionLocal", mock_session_local)
+
+    fake_income = MagicMock(spec=IncomeResponse)
+    fake_income.model_dump.return_value = {
+        "id": "123e4567-e89b-12d3-a456-426614174001",
+        "description": "Salário",
+        "amount": 5000.0,
+        "category": "salario",
+        "payment_method": "itau_joao",
+    }
+
+    mocker.patch(
+        "finance_api.services.incomes.IncomeService.create",
+        new_callable=AsyncMock,
+        return_value=fake_income,
+    )
+
+    result = await create_income(
+        description="Salário",
+        amount=5000.0,
+        category="salario",
+        payment_method="itau_joao",
+    )
+
+    assert result["description"] == "Salário"
+    assert result["amount"] == 5000.0
+    assert result["category"] == "salario"
+
+
+@pytest.mark.asyncio
+async def test_list_income_categories_tool(mocker):
+    mock_db = AsyncMock()
+    mock_session_local = MagicMock()
+    mock_session_local.return_value.__aenter__.return_value = mock_db
+    mocker.patch("finance_api.mcp.tools.AsyncSessionLocal", mock_session_local)
+
+    fake_cat = MagicMock(spec=IncomeCategoryResponse)
+    fake_cat.model_dump.return_value = {"key": "salario", "display_name": "Salário"}
+
+    mocker.patch(
+        "finance_api.services.income_categories.IncomeCategoryService.list",
+        new_callable=AsyncMock,
+        return_value=([fake_cat], 1),
+    )
+
+    result = await list_income_categories()
+    assert len(result) == 1
+    assert result[0]["key"] == "salario"
+
+
+@pytest.mark.asyncio
+async def test_get_monthly_cashflow_tool(mocker):
+    mock_db = AsyncMock()
+    mock_session_local = MagicMock()
+    mock_session_local.return_value.__aenter__.return_value = mock_db
+    mocker.patch("finance_api.mcp.tools.AsyncSessionLocal", mock_session_local)
+
+    fake_summary = MagicMock(spec=MonthlyBalanceSummary)
+    fake_summary.model_dump.return_value = {
+        "reference_month": "2026-08",
+        "total_incomes": 5000.0,
+        "total_spents": 2000.0,
+        "net_balance": 3000.0,
+        "is_positive": True,
+        "savings_rate": 60.0,
+        "incomes_by_category": {"salario": 5000.0},
+        "spents_by_category": {"mercado": 2000.0},
+    }
+
+    mocker.patch(
+        "finance_api.services.incomes.IncomeService.get_monthly_summary",
+        new_callable=AsyncMock,
+        return_value=fake_summary,
+    )
+
+    result = await get_monthly_cashflow("2026-08")
+    assert result["reference_month"] == "2026-08"
+    assert result["total_incomes"] == 5000.0
+    assert result["net_balance"] == 3000.0
 
 
 @pytest.mark.asyncio

@@ -1,0 +1,72 @@
+from uuid import UUID
+
+from finance_api.core.decorators import handle_service_errors
+from finance_api.core.exceptions import EntityNotFoundError, ValidationError
+from finance_api.core.logger import get_logger
+from finance_api.repositories.income_categories import IncomeCategoryRepository
+from finance_api.schemas.income_categories import (
+    IncomeCategoryCreate,
+    IncomeCategoryResponse,
+    IncomeCategoryUpdate,
+)
+
+logger = get_logger(__name__)
+
+
+class IncomeCategoryService:
+    def __init__(self, repo: IncomeCategoryRepository):
+        self.repo = repo
+
+    @handle_service_errors
+    async def create(self, category_data: IncomeCategoryCreate) -> IncomeCategoryResponse:
+        existing = await self.repo.get_by_key(category_data.key)
+        if existing:
+            raise ValidationError(
+                f"Categoria de receita com a chave '{category_data.key}' já existe"
+            )
+
+        logger.info(f"Creating income category: {category_data.key}")
+        category = await self.repo.create(category_data)
+        return IncomeCategoryResponse.model_validate(category)
+
+    @handle_service_errors
+    async def list(
+        self, page: int = 1, size: int = 100
+    ) -> tuple[list[IncomeCategoryResponse], int]:
+        skip = (page - 1) * size
+        logger.info(f"Listing income categories page {page} size {size}")
+        items, total = await self.repo.list(skip, size)
+        return [IncomeCategoryResponse.model_validate(item) for item in items], total
+
+    @handle_service_errors
+    async def get_by_id(self, category_id: UUID) -> IncomeCategoryResponse:
+        logger.info(f"Getting income category: {category_id}")
+        category = await self.repo.get_by_id(category_id)
+        if not category:
+            raise EntityNotFoundError(f"Categoria de receita {category_id} não encontrada")
+        return IncomeCategoryResponse.model_validate(category)
+
+    @handle_service_errors
+    async def update(
+        self, category_id: UUID, update_data: IncomeCategoryUpdate
+    ) -> IncomeCategoryResponse:
+        if update_data.key:
+            existing = await self.repo.get_by_key(update_data.key)
+            if existing and existing.id != category_id:
+                raise ValidationError(
+                    f"Categoria de receita com a chave '{update_data.key}' já existe"
+                )
+
+        logger.info(f"Updating income category: {category_id}")
+        category = await self.repo.update(category_id, update_data)
+        if not category:
+            raise EntityNotFoundError(f"Categoria de receita {category_id} não encontrada")
+        return IncomeCategoryResponse.model_validate(category)
+
+    @handle_service_errors
+    async def delete(self, category_id: UUID) -> bool:
+        logger.info(f"Deleting income category: {category_id}")
+        success = await self.repo.delete(category_id)
+        if not success:
+            raise EntityNotFoundError(f"Categoria de receita {category_id} não encontrada")
+        return success

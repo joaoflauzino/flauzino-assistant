@@ -1,23 +1,26 @@
+import warnings
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
+    CallbackQueryHandler,
+    CommandHandler,
     ContextTypes,
     ConversationHandler,
-    CommandHandler,
     MessageHandler,
-    CallbackQueryHandler,
     filters,
 )
+from telegram.warnings import PTBUserWarning
 
 from telegram_api.core.correlation import set_request_id
-from telegram_api.core.logger import get_logger
 from telegram_api.core.http_client import (
     get_valid_categories,
     get_valid_payment_methods,
     save_spent,
     save_subscription,
 )
+from telegram_api.core.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -345,24 +348,26 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return ConversationHandler.END
 
 
-expense_conv_handler = ConversationHandler(
-    entry_points=[CommandHandler("gasto", gasto_command)],
-    states={
-        SELECT_CATEGORY: [CallbackQueryHandler(select_category)],
-        TYPE_ITEM_BOUGHT: [MessageHandler(filters.TEXT & ~filters.COMMAND, type_item_bought)],
-        TYPE_VALUE: [MessageHandler(filters.TEXT & ~filters.COMMAND, type_value)],
-        SELECT_PAYMENT_METHOD: [CallbackQueryHandler(select_payment_method)],
-        TYPE_LOCATION: [MessageHandler(filters.TEXT & ~filters.COMMAND, type_location)],
-        SELECT_PURCHASE_TYPE: [CallbackQueryHandler(select_purchase_type)],
-        TYPE_TOTAL_INSTALLMENTS: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, type_total_installments)
-        ],
-        TYPE_CURRENT_INSTALLMENT: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, type_current_installment)
-        ],
-        SELECT_DATE_OPTION: [CallbackQueryHandler(select_date_option)],
-        TYPE_CUSTOM_DATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, type_custom_date)],
-        CONFIRMATION: [CallbackQueryHandler(confirm_expense)],
-    },
-    fallbacks=[CommandHandler("cancel", cancel)],
-)
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=PTBUserWarning)
+    expense_conv_handler = ConversationHandler(
+        entry_points=[CommandHandler("gasto", gasto_command)],
+        states={
+            SELECT_CATEGORY: [CallbackQueryHandler(select_category)],
+            TYPE_ITEM_BOUGHT: [MessageHandler(filters.TEXT & ~filters.COMMAND, type_item_bought)],
+            TYPE_VALUE: [MessageHandler(filters.TEXT & ~filters.COMMAND, type_value)],
+            SELECT_PAYMENT_METHOD: [CallbackQueryHandler(select_payment_method)],
+            TYPE_LOCATION: [MessageHandler(filters.TEXT & ~filters.COMMAND, type_location)],
+            SELECT_PURCHASE_TYPE: [CallbackQueryHandler(select_purchase_type)],
+            TYPE_TOTAL_INSTALLMENTS: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, type_total_installments)
+            ],
+            TYPE_CURRENT_INSTALLMENT: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, type_current_installment)
+            ],
+            SELECT_DATE_OPTION: [CallbackQueryHandler(select_date_option)],
+            TYPE_CUSTOM_DATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, type_custom_date)],
+            CONFIRMATION: [CallbackQueryHandler(confirm_expense)],
+        },
+        fallbacks=[CommandHandler("cancel", cancel)],
+    )

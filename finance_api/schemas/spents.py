@@ -1,8 +1,8 @@
 from datetime import datetime
-from typing import Optional
+from enum import Enum
+from typing import Any, Optional
 from uuid import UUID
 
-from enum import Enum
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
@@ -15,14 +15,42 @@ class SpentBase(BaseModel):
     category: str = Field(..., min_length=1, max_length=50, description="Category key")
     amount: float
     item_bought: str = Field(..., min_length=1, max_length=50)
-    payment_method: str = Field(..., min_length=1, max_length=50)
+    payment_method: Optional[str] = Field(default=None, max_length=50)
+    payment_type: str = Field(
+        default="CREDIT", description="CREDIT, DEBIT, PIX, CASH, TRANSFER, OTHER"
+    )
+    account_id: Optional[UUID] = None
+    credit_card_id: Optional[UUID] = None
     location: str
 
-    @field_validator("category", "payment_method")
+    @field_validator("category")
     @classmethod
-    def validate_keys(cls, v: str) -> str:
-        """Normalize keys to lowercase."""
+    def validate_category(cls, v: str) -> str:
         return v.lower().strip()
+
+    @field_validator("payment_method")
+    @classmethod
+    def validate_payment_method(cls, v: Optional[str]) -> Optional[str]:
+        return v.lower().strip() if v else None
+
+    @field_validator("payment_type", mode="before")
+    @classmethod
+    def validate_payment_type(cls, v: Any) -> str:
+        if not isinstance(v, str):
+            return "CREDIT"
+        return v
+
+    @field_validator("account_id", "credit_card_id", mode="before")
+    @classmethod
+    def validate_uuid_or_none(cls, v: Any) -> Optional[UUID]:
+        if isinstance(v, UUID):
+            return v
+        if isinstance(v, str):
+            try:
+                return UUID(v)
+            except ValueError:
+                return None
+        return None
 
 
 class SpentCreate(SpentBase):
@@ -36,16 +64,23 @@ class SpentUpdate(BaseModel):
     category: Optional[str] = Field(default=None, min_length=1, max_length=50)
     amount: Optional[float] = None
     item_bought: Optional[str] = Field(default=None, min_length=1, max_length=50)
-    payment_method: Optional[str] = Field(default=None, min_length=1, max_length=50)
+    payment_method: Optional[str] = Field(default=None, max_length=50)
+    payment_type: Optional[str] = None
+    account_id: Optional[UUID] = None
+    credit_card_id: Optional[UUID] = None
     location: Optional[str] = None
     installment_id: Optional[UUID] = None
     current_installment: Optional[int] = None
     total_installments: Optional[int] = None
 
-    @field_validator("category", "payment_method")
+    @field_validator("category")
     @classmethod
-    def validate_keys_update(cls, v: Optional[str]) -> Optional[str]:
-        """Normalize keys to lowercase if provided."""
+    def validate_category_update(cls, v: Optional[str]) -> Optional[str]:
+        return v.lower().strip() if v else None
+
+    @field_validator("payment_method")
+    @classmethod
+    def validate_payment_method_update(cls, v: Optional[str]) -> Optional[str]:
         return v.lower().strip() if v else None
 
 

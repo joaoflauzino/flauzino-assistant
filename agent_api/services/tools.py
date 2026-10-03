@@ -7,6 +7,7 @@ from langgraph.types import Command
 
 from agent_api.core.decorators import handle_tool_errors
 from agent_api.core.logger import get_logger
+from agent_api.schemas.income import IncomeDetails
 from agent_api.schemas.limit import LimitDetails
 from agent_api.schemas.spending import SpendingDetails
 from agent_api.services.finance import FinanceService
@@ -71,6 +72,48 @@ def create_agent_tools(
         )
         result = await finance_service.save_spent(details)
         return f"Gasto registrado com sucesso no sistema financeiro! Detalhes: {result}"
+
+    @tool
+    @handle_tool_errors("registrar_receita")
+    async def registrar_receita(
+        fonte: str,
+        valor: float,
+        categoria: str,
+        metodo_recebimento: str | None = None,
+    ) -> str:
+        """Registra uma receita ou entrada financeira confirmada pelo usuário.
+
+        ATENÇÃO: Chame esta ferramenta APENAS após ter perguntado ao usuário e ele
+        ter confirmado expressamente os dados da receita (ex: 'Sim', 'Pode registrar').
+        """
+        logger.info(
+            f"Tool registrar_receita chamada: {fonte}, R${valor} ({categoria}) via {metodo_recebimento}"
+        )
+        details = IncomeDetails(
+            fonte=fonte,
+            valor=valor,
+            categoria=categoria,
+            metodo_recebimento=metodo_recebimento,
+        )
+        result = await finance_service.save_income(details)
+        return f"Receita registrada com sucesso no sistema financeiro! Detalhes: {result}"
+
+    @tool
+    @handle_tool_errors("consultar_balanco_mensal")
+    async def consultar_balanco_mensal(
+        mes_referencia: str | None = None,
+    ) -> str | dict:
+        """Consulta o balanço mensal integrado (entradas/receitas vs saídas/gastos, saldo líquido e taxa de economia/poupança).
+
+        Args:
+            mes_referencia: Mês de referência no formato 'YYYY-MM' (ex: '2026-08').
+                            Deixe vazio ou None para consultar o mês atual.
+        """
+        logger.info(f"Tool consultar_balanco_mensal chamada para mes_referencia={mes_referencia}")
+        summary = await finance_service.get_monthly_summary(reference_month=mes_referencia)
+        if not summary:
+            return "Não foi possível obter o resumo do balanço mensal para o período solicitado."
+        return summary
 
     @tool
     @handle_tool_errors("cadastrar_limite")
@@ -138,6 +181,8 @@ def create_agent_tools(
     return [
         consultar_saldos,
         registrar_gasto,
+        registrar_receita,
+        consultar_balanco_mensal,
         cadastrar_limite,
         gerar_grafico,
     ]
