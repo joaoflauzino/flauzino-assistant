@@ -3,11 +3,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from finance_api.core.database import get_db
 from finance_api.repositories.categories import CategoryRepository
+from finance_api.repositories.income_categories import IncomeCategoryRepository
+from finance_api.repositories.incomes import IncomeRepository
 from finance_api.repositories.invoices import InvoiceRepository
 from finance_api.repositories.limits import SpendingLimitRepository
 from finance_api.repositories.payment_methods import PaymentMethodRepository
 from finance_api.repositories.spents import SpentRepository
 from finance_api.services.balances import BalanceService
+from finance_api.services.income_categories import IncomeCategoryService
+from finance_api.services.incomes import IncomeService
 from finance_api.services.invoices import InvoiceService
 from finance_api.services.limits import SpendingLimitService
 from finance_api.services.spents import SpentService
@@ -43,4 +47,19 @@ def get_spent_service(db: AsyncSession = Depends(get_db)) -> SpentService:
         category_repo=CategoryRepository(db),
         pm_repo=pm_repo,
         inv_service=InvoiceService(inv_repo, pm_repo),
+    )
+
+
+def get_income_category_service(db: AsyncSession = Depends(get_db)) -> IncomeCategoryService:
+    """FastAPI dependency provider for IncomeCategoryService."""
+    return IncomeCategoryService(repo=IncomeCategoryRepository(db))
+
+
+def get_income_service(db: AsyncSession = Depends(get_db)) -> IncomeService:
+    """FastAPI dependency provider for IncomeService."""
+    return IncomeService(
+        repo=IncomeRepository(db),
+        category_repo=IncomeCategoryRepository(db),
+        pm_repo=PaymentMethodRepository(db),
+        spent_repo=SpentRepository(db),
     )

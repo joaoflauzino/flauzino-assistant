@@ -56,8 +56,6 @@ CREATE TABLE IF NOT EXISTS payment_methods (
 
 CREATE INDEX IF NOT EXISTS ix_payment_methods_key ON payment_methods (key);
 
-
-
 -- Invoices table
 CREATE TABLE IF NOT EXISTS invoices (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -75,6 +73,49 @@ CREATE TABLE IF NOT EXISTS invoices (
 
 CREATE UNIQUE INDEX IF NOT EXISTS ix_invoices_payment_method_month 
     ON invoices (payment_method_key, reference_month);
+
+-- Tabela de Categorias de Receitas
+CREATE TABLE IF NOT EXISTS income_categories (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    key VARCHAR(50) NOT NULL UNIQUE,
+    display_name VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS ix_income_categories_key ON income_categories (key);
+
+-- Tabela de Receitas
+CREATE TABLE IF NOT EXISTS incomes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    description VARCHAR NOT NULL,
+    amount DOUBLE PRECISION NOT NULL,
+    category VARCHAR(50) NOT NULL,
+    payment_method VARCHAR(50),
+    received_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_income_category
+        FOREIGN KEY(category)
+        REFERENCES income_categories(key)
+        ON DELETE RESTRICT,
+    CONSTRAINT fk_income_payment_method
+        FOREIGN KEY(payment_method)
+        REFERENCES payment_methods(key)
+        ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_incomes_category ON incomes (category);
+CREATE INDEX IF NOT EXISTS ix_incomes_received_at ON incomes (received_at);
+CREATE INDEX IF NOT EXISTS ix_incomes_payment_method ON incomes (payment_method);
+
+-- Seeds para income_categories
+INSERT INTO income_categories (key, display_name) VALUES
+    ('salario', 'Salário'),
+    ('pix', 'Pix Recebido'),
+    ('premiacao', 'Premiação / Bônus'),
+    ('investimentos', 'Rendimentos / Investimentos'),
+    ('reembolso', 'Reembolso'),
+    ('outros', 'Outros')
+ON CONFLICT (key) DO NOTHING;
 
 -- Seed payment_methods
 INSERT INTO payment_methods (key, display_name, is_credit_card, closing_day, due_day) VALUES

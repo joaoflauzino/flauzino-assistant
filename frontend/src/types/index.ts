@@ -44,6 +44,34 @@ export interface Category {
     created_at: string;
 }
 
+export interface IncomeCategory {
+    id: string;
+    key: string;
+    display_name: string;
+    created_at: string;
+}
+
+export interface Income {
+    id: string;
+    description: string;
+    amount: number;
+    category: string;
+    payment_method?: string;
+    received_at: string;
+    created_at: string;
+}
+
+export interface MonthlyBalanceSummary {
+    reference_month: string;
+    total_incomes: number;
+    total_spents: number;
+    net_balance: number;
+    is_positive: boolean;
+    savings_rate: number;
+    incomes_by_category: Record<string, number>;
+    spents_by_category: Record<string, number>;
+}
+
 export interface PaymentMethod {
     id: string;
     key: string;

@@ -204,6 +204,19 @@ async def get_valid_categories() -> list[str]:
     ]
 
 
+async def get_valid_income_categories() -> list[str]:
+    """Fetch valid income categories from finance API."""
+    try:
+        client = get_http_client()
+        response = await client.get(f"{settings.FINANCE_SERVICE_URL}/income-categories/?size=100")
+        if response.status_code == 200:
+            data = response.json()
+            return [item["key"] for item in data.get("items", [])]
+    except Exception as e:
+        logger.warning(f"Failed to fetch income categories: {e}")
+    return ["salario", "pix", "premiacao", "investimentos", "reembolso", "outros"]
+
+
 async def get_valid_payment_methods() -> list[str]:
     """Fetch valid payment methods from finance API."""
     try:
@@ -244,6 +257,41 @@ async def save_spent(details: dict) -> dict[str, Any]:
     response.raise_for_status()
     logger.info("Finance API request successful")
     return response.json()
+
+
+async def save_income(details: dict) -> dict[str, Any]:
+    """Save an income directly to finance API.
+
+    Args:
+        details: dict with description, amount, category, payment_method
+    """
+    url = f"{settings.FINANCE_SERVICE_URL}/incomes/"
+    logger.info(f"Sending POST request to {url}")
+    client = get_http_client()
+
+    response = await client.post(url, json=details, headers=_get_headers())
+    response.raise_for_status()
+    logger.info("Finance API request successful (income)")
+    return response.json()
+
+
+async def get_monthly_balance_summary(
+    reference_month: str | None = None,
+) -> dict[str, Any] | None:
+    """Fetch monthly balance summary directly from finance API."""
+    client = get_http_client()
+    url = f"{settings.FINANCE_SERVICE_URL}/incomes/summary"
+    params = {}
+    if reference_month:
+        params["reference_month"] = reference_month
+
+    response = await client.get(url, params=params, headers=_get_headers())
+    if response.status_code == 200:
+        return response.json()
+    logger.warning(
+        f"Failed to fetch monthly balance summary: {response.status_code} - {response.text}"
+    )
+    return None
 
 
 async def save_subscription(details: dict) -> dict[str, Any]:

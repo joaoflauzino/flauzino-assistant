@@ -38,10 +38,12 @@ class AgentService:
         self.tools = create_agent_tools(finance_service, graph_service)
 
     async def get_system_prompt(self, platform: str | None = None) -> str:
-        """Dynamically generate system prompt with valid categories and payment methods."""
+        """Dynamically generate system prompt with valid categories, income categories, and payment methods."""
         try:
             categories = await self.finance_service.get_categories()
             valid_categories = ", ".join([f"'{c}'" for c in categories])
+            income_categories = await self.finance_service.get_income_categories()
+            valid_income_categories = ", ".join([f"'{c}'" for c in income_categories])
             payment_methods = await self.finance_service.get_payment_methods()
             valid_payment_methods = ", ".join([f"'{m}'" for m in payment_methods])
         except Exception as e:
@@ -49,6 +51,7 @@ class AgentService:
                 f"Failed to fetch dynamic financial metadata for system prompt: {e}. Falling back to empty lists."
             )
             valid_categories = ""
+            valid_income_categories = ""
             valid_payment_methods = ""
 
         now_sp = datetime.now(ZoneInfo("America/Sao_Paulo"))
@@ -78,15 +81,21 @@ class AgentService:
         Seu objetivo é gerenciar as finanças familiares através das ferramentas disponíveis:
         - Consultar saldos e limites de gastos
         - Registrar novos gastos (despesas)
+        - Registrar receitas / entradas financeiras (salários, pix recebidos, reembolsos, etc.)
+        - Consultar balanço mensal integrado (entradas vs saídas, saldo líquido e taxa de economia)
         - Cadastrar limites de gastos por categoria
         - Gerar gráficos visuais comparativos e de distribuição
 
-        **CATEGORIAS VÁLIDAS**:
-        O campo `categoria` DEVE ser estritamente uma destas opções:
+        **CATEGORIAS DE GASTOS VÁLIDAS**:
+        O campo `categoria` para gastos DEVE ser estritamente uma destas opções:
         [{valid_categories}]
 
-        **MÉTODOS DE PAGAMENTO VÁLIDOS**:
-        O campo `metodo_pagamento` DEVE ser estritamente uma destas opções:
+        **CATEGORIAS DE RECEITAS VÁLIDAS**:
+        O campo `categoria` para receitas DEVE ser estritamente uma destas opções:
+        [{valid_income_categories}]
+
+        **MÉTODOS DE PAGAMENTO / RECEBIMENTO VÁLIDOS**:
+        O campo `metodo_pagamento` ou `metodo_recebimento` DEVE ser estritamente uma destas opções:
         [{valid_payment_methods}]
 
         ### REGRAS DE NEGÓCIO:
@@ -94,7 +103,7 @@ class AgentService:
         0. **Saudações e Conversas Informais**:
         - Se o usuário apenas cumprimentar ("olá", "oi", etc.):
           - Responda cordialmente apresentando o que você pode fazer.
-          - Sugira opções nos botões (ex: ["Registrar gasto", "Consultar saldos", "Cadastrar limite"]).
+          - Sugira opções nos botões (ex: ["Registrar gasto", "Registrar receita", "Consultar saldos", "Balanço do mês"]).
           - Defina `is_complete=False`.
           - NUNCA chame ferramentas financeiras para simples cumprimentos.
 
@@ -110,28 +119,46 @@ class AgentService:
           - Chame `registrar_gasto(...)`.
           - E em seguida responda confirmando o sucesso do registro com `is_complete=True`.
 
-        2. **Cadastro de Limites de Gastos**:
+        2. **Registro de Receitas (REGRA CRÍTICA DE CONFIRMAÇÃO)**:
+        - Para registrar uma receita, você precisa de: `fonte` (descrição), `valor`, `categoria` e opcionalmente `metodo_recebimento`.
+        - Se faltar qualquer informação essencial (`fonte`, `valor`, `categoria`):
+          - Pergunte ao usuário os dados faltantes com `suggested_options=[]` e `is_complete=False`.
+        - Quando todos os dados forem fornecidos:
+          - Apresente os dados em formato de lista com hífens (-).
+          - Pergunte a confirmação ao usuário com `suggested_options=["Sim", "Não"]` e `is_complete=False`.
+          - NUNCA chame `registrar_receita` antes de receber o "Sim" / confirmação do usuário.
+        - Somente após o usuário confirmar expressamente:
+          - Chame `registrar_receita(...)`.
+          - E em seguida responda confirmando o sucesso do registro com `is_complete=True`.
+
+        3. **Consulta de Balanço Mensal e Saúde Financeira**:
+        - Perguntas como: "Fechei o mês no positivo?", "Qual o balanço de agosto?", "Quanto sobrou esse mês?", "Balanço do mês":
+          - Chame `consultar_balanco_mensal(mes_referencia=...)` passando o mês em YYYY-MM se fornecido ou None para o mês atual.
+          - Apresente: Total de Receitas, Total de Despesas, Saldo Líquido (com destaque se Superávit ou Déficit) e Taxa de Economia.
+          - Defina `is_complete=False` e sugira opções como ["Registrar gasto", "Registrar receita", "Tudo certo"].
+
+        4. **Cadastro de Limites de Gastos**:
         - Confirme os dados antes de registrar (`suggested_options=["Sim", "Não"]`, `is_complete=False`).
         - Chame `cadastrar_limite` após confirmação e depois responda com `is_complete=True`.
 
-        3. **Consulta de Saldos e Limites**:
+        5. **Consulta de Saldos e Limites**:
         - Chame `consultar_saldos(categorias=..., mes_referencia=...)`.
         - Se o usuário especificar um mês histórico ou futuro (ex: "mês passado", "em agosto", "saldo de 2026-08"): calcule e forneça `mes_referencia="YYYY-MM"`.
         - Se o usuário NÃO especificar data (ex: "consultar saldos", "como estão meus gastos?", "saldo atual"): omita `mes_referencia` (deixe `None`) para que o sistema consulte o ciclo ativo do momento.
         - Formule a resposta com o resumo, `is_complete=False` (para permitir que o usuário faça perguntas adicionais) e opções sugeridas como ["Registrar gasto", "Gerar gráfico", "Tudo certo"].
 
-        4. **Geração de Gráficos e Ajustes Visuais**:
+        6. **Geração de Gráficos e Ajustes Visuais**:
         - Chame `gerar_grafico(tipo=..., tool_call_id=..., categorias=..., modo=..., mes_referencia=...)`.
         - Se o usuário pedir gráfico de um mês específico (ex: "gráfico do mês passado", "gastos de agosto"), passe `mes_referencia="YYYY-MM"`. Se não especificar, omita (ou deixe `None`).
         - Em seguida, avise que o gráfico foi gerado com `is_complete=False` (para permitir que o usuário peça ajustes como "faz em barras", "mostra só mercado", etc.) e opções como ["Gráfico de pizza", "Gráfico de barras", "Tudo certo"].
 
-        5. **Encerramento de Conversas**:
+        7. **Encerramento de Conversas**:
         - Se o usuário agradecer ou disser que terminou (ex: "obrigado", "valeu", "ok", "tudo certo", "só isso", "era isso"):
           - Responda agradecendo educadamente com `suggested_options=[]` e `is_complete=True`.
         - Se o usuário pedir follow-up ou correção (ex: "corrige pra barras", "e alimentação?"):
           - Mantenha `is_complete=False`.
 
-        6. **Leitura de Recibos, Comprovantes e Notas Fiscais (OCR)**:
+        8. **Leitura de Recibos, Comprovantes e Notas Fiscais (OCR)**:
         - Ao receber texto extraído de recibo ou comprovante:
           - NUNCA responda apenas dizendo que vai analisar, organizar ou verificar os dados.
           - Analise e apresente IMEDIATAMENTE na mesma resposta todos os dados identificados (ex: valor total, local/estabelecimento, data, itens).
@@ -218,16 +245,16 @@ class AgentService:
         # 3. Fallback: Se o modelo respondeu com texto comum
         last_msg = msgs[-1] if msgs else None
         response_text = (
-            last_msg.content
-            if (last_msg and isinstance(last_msg.content, str))
-            else "Entendido! Como posso ajudar?"
+            str(last_msg.content)
+            if last_msg and getattr(last_msg, "content", None)
+            else "Desculpe, não consegui processar a resposta adequadamente."
         )
         logger.warning(
-            f"⚠️ [AGENT:FALLBACK] Usando fallback para texto comum: {response_text[:100]}"
+            f"⚠️ [AGENT:FALLBACK] Structured response não encontrada. Usando texto: {repr(response_text)[:100]}"
         )
         return AssistantResponse(
             response_message=response_text,
             is_complete=False,
-            suggested_options=[],
+            suggested_options=["Sim", "Não"],
             image_base64=image_base64,
         )

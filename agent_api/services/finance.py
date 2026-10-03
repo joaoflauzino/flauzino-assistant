@@ -7,6 +7,7 @@ from agent_api.core.correlation import CORRELATION_HEADER, get_request_id
 from agent_api.core.decorators import handle_finance_errors
 from agent_api.core.logger import get_logger
 from agent_api.schemas.assistant import AssistantResponse
+from agent_api.schemas.income import IncomeDetails
 from agent_api.schemas.limit import LimitDetails
 from agent_api.schemas.spending import SpendingDetails
 from agent_api.services.base import BaseHttpService
@@ -34,12 +35,23 @@ DEFAULT_CATEGORIES = [
     "outros",
 ]
 
+DEFAULT_INCOME_CATEGORIES = [
+    "salario",
+    "pix",
+    "premiacao",
+    "investimentos",
+    "reembolso",
+    "outros",
+]
+
 DEFAULT_PAYMENT_METHODS = ["itau", "nubank", "picpay", "xp", "c6", "pix"]
 
 
 class FinanceService(BaseHttpService):
     _cached_categories: List[str] | None = None
     _categories_expiry: float = 0.0
+    _cached_income_categories: List[str] | None = None
+    _income_categories_expiry: float = 0.0
     _cached_payment_methods: List[str] | None = None
     _payment_methods_expiry: float = 0.0
 
@@ -74,6 +86,31 @@ class FinanceService(BaseHttpService):
             logger.warning(f"Failed to fetch categories from finance API: {e}")
 
         return FinanceService._cached_categories or DEFAULT_CATEGORIES
+
+    async def get_income_categories(self, use_cache: bool = True) -> List[str]:
+        """Fetch valid income categories with in-memory TTL caching."""
+        now = time.monotonic()
+        if (
+            use_cache
+            and FinanceService._cached_income_categories
+            and now < FinanceService._income_categories_expiry
+        ):
+            return FinanceService._cached_income_categories
+
+        url = f"{settings.FINANCE_SERVICE_URL}/income-categories/?size=100"
+        try:
+            response = await self.client.get(url, headers=self._get_headers())
+            if response.status_code == 200:
+                data = response.json()
+                categories = [item["key"] for item in data.get("items", [])]
+                if categories:
+                    FinanceService._cached_income_categories = categories
+                    FinanceService._income_categories_expiry = now + _CACHE_TTL_SECONDS
+                    return categories
+        except Exception as e:
+            logger.warning(f"Failed to fetch income categories from finance API: {e}")
+
+        return FinanceService._cached_income_categories or DEFAULT_INCOME_CATEGORIES
 
     async def get_payment_methods(self, use_cache: bool = True) -> List[str]:
         """Fetch valid payment methods with in-memory TTL caching."""
@@ -139,12 +176,31 @@ class FinanceService(BaseHttpService):
         return []
 
     @handle_finance_errors
+    async def get_monthly_summary(self, reference_month: str | None = None) -> dict:
+        """Fetch monthly balance summary from the finance API."""
+        url = f"{settings.FINANCE_SERVICE_URL}/incomes/summary"
+        params = {}
+        if reference_month:
+            params["reference_month"] = reference_month
+
+        logger.info(f"🌐 [FINANCE_API:REQ] GET {url} | Params: {params}")
+        response = await self.client.get(url, params=params, headers=self._get_headers())
+        if response.status_code == 200:
+            data = response.json()
+            logger.info(f"🌐 [FINANCE_API:RESP] GET {url} -> 200 OK")
+            return data
+        logger.warning(f"🌐 [FINANCE_API:RESP] GET {url} -> {response.status_code}")
+        return {}
+
+    @handle_finance_errors
     async def register(self, response: AssistantResponse) -> dict | None:
-        """Register spending or limit based on the assistant response."""
+        """Register spending, limit, or income based on the assistant response."""
         if response.spending_details:
             return await self.save_spent(response.spending_details)
         if response.limit_details:
             return await self.save_limit(response.limit_details)
+        if response.income_details:
+            return await self.save_income(response.income_details)
         return None
 
     @handle_finance_errors
@@ -165,3 +221,13 @@ class FinanceService(BaseHttpService):
             "amount": details.valor,
         }
         return await self._post_to_finance_api("limits", payload)
+
+    @handle_finance_errors
+    async def save_income(self, details: IncomeDetails) -> dict:
+        payload = {
+            "description": details.fonte,
+            "amount": details.valor,
+            "category": details.categoria,
+            "payment_method": details.metodo_recebimento,
+        }
+        return await self._post_to_finance_api("incomes", payload)
