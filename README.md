@@ -28,10 +28,10 @@ flowchart LR
     LLM{"Provedor de LLM"}
     OCR["Tesseract OCR"]
 
-    User -- "Acessa painel web" --> Frontend
+    User -- "Acessa painel & envia extratos" --> Frontend
     User -- "Interage via chat/comandos" --> Telegram
     
-    Frontend -- "Gerencia dados e limites" --> FinanceAPI
+    Frontend -- "Extratos, staging, despesas e receitas" --> FinanceAPI
     
     Telegram -- "Fluxo /gasto (interativo direto)" --> FinanceAPI
     Telegram -- "Áudio / Foto / Chat livre" --> AgentAPI
@@ -41,15 +41,16 @@ flowchart LR
     AgentAPI -- "Interpretação e extração" --> LLM
     AgentAPI -- "Consulta e registra dados" --> FinanceAPI
     
+    FinanceAPI -- "Classificação em lote (LLM)" --> AgentAPI
     FinanceAPI -- "Gera gráficos (MCP Tools)" --> GraphAPI
-    FinanceAPI -- "Persiste transações e limites" --> DB
+    FinanceAPI -- "Persiste transações, lotes e regras" --> DB
 ```
 
-- **`finance_api`**: Gerencia regras de negócio, persistência de despesas, orçamentos, limites de gastos e fornece MCP Tools.
-- **`agent_api`**: Orquestra a inteligência conversacional via LLM e OCR para processamento de áudios, recibos e mensagens livres.
+- **`finance_api`**: Gerencia regras de negócio, persistência de despesas e receitas, limites, cartões/contas, importação de extratos bancários com esteira de validação (staging), aprendizado de regras e MCP Tools.
+- **`agent_api`**: Orquestra a inteligência conversacional via LLM e OCR para processamento de áudios e comprovantes, além de endpoint estruturado de classificação de transações em lote.
 - **`graph_api`**: Microsserviço de visualização de dados com Plotly/Kaleido que gera gráficos de saldos e despesas sob demanda.
 - **`telegram_api`**: Bot com fluxo guiado (`/gasto`), geração de gráficos (`/saldo`), suporte a voz/fotos e resumo semanal agendado.
-- **`frontend`**: Interface Web moderna para acompanhamento em tempo real, painéis analíticos e gestão de faturas e cartões.
+- **`frontend`**: Interface Web moderna com esteira de conferência de extratos bancários, painel analítico com filtros dinâmicos de contas/cartões e gestão orçamentária.
 - **`infra`**: Orquestração via Docker Compose com PostgreSQL e inicialização automática de esquemas e dados essenciais.
 
 ---
