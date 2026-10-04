@@ -30,6 +30,7 @@ from finance_api.routers import (
     payment_methods,
     spents,
     subscriptions,
+    imports,
 )
 from finance_api.mcp.server import mcp_streamable_app
 import finance_api.mcp.tools  # noqa: F401 - Register MCP tools
@@ -80,6 +81,8 @@ app.include_router(incomes.router, prefix="/incomes", tags=["incomes"])
 app.include_router(payment_methods.router, prefix="/payment-methods", tags=["payment-methods"])
 app.include_router(subscriptions.router, prefix="/subscriptions", tags=["subscriptions"])
 app.include_router(invoices.router, prefix="/invoices", tags=["invoices"])
+app.include_router(imports.router, prefix="/imports", tags=["imports"])
+app.include_router(imports.rules_router, prefix="/import-rules", tags=["import-rules"])
 
 # Mount Streamable HTTP transport for the MCP protocol on /mcp
 app.mount("/mcp", mcp_streamable_app)

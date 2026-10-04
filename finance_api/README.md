@@ -181,3 +181,109 @@ Gerencie categorias de forma dinâmica via API.
   ```bash
   curl -X 'DELETE' 'http://localhost:8000/payment-owners/{id}'
   ```
+
+---
+
+#### Accounts (Contas Bancárias)
+
+Gerenciamento de contas correntes, carteiras e investimentos.
+
+- **Listar Contas (GET /accounts)**
+  ```bash
+  curl -X 'GET' 'http://localhost:8000/accounts/?page=1&size=100'
+  ```
+
+- **Criar Conta (POST /accounts)**
+  ```bash
+  curl -X 'POST' 'http://localhost:8000/accounts/' \
+    -H 'Content-Type: application/json' \
+    -d '{ "key": "c6_corrente", "name": "C6 Bank", "bank": "c6", "owner": "joao", "type": "CHECKING" }'
+  ```
+
+#### Credit Cards (Cartões de Crédito)
+
+Cartões de crédito vinculados a uma conta bancária com dia de fechamento e vencimento de fatura.
+
+- **Listar Cartões (GET /credit-cards)**
+  ```bash
+  curl -X 'GET' 'http://localhost:8000/credit-cards/?page=1&size=100'
+  ```
+
+- **Criar Cartão (POST /credit-cards)**
+  ```bash
+  curl -X 'POST' 'http://localhost:8000/credit-cards/' \
+    -H 'Content-Type: application/json' \
+    -d '{ "key": "c6_carbon", "name": "C6 Carbon Black", "account_id": "<uuid>", "closing_day": 2, "due_day": 10, "credit_limit": 15000.0 }'
+  ```
+
+#### Incomes (Receitas e Balanço Consolidado)
+
+Gestão de entradas financeiras (salários, rendimentos, prêmios) e balanço consolidado de receitas vs. despesas.
+
+- **Listar Receitas (GET /incomes)**
+  ```bash
+  curl -X 'GET' 'http://localhost:8000/incomes/?page=1&size=50&start_date=2026-08-01&end_date=2026-10-31'
+  ```
+
+- **Criar Receita (POST /incomes)**
+  ```bash
+  curl -X 'POST' 'http://localhost:8000/incomes/' \
+    -H 'Content-Type: application/json' \
+    -d '{ "description": "Salário Mensal", "amount": 6500.00, "category": "salario", "payment_method": "c6_joao" }'
+  ```
+
+- **Balanço Consolidado / Resumo (GET /incomes/summary)**
+  Suporta consulta por mês de referência (`reference_month=YYYY-MM`) ou por período arbitrário (`start_date` e `end_date`):
+  ```bash
+  curl -X 'GET' 'http://localhost:8000/incomes/summary?start_date=2026-01-01&end_date=2026-10-04'
+  ```
+
+#### Imports & Staging (Importação de Extratos Bancários)
+
+Esteira de importação e validação de extratos bancários (arquivos CSV do C6 Bank) com classificação em 3 camadas e esteira de revisão humana:
+
+```mermaid
+flowchart TD
+    CSV[Arquivo CSV] --> Parser[C6 CSV Parser]
+    Parser --> Fingerprint[Deduplicação por Hash MD5]
+    Fingerprint --> Staging[Tabela staged_transactions]
+    
+    subgraph Classificação em 3 Camadas
+        Staging --> Layer1[1. Regras Determinísticas\nPix, Faturas, Salários]
+        Layer1 --> Layer2[2. Memória / Regras Aprendidas\nHistórico category_rules]
+        Layer2 --> Layer3[3. IA em Lote\nagent_api /classify/transactions]
+    end
+    
+    Layer3 --> Review[Fila de Revisão no Frontend\nAprovação, Edição de Local/Categoria]
+    Review --> Commit[POST /imports/commit\nCriação oficial em spents e incomes]
+```
+
+- **Fazer Upload de Extrato (POST /imports/)**
+  Recebe o arquivo `.csv` e a conta bancária de destino (`account_id`), processando o parsing e aplicando a classificação em lote:
+  ```bash
+  curl -X 'POST' 'http://localhost:8000/imports/' \
+    -F 'account_id=<uuid>' \
+    -F 'file=@/path/to/extrato_c6.csv'
+  ```
+
+- **Listar Transações em Staging (GET /imports/transactions)**
+  Permite filtrar por status (`PENDING`, `APPROVED`, `COMMITTED`, `IGNORED`), lote, tipo ou suspeitas de duplicata:
+  ```bash
+  curl -X 'GET' 'http://localhost:8000/imports/transactions?status=PENDING&page=1&size=50'
+  ```
+
+- **Atualizar Transação (PATCH /imports/transactions/{id})**
+  Permite ajustar categoria, tipo (`EXPENSE`, `INCOME`, `TRANSFER`, `INVOICE_PAYMENT`, `REFUND`), local e status:
+  ```bash
+  curl -X 'PATCH' 'http://localhost:8000/imports/transactions/{id}' \
+    -H 'Content-Type: application/json' \
+    -d '{ "category": "alimentacao", "location": "Uberlândia", "status": "APPROVED", "remember": true }'
+  ```
+
+- **Efetivar Transações Aprovadas (POST /imports/commit)**
+  Oficializa as transações aprovadas gerando lançamentos reais em `spents` (despesas) e `incomes` (receitas):
+  ```bash
+  curl -X 'POST' 'http://localhost:8000/imports/commit' \
+    -H 'Content-Type: application/json' \
+    -d '{ "batch_id": "<uuid-opcional>" }'
+  ```

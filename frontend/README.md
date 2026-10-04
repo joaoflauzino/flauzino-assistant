@@ -6,11 +6,14 @@ Interface Web moderna construída com **React 19**, **TypeScript** e **Vite** pa
 
 ## Funcionalidades e Telas
 
-- **Dashboard**: Painel consolidado com indicadores financeiros, status dos limites do mês corrente e gráficos interativos de gastos vs. saldos disponíveis.
-- **Gastos (`/spents`)**: Listagem detalhada e paginada de todas as despesas cadastradas, com filtros por data e categoria, além de suporte completo a criação, edição e exclusão.
+- **Dashboard (`/`)**: Painel consolidado com balanço de receitas vs. despesas, filtros rápidos por período (mês civil, faturas e customizado), filtros independentes e dinâmicos para **Contas Bancárias** e **Cartões de Crédito** (exibidos apenas quando houver dados correspondentes) e gráfico de **Top Gastos por Cartão**.
+- **Importações (`/imports`)**: Esteira completa de importação de extratos bancários (arquivos CSV do C6 Bank). Oferece upload com seleção de conta, fila de revisão de transações em staging com sugestão assistida por IA/regras, edição em linha de categoria e local, vinculação de possíveis duplicatas e efetivação em lote.
+- **Gastos (`/spents`)**: Listagem paginada de despesas com atalhos de período (*Mês Atual*, *Últimos 90 dias*, *Ver Todos*), filtros por data/categoria e suporte a criação, edição e exclusão.
+- **Receitas (`/incomes`)**: Acompanhamento e registro de entradas financeiras (salários, rendimentos, prêmios) com atalhos de período e categorias de receita.
+- **Contas Bancárias (`/accounts`)**: Cadastro e visualização de contas correntes, carteiras e investimentos por titular.
+- **Cartões de Crédito (`/credit-cards`)**: Gestão de cartões vinculados a contas com controle de limites, datas de fechamento e vencimento.
 - **Limites (`/limits`)**: Definição de limites mensais por categoria de gasto com barras visuais de progresso de consumo.
-- **Categorias (`/categories`)**: Cadastro e personalização de categorias dinâmicas (nome de exibição e chave única).
-- **Formas de Pagamento (`/payment-methods`)**: Gerenciamento de cartões de crédito/débito e contas bancárias.
+- **Categorias (`/categories` e `/income-categories`)**: Cadastro e personalização de categorias dinâmicas de despesas e receitas.
 - **Faturas (`/invoices`) e Parcelamentos (`/installments`)**: Acompanhamento de faturas de cartão e parcelamentos em andamento.
 - **Assinaturas (`/subscriptions`)**: Gestão de custos fixos e serviços recorrentes.
 

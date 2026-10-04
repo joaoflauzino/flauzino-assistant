@@ -120,3 +120,44 @@ curl -X 'POST' \
 
 **Formatos de Áudio suportados:** OGG, MP3, WAV, M4A, etc.  
 **Tamanho máximo do Áudio:** 10MB
+
+#### Classificar Transações em Lote com LLM (POST /classify/transactions)
+
+Endpoint estruturado que recebe uma lista de transações bancárias pendentes de classificação (junto com a lista de categorias válidas de despesa e receita) e utiliza LLM com *structured output* para sugerir a categoria e o nível de confiança (0 a 1).
+
+```bash
+curl -X 'POST' \
+  'http://localhost:8001/classify/transactions' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "transactions": [
+      {
+        "id": "1",
+        "merchant": "POSTO IPIRANGA",
+        "raw_title": "Compra Cartao Debito POSTO IPIRANGA",
+        "direction": "OUT",
+        "amount": 150.00
+      }
+    ],
+    "expense_categories": [
+      { "key": "transporte", "display_name": "Transporte e Combustível" },
+      { "key": "alimentacao", "display_name": "Alimentação" }
+    ],
+    "income_categories": [
+      { "key": "salario", "display_name": "Salário" }
+    ]
+  }'
+```
+
+**Resposta:**
+```json
+{
+  "classifications": [
+    {
+      "id": "1",
+      "suggested_category": "transporte",
+      "confidence": 0.95
+    }
+  ]
+}
+```
