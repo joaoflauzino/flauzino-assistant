@@ -1,3 +1,8 @@
+from finance_api.repositories.category_rules import CategoryRuleRepository
+from finance_api.repositories.imports import ImportBatchRepository
+from finance_api.repositories.staged_transactions import StagedTransactionRepository
+from finance_api.services.classification import ClassificationService
+from finance_api.services.imports import ImportService
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -79,4 +84,37 @@ def get_credit_card_service(db: AsyncSession = Depends(get_db)) -> CreditCardSer
     return CreditCardService(
         repository=CreditCardRepository(db),
         account_repository=AccountRepository(db),
+    )
+
+
+def get_category_rule_repository(db: AsyncSession = Depends(get_db)) -> CategoryRuleRepository:
+    return CategoryRuleRepository(db)
+
+
+def get_import_service(db: AsyncSession = Depends(get_db)) -> ImportService:
+    batch_repo = ImportBatchRepository(db)
+    tx_repo = StagedTransactionRepository(db)
+    rule_repo = CategoryRuleRepository(db)
+    clf_service = ClassificationService(rule_repo=rule_repo)
+    acc_repo = AccountRepository(db)
+    cc_repo = CreditCardRepository(db)
+    pm_repo = PaymentMethodRepository(db)
+    inv_repo = InvoiceRepository(db)
+    cat_repo = CategoryRepository(db)
+    inc_cat_repo = IncomeCategoryRepository(db)
+    inv_svc = InvoiceService(inv_repo, pm_repo)
+    spent_svc = SpentService(SpentRepository(db), cat_repo, pm_repo, inv_svc)
+    inc_svc = IncomeService(IncomeRepository(db), inc_cat_repo, pm_repo, SpentRepository(db))
+
+    return ImportService(
+        batch_repo=batch_repo,
+        tx_repo=tx_repo,
+        rule_repo=rule_repo,
+        classification_service=clf_service,
+        account_repo=acc_repo,
+        credit_card_repo=cc_repo,
+        spent_service=spent_svc,
+        income_service=inc_svc,
+        category_repo=cat_repo,
+        income_category_repo=inc_cat_repo,
     )

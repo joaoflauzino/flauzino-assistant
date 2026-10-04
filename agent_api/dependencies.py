@@ -1,3 +1,4 @@
+from agent_api.services.classify import ClassifyService
 import httpx
 from fastapi import Depends
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -26,3 +27,9 @@ def get_chat_service(
     agent_service: AgentService = Depends(get_agent_service),
 ) -> ChatService:
     return ChatService(db, agent_service)
+
+
+def get_classify_service(
+    llm: BaseChatModel = Depends(get_llm),
+) -> ClassifyService:
+    return ClassifyService(llm=llm)

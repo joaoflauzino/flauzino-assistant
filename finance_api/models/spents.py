@@ -19,7 +19,7 @@ class Spent(Base):
     amount: Mapped[float] = mapped_column(Float)
     item_bought: Mapped[str] = mapped_column(String, nullable=False)
     payment_method: Mapped[str] = mapped_column(String, nullable=False)
-    location: Mapped[str] = mapped_column(String, nullable=False)
+    location: Mapped[str | None] = mapped_column(String, nullable=True)
     payment_type: Mapped[str] = mapped_column(String(20), default="CREDIT", nullable=False)
     account_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),

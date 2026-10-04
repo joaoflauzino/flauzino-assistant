@@ -35,6 +35,7 @@ from agent_api.repositories.chat_repository import ChatRepository
 from agent_api.routers.audio import router as audio_router
 from agent_api.routers.chat import router as chat_router
 from agent_api.routers.ocr import router as ocr_router
+from agent_api.routers.classify import router as classify_router
 
 logger = get_logger(__name__)
 
@@ -104,6 +105,7 @@ async def health_check():
 app.include_router(chat_router)
 app.include_router(ocr_router)
 app.include_router(audio_router)
+app.include_router(classify_router)
 
 # Instrument Prometheus metrics and expose on /metrics
 Instrumentator(excluded_handlers=["/metrics", "/health"]).instrument(app).expose(

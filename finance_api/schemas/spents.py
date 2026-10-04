@@ -21,7 +21,7 @@ class SpentBase(BaseModel):
     )
     account_id: Optional[UUID] = None
     credit_card_id: Optional[UUID] = None
-    location: str
+    location: Optional[str] = None
 
     @field_validator("category")
     @classmethod

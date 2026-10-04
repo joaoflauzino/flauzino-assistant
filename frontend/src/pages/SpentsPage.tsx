@@ -55,12 +55,40 @@ export const SpentsPage = () => {
         total_installments: 2
     });
 
-    const fetchData = async (p: number) => {
+    const handleSetPeriod = (type: 'current' | '90days' | 'all') => {
+        let s = '';
+        let e = '';
+        const now = new Date();
+        const formatDate = (date: Date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+        if (type === 'current') {
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+            s = formatDate(firstDay);
+            e = formatDate(now);
+        } else if (type === '90days') {
+            const past = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+            s = formatDate(past);
+            e = formatDate(now);
+        } else if (type === 'all') {
+            s = '';
+            e = '';
+        }
+        setStartDate(s);
+        setEndDate(e);
+        setPage(1);
+        fetchData(1, s, e);
+    };
+
+    const fetchData = async (p: number, sDate = startDate, eDate = endDate) => {
         setLoading(true);
         try {
             let query = `/spents/?page=${p}&size=10`;
-            if (startDate) query += `&start_date=${startDate}`;
-            if (endDate) query += `&end_date=${endDate}`;
+            if (sDate) query += `&start_date=${sDate}`;
+            if (eDate) query += `&end_date=${eDate}`;
 
             const response = await api.get<PaginatedResponse<Spent>>(query);
             setSpents(response.data.items);
@@ -160,7 +188,7 @@ export const SpentsPage = () => {
             amount: spent.amount.toString(),
             item_bought: spent.item_bought,
             payment_method: spent.payment_method,
-            location: spent.location,
+            location: spent.location || '',
             created_at: spent.created_at.split('T')[0],
             is_installment: spent.is_installment || false,
             current_installment: spent.current_installment || 1,
@@ -247,18 +275,41 @@ export const SpentsPage = () => {
                     <button
                         onClick={() => fetchData(1)}
                         style={{
-                            backgroundColor: 'var(--border-color)',
+                            backgroundColor: 'var(--accent-color)',
                             color: 'white',
                             border: 'none',
                             padding: '0.45rem 1rem',
                             borderRadius: '6px',
                             cursor: 'pointer',
                             fontSize: '0.85rem',
-                            fontWeight: 500
+                            fontWeight: 600
                         }}
                     >
                         Filtrar
                     </button>
+                    <div style={{ display: 'flex', gap: '0.35rem' }}>
+                        <button
+                            type="button"
+                            onClick={() => handleSetPeriod('current')}
+                            style={{ padding: '0.4rem 0.6rem', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer' }}
+                        >
+                            Mês Atual
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleSetPeriod('90days')}
+                            style={{ padding: '0.4rem 0.6rem', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer' }}
+                        >
+                            Últimos 90 dias
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleSetPeriod('all')}
+                            style={{ padding: '0.4rem 0.6rem', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer' }}
+                        >
+                            Ver Todos
+                        </button>
+                    </div>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>

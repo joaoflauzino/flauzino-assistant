@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS spents (
     amount DOUBLE PRECISION NOT NULL,
     item_bought VARCHAR NOT NULL,
     payment_method VARCHAR NOT NULL,
-    location VARCHAR NOT NULL,
+    location VARCHAR,
     payment_type VARCHAR(20) NOT NULL DEFAULT 'CREDIT',
     account_id UUID REFERENCES accounts(id) ON DELETE SET NULL,
     credit_card_id UUID REFERENCES credit_cards(id) ON DELETE SET NULL,
@@ -235,3 +235,79 @@ CREATE TABLE IF NOT EXISTS telegram_sessions (
     created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT now(),
     updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT now()
 );
+
+-- ============================================================
+-- Importação de extratos (staging + memória de classificação)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS import_batches (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    account_id UUID REFERENCES accounts(id) ON DELETE SET NULL,
+    credit_card_id UUID REFERENCES credit_cards(id) ON DELETE SET NULL,
+    parser VARCHAR(50) NOT NULL,
+    filename VARCHAR NOT NULL,
+    file_sha256 VARCHAR(64) NOT NULL UNIQUE,
+    period_start DATE,
+    period_end DATE,
+    total_rows INT NOT NULL DEFAULT 0,
+    new_rows INT NOT NULL DEFAULT 0,
+    duplicate_rows INT NOT NULL DEFAULT 0,
+    possible_duplicates INT NOT NULL DEFAULT 0,
+    ai_used BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS staged_transactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    batch_id UUID NOT NULL REFERENCES import_batches(id) ON DELETE CASCADE,
+    account_id UUID REFERENCES accounts(id) ON DELETE SET NULL,
+    credit_card_id UUID REFERENCES credit_cards(id) ON DELETE SET NULL,
+    occurred_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    posted_at TIMESTAMP WITH TIME ZONE,
+    raw_title VARCHAR NOT NULL,
+    raw_description VARCHAR,
+    raw_row JSONB,
+    merchant VARCHAR NOT NULL,
+    amount NUMERIC(14, 2) NOT NULL,
+    direction VARCHAR(3) NOT NULL,
+    kind VARCHAR(20) NOT NULL,
+    payment_type VARCHAR(20) NOT NULL DEFAULT 'OTHER',
+    suggested_category VARCHAR(50),
+    suggestion_source VARCHAR(10),
+    confidence NUMERIC(4, 3),
+    category VARCHAR(50),
+    description VARCHAR(50) NOT NULL,
+    location VARCHAR,
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    fingerprint VARCHAR(64) NOT NULL UNIQUE,
+    possible_duplicate_of_spent_id UUID,
+    possible_duplicate_of_income_id UUID,
+    committed_spent_id UUID,
+    committed_income_id UUID,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS ix_staged_transactions_batch_id ON staged_transactions (batch_id);
+CREATE INDEX IF NOT EXISTS ix_staged_transactions_status ON staged_transactions (status);
+CREATE INDEX IF NOT EXISTS ix_staged_transactions_occurred_at ON staged_transactions (occurred_at);
+
+CREATE TABLE IF NOT EXISTS category_rules (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    pattern VARCHAR NOT NULL,
+    match_type VARCHAR(10) NOT NULL DEFAULT 'CONTAINS',
+    direction VARCHAR(3) NOT NULL,
+    kind VARCHAR(20) NOT NULL DEFAULT 'EXPENSE',
+    category VARCHAR(50),
+    hits INT NOT NULL DEFAULT 0,
+    source VARCHAR(10) NOT NULL DEFAULT 'LEARNED',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_category_rules_pattern_direction UNIQUE (pattern, direction)
+);
+
+-- Seeds de regras de comerciantes (categorias existentes)
+INSERT INTO category_rules (pattern, match_type, direction, kind, category, source) VALUES
+    ('CEMIG', 'CONTAINS', 'OUT', 'EXPENSE', 'moradia', 'SEED'),
+    ('ALGAR', 'CONTAINS', 'OUT', 'EXPENSE', 'servicos', 'SEED'),
+    ('AUGUSTS BURGE', 'CONTAINS', 'OUT', 'EXPENSE', 'comer_fora', 'SEED'),
+    ('BRADESCO ADMINISTRADORA DE CONSORCIOS', 'CONTAINS', 'OUT', 'EXPENSE', 'outros', 'SEED')
+ON CONFLICT (pattern, direction) DO NOTHING;

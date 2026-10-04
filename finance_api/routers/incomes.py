@@ -52,10 +52,16 @@ async def get_monthly_summary(
     reference_month: Optional[str] = Query(
         None, description="Mês de referência no formato YYYY-MM (ex: '2026-08')"
     ),
+    start_date: Optional[date] = Query(None, description="Data inicial do período"),
+    end_date: Optional[date] = Query(None, description="Data final do período"),
     service: IncomeService = Depends(get_income_service),
 ):
-    """Retorna o balanço mensal consolidado (receitas, despesas, saldo e taxa de economia)."""
-    return await service.get_monthly_summary(reference_month)
+    """Retorna o balanço mensal ou por período consolidado (receitas, despesas, saldo e taxa de economia)."""
+    return await service.get_monthly_summary(
+        reference_month=reference_month,
+        start_date=start_date,
+        end_date=end_date,
+    )
 
 
 @router.get("/{income_id}", response_model=IncomeResponse)

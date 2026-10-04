@@ -7,7 +7,7 @@ export interface Spent {
     account_id?: string;
     credit_card_id?: string;
     item_bought: string;
-    location: string;
+    location?: string | null;
     is_installment?: boolean;
     current_installment?: number;
     total_installments?: number;
@@ -136,4 +136,79 @@ export interface InstallmentSummary {
     amount: number;
     total_installments: number;
     passed_installments: number;
+}
+
+export interface PossibleDuplicateInfo {
+    type: 'spent' | 'income';
+    id: string;
+    label: string;
+    amount: number;
+    date: string;
+}
+
+export interface StagedTransaction {
+    id: string;
+    batch_id: string;
+    account_id?: string | null;
+    credit_card_id?: string | null;
+    occurred_at: string;
+    posted_at?: string | null;
+    raw_title: string;
+    raw_description?: string | null;
+    merchant: string;
+    amount: number;
+    direction: 'IN' | 'OUT';
+    kind: 'EXPENSE' | 'INCOME' | 'TRANSFER' | 'INVOICE_PAYMENT' | 'REFUND';
+    payment_type: string;
+    suggested_category?: string | null;
+    suggestion_source?: 'RULE' | 'MEMORY' | 'LLM' | null;
+    confidence?: number | null;
+    category?: string | null;
+    description: string;
+    location?: string | null;
+    status: 'PENDING' | 'APPROVED' | 'COMMITTED' | 'IGNORED' | 'LINKED';
+    possible_duplicate?: PossibleDuplicateInfo | null;
+    committed_spent_id?: string | null;
+    committed_income_id?: string | null;
+}
+
+export interface ImportBatch {
+    id: string;
+    filename: string;
+    parser: string;
+    account_id?: string | null;
+    account_name?: string | null;
+    period_start?: string | null;
+    period_end?: string | null;
+    total_rows: number;
+    new_rows: number;
+    duplicate_rows: number;
+    possible_duplicates: number;
+    ai_used: boolean;
+    created_at: string;
+    counts: {
+        pending?: number;
+        approved?: number;
+        committed?: number;
+        ignored?: number;
+        linked?: number;
+    };
+}
+
+export interface ImportSummary {
+    pending: number;
+    approved: number;
+}
+
+export interface BulkActionResult {
+    updated: number;
+    skipped: number;
+    errors: { id: string; error: string }[];
+}
+
+export interface CommitResult {
+    committed_spents: number;
+    committed_incomes: number;
+    processed_without_record: number;
+    failed: { id: string; error: string }[];
 }

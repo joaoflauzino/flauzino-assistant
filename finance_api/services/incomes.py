@@ -174,10 +174,26 @@ class IncomeService:
 
     @handle_service_errors
     async def get_monthly_summary(
-        self, reference_month: Optional[str] = None
+        self,
+        reference_month: Optional[str] = None,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None,
     ) -> MonthlyBalanceSummary:
-        ref_month, start_date, end_date = _parse_reference_month(reference_month)
-        logger.info(f"Calculating monthly balance summary for {ref_month}")
+        if start_date and end_date:
+            ref_month = (
+                reference_month
+                or f"{start_date.strftime('%Y-%m-%d')} a {end_date.strftime('%Y-%m-%d')}"
+            )
+        elif start_date:
+            ref_month = reference_month or f"A partir de {start_date.strftime('%Y-%m-%d')}"
+            end_date = date(2099, 12, 31)
+        elif end_date:
+            ref_month = reference_month or f"Até {end_date.strftime('%Y-%m-%d')}"
+            start_date = date(1970, 1, 1)
+        else:
+            ref_month, start_date, end_date = _parse_reference_month(reference_month)
+
+        logger.info(f"Calculating balance summary for {ref_month} ({start_date} to {end_date})")
 
         incomes = await self.repo.list_by_period(start_date, end_date)
         spents, _ = await self.spent_repo.list(

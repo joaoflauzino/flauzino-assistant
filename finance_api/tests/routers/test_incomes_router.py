@@ -174,3 +174,41 @@ async def test_get_monthly_summary_api(test_client, mock_income_repo, mock_spent
     assert data["savings_rate"] == 70.0
 
     app.dependency_overrides.clear()
+
+
+async def test_get_period_summary_api(test_client, mock_income_repo, mock_spent_repo):
+    async def override_get_db():
+        yield MagicMock()
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    inc = Income(
+        id=uuid4(),
+        description="Salário",
+        amount=5000.0,
+        category="salario",
+        received_at=datetime(2026, 8, 5, tzinfo=ZoneInfo("America/Sao_Paulo")),
+        created_at=datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
+    mock_income_repo.list_by_period.return_value = [inc]
+
+    sp = Spent(
+        id=uuid4(),
+        item_bought="Aluguel",
+        amount=2000.0,
+        category="moradia",
+        payment_method="itau_joao",
+        location="Imobiliária",
+        created_at=datetime(2026, 8, 10, tzinfo=ZoneInfo("America/Sao_Paulo")),
+    )
+    mock_spent_repo.list.return_value = ([sp], 1)
+
+    response = await test_client.get("/incomes/summary?start_date=2026-01-01&end_date=2026-10-04")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["reference_month"] == "2026-01-01 a 2026-10-04"
+    assert data["total_incomes"] == 5000.0
+    assert data["total_spents"] == 2000.0
+    assert data["net_balance"] == 3000.0
+
+    app.dependency_overrides.clear()
