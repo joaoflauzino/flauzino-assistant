@@ -316,3 +316,33 @@ async def test_upload_credit_card_batch_and_commit(mock_dependencies):
     assert spent_call_data.is_installment is False
     assert spent_call_data.current_installment == 4
     assert spent_call_data.total_installments == 12
+
+
+@pytest.mark.asyncio
+async def test_salary_competence_date_early_month(mock_dependencies):
+    from datetime import date
+
+    service, acc_id, _, tx_repo, _, _, _ = mock_dependencies
+
+    salary_csv = (
+        """Data Lançamento,Data Contábil,Título,Descrição,Entrada(R$),Saída(R$),Saldo do Dia(R$)
+01/10/2026,01/10/2026,CRED SALARIO MENSAL,C6 BANK,5000.00,0.00,5000.00
+20/09/2026,20/09/2026,ADTO SALARIO,C6 BANK,3000.00,0.00,8000.00
+"""
+    ).encode("utf-8")
+
+    res = await service.create_batch_from_upload(
+        file_bytes=salary_csv,
+        filename="c6_salary.csv",
+        account_id=acc_id,
+    )
+    assert res.total_rows == 2
+
+    staged_items = tx_repo.create_many.call_args[0][0]
+    assert len(staged_items) == 2
+
+    st_oct = staged_items[0]
+    assert st_oct.competence_date == date(2026, 9, 30)
+
+    st_sep = staged_items[1]
+    assert st_sep.competence_date == date(2026, 9, 20)

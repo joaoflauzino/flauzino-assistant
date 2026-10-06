@@ -33,16 +33,16 @@ class IncomeRepository:
         end_date: Optional[date] = None,
         category: Optional[str] = None,
     ) -> tuple[List[Income], int]:
+        effective_date = func.coalesce(
+            Income.competence_date,
+            func.date(Income.received_at.op("AT TIME ZONE")("America/Sao_Paulo")),
+        )
         query = select(Income)
 
         if start_date:
-            query = query.where(
-                func.date(Income.received_at.op("AT TIME ZONE")("America/Sao_Paulo")) >= start_date
-            )
+            query = query.where(effective_date >= start_date)
         if end_date:
-            query = query.where(
-                func.date(Income.received_at.op("AT TIME ZONE")("America/Sao_Paulo")) <= end_date
-            )
+            query = query.where(effective_date <= end_date)
         if category:
             query = query.where(Income.category == category)
 
@@ -50,20 +50,28 @@ class IncomeRepository:
         count_result = await self.db.execute(count_query)
         total = count_result.scalar() or 0
 
-        query = query.order_by(Income.received_at.desc()).offset(skip).limit(limit)
+        query = (
+            query.order_by(effective_date.desc(), Income.received_at.desc())
+            .offset(skip)
+            .limit(limit)
+        )
         result = await self.db.execute(query)
         items = list(result.scalars().all())
         logger.info(f"Listed {len(items)} incomes")
         return items, total
 
     async def list_by_period(self, start_date: date, end_date: date) -> List[Income]:
+        effective_date = func.coalesce(
+            Income.competence_date,
+            func.date(Income.received_at.op("AT TIME ZONE")("America/Sao_Paulo")),
+        )
         query = (
             select(Income)
             .where(
-                func.date(Income.received_at.op("AT TIME ZONE")("America/Sao_Paulo")) >= start_date,
-                func.date(Income.received_at.op("AT TIME ZONE")("America/Sao_Paulo")) <= end_date,
+                effective_date >= start_date,
+                effective_date <= end_date,
             )
-            .order_by(Income.received_at.desc())
+            .order_by(effective_date.desc(), Income.received_at.desc())
         )
         result = await self.db.execute(query)
         return list(result.scalars().all())

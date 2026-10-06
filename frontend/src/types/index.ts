@@ -65,6 +65,7 @@ export interface Income {
     payment_method?: string;
     account_id?: string;
     received_at: string;
+    competence_date?: string | null;
     created_at: string;
 }
 
@@ -170,6 +171,7 @@ export interface StagedTransaction {
     current_installment?: number | null;
     total_installments?: number | null;
     card_last_digits?: string | null;
+    competence_date?: string | null;
     possible_duplicate?: PossibleDuplicateInfo | null;
     committed_spent_id?: string | null;
     committed_income_id?: string | null;

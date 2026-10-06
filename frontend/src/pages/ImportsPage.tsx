@@ -185,7 +185,7 @@ export const ImportsPage: React.FC = () => {
     // Single item field update (PATCH)
     const handleUpdateField = async (
         txId: string,
-        fields: { kind?: string; category?: string; status?: string; remember?: boolean; location?: string | null }
+        fields: { kind?: string; category?: string; status?: string; remember?: boolean; location?: string | null; competence_date?: string | null }
     ) => {
         try {
             const payload = { ...fields, remember: fields.remember ?? rememberRule };
@@ -856,7 +856,27 @@ export const ImportsPage: React.FC = () => {
                                                 />
                                             </td>
                                             <td style={{ padding: '0.75rem 1rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                                                {formatDate(tx.occurred_at)}
+                                                <div>{formatDate(tx.occurred_at)}</div>
+                                                {tx.kind === 'INCOME' && (
+                                                    <div style={{ marginTop: '0.35rem' }}>
+                                                        <span style={{ fontSize: '0.7rem', color: '#9ca3af', display: 'block' }}>Competência:</span>
+                                                        <input
+                                                            type="date"
+                                                            value={tx.competence_date ? tx.competence_date.substring(0, 10) : tx.occurred_at.substring(0, 10)}
+                                                            disabled={tx.status === 'COMMITTED'}
+                                                            onChange={e => handleUpdateField(tx.id, { competence_date: e.target.value })}
+                                                            style={{
+                                                                fontSize: '0.75rem',
+                                                                padding: '0.15rem 0.35rem',
+                                                                backgroundColor: 'var(--bg-primary)',
+                                                                color: 'var(--text-primary)',
+                                                                border: '1px solid var(--border-color)',
+                                                                borderRadius: '4px',
+                                                                cursor: tx.status === 'COMMITTED' ? 'not-allowed' : 'pointer',
+                                                            }}
+                                                        />
+                                                    </div>
+                                                )}
                                             </td>
                                             <td style={{ padding: '0.75rem 1rem' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>

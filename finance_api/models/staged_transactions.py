@@ -1,10 +1,10 @@
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 import uuid
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, Numeric, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -67,6 +67,7 @@ class StagedTransaction(Base):
     current_installment: Mapped[int | None] = mapped_column(Integer, nullable=True)
     total_installments: Mapped[int | None] = mapped_column(Integer, nullable=True)
     card_last_digits: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    competence_date: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
     possible_duplicate_of_spent_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), nullable=True
     )

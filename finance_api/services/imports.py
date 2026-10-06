@@ -1,3 +1,4 @@
+from datetime import timedelta
 from decimal import Decimal
 import hashlib
 from typing import Any
@@ -232,6 +233,29 @@ class ImportService:
                     dup_income_id = match_inc.id
                     possible_duplicates_count += 1
 
+            comp_date = None
+            if clf.kind == "INCOME":
+                tx_dt = tx.occurred_at.date()
+                norm_raw = f"{tx.raw_title} {tx.raw_description or ''}".upper()
+                is_salary_like = any(
+                    k in norm_raw
+                    for k in [
+                        "SALARIO",
+                        "SALÁRIO",
+                        "FOLHA",
+                        "PRO-LABORE",
+                        "REMUNERACAO",
+                        "VENCIMENTO",
+                        "PPR",
+                        "PLR",
+                    ]
+                )
+                if is_salary_like and tx_dt.day <= 7:
+                    first_of_month = tx_dt.replace(day=1)
+                    comp_date = first_of_month - timedelta(days=1)
+                else:
+                    comp_date = tx_dt
+
             staged = StagedTransaction(
                 batch_id=batch.id,
                 account_id=account_id,
@@ -257,6 +281,7 @@ class ImportService:
                 current_installment=getattr(tx, "current_installment", None),
                 total_installments=getattr(tx, "total_installments", None),
                 card_last_digits=getattr(tx, "card_last_digits", None),
+                competence_date=comp_date,
                 possible_duplicate_of_spent_id=dup_spent_id,
                 possible_duplicate_of_income_id=dup_income_id,
             )
@@ -428,6 +453,9 @@ class ImportService:
 
         if data.location is not None:
             tx.location = data.location.strip() or None
+
+        if data.competence_date is not None:
+            tx.competence_date = data.competence_date
 
         if data.category is not None:
             clean_cat = data.category.strip().lower() if data.category else None
@@ -645,6 +673,7 @@ class ImportService:
                         payment_method=pm_key,
                         account_id=acc_id,
                         received_at=tx.occurred_at,
+                        competence_date=tx.competence_date or tx.occurred_at.date(),
                     )
                     created_income = await self.income_service.create(income_data)
                     tx.committed_income_id = created_income.id

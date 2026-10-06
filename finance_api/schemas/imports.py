@@ -36,6 +36,7 @@ class StagedTransactionResponse(BaseModel):
     current_installment: int | None = None
     total_installments: int | None = None
     card_last_digits: str | None = None
+    competence_date: date | None = None
     possible_duplicate: PossibleDuplicateInfo | None = None
     committed_spent_id: UUID | None = None
     committed_income_id: UUID | None = None
@@ -69,6 +70,7 @@ class StagedTransactionUpdate(BaseModel):
     kind: str | None = None
     description: str | None = Field(default=None, max_length=50)
     location: str | None = None
+    competence_date: date | None = None
     status: str | None = None  # "PENDING", "APPROVED", "IGNORED"
     remember: bool = True
 
