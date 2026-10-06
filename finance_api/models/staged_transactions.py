@@ -4,7 +4,7 @@ from typing import Any
 import uuid
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import DateTime, ForeignKey, Numeric, String
+from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -64,6 +64,9 @@ class StagedTransaction(Base):
     location: Mapped[str | None] = mapped_column(String, nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="PENDING", nullable=False, index=True)
     fingerprint: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    current_installment: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    total_installments: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    card_last_digits: Mapped[str | None] = mapped_column(String(10), nullable=True)
     possible_duplicate_of_spent_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), nullable=True
     )

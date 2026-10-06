@@ -6,13 +6,19 @@ import re
 from zoneinfo import ZoneInfo
 
 from finance_api.core.exceptions import ValidationError
-from finance_api.importers.base import ParsedStatement, ParsedTransaction, StatementMetadata
+from finance_api.importers.base import (
+    ParsedStatement,
+    ParsedTransaction,
+    StatementMetadata,
+    StatementType,
+)
 
 SP_TZ = ZoneInfo("America/Sao_Paulo")
 
 
 class C6CheckingCsvParser:
     name: str = "c6_checking_csv"
+    statement_type: StatementType = StatementType.ACCOUNT
 
     def can_parse(self, content: bytes, filename: str) -> bool:
         try:
@@ -145,6 +151,7 @@ class C6CheckingCsvParser:
         metadata = StatementMetadata(
             parser_name=self.name,
             bank_name="c6",
+            statement_type=self.statement_type,
             account_number=account_number,
             agency=agency,
             period_start=period_start,

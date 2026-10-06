@@ -255,3 +255,64 @@ async def test_link_transaction_to_existing_spent(mock_dependencies):
     assert res.status == "LINKED"
     assert tx.committed_spent_id == existing_spent_id
     assert tx.status == "LINKED"
+
+
+@pytest.mark.asyncio
+async def test_upload_credit_card_batch_and_commit(mock_dependencies):
+    service, acc_id, batch_repo, tx_repo, spent_service, _, _ = mock_dependencies
+
+    card_id = uuid4()
+    mock_card = MagicMock(id=card_id, key="c6_card_joao", name="C6 Carbon Black", account_id=acc_id)
+    service.credit_card_repo.get_by_id = AsyncMock(return_value=mock_card)
+    service.credit_card_repo.list = AsyncMock(return_value=([mock_card], 1))
+
+    card_csv = (
+        "Data de Compra;Nome no Cartão;Final do Cartão;Categoria;Descrição;Parcela;Valor (em US$);Cotação (em R$);Valor (em R$)\n"
+        "26/05/2026;JOAO L F CASSIANO;1141;Empresa para empresa;DELL;4/12;0;0;235.25\n"
+        "05/09/2026;JOAO L F CASSIANO;1633;-;Inclusao de Pagamento;Única;0;0;-3610.14\n"
+    ).encode("utf-8")
+
+    res = await service.create_batch_from_upload(
+        file_bytes=card_csv,
+        filename="Fatura_2026-10-05.csv",
+        credit_card_id=card_id,
+    )
+
+    assert res.total_rows == 2
+    assert res.new_rows == 2
+    tx_repo.create_many.assert_called()
+    staged_items = tx_repo.create_many.call_args[0][0]
+    assert len(staged_items) == 2
+
+    # Check DELL installment and card digits
+    st_dell = staged_items[0]
+    assert st_dell.raw_title == "DELL"
+    assert st_dell.current_installment == 4
+    assert st_dell.total_installments == 12
+    assert st_dell.card_last_digits == "1141"
+    assert st_dell.credit_card_id == card_id
+
+    # Check Inclusao de Pagamento
+    st_pgto = staged_items[1]
+    assert st_pgto.kind == "INVOICE_PAYMENT"
+    assert st_pgto.amount == Decimal("3610.14")
+    assert st_pgto.direction == "IN"
+
+    # Test commit of credit card items
+    st_dell.category = "compras"
+    st_dell.status = "APPROVED"
+    st_pgto.status = "APPROVED"
+
+    tx_repo.get_approved_for_commit = AsyncMock(return_value=[st_dell, st_pgto])
+
+    commit_res = await service.commit_approved(CommitRequest())
+    assert commit_res.committed_spents == 1
+    assert commit_res.processed_without_record == 1
+
+    # Verify spent creation arguments
+    spent_call_data = spent_service.create.call_args[0][0]
+    assert spent_call_data.credit_card_id == card_id
+    assert spent_call_data.payment_type == "CREDIT"
+    assert spent_call_data.is_installment is False
+    assert spent_call_data.current_installment == 4
+    assert spent_call_data.total_installments == 12

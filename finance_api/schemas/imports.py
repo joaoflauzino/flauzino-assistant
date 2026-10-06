@@ -33,6 +33,9 @@ class StagedTransactionResponse(BaseModel):
     description: str
     location: str | None = None
     status: str  # "PENDING", "APPROVED", "COMMITTED", "IGNORED", "LINKED"
+    current_installment: int | None = None
+    total_installments: int | None = None
+    card_last_digits: str | None = None
     possible_duplicate: PossibleDuplicateInfo | None = None
     committed_spent_id: UUID | None = None
     committed_income_id: UUID | None = None
@@ -46,6 +49,8 @@ class ImportBatchResponse(BaseModel):
     parser: str
     account_id: UUID | None = None
     account_name: str | None = None
+    credit_card_id: UUID | None = None
+    credit_card_name: str | None = None
     period_start: date | None = None
     period_end: date | None = None
     total_rows: int
@@ -102,11 +107,6 @@ class CommitResult(BaseModel):
     failed: list[CommitFailure] = Field(default_factory=list)
 
 
-class ReclassifyResult(BaseModel):
-    classified: int
-    ai_used: bool
-
-
 class SummaryResponse(BaseModel):
     pending: int
     approved: int
@@ -118,8 +118,16 @@ class ImportRuleResponse(BaseModel):
     match_type: str
     direction: str
     kind: str
-    category: str | None = None
+    category: str | None
     hits: int
     source: str
+    created_at: datetime
+    updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ReclassifyResult(BaseModel):
+    total_reclassified: int
+    applied_rules: int
+    applied_ai: int

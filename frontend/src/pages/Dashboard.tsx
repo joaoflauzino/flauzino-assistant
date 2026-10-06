@@ -3,7 +3,7 @@ import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Toolti
 import { Bar } from 'react-chartjs-2';
 import { CheckSquare, Square, TrendingUp, TrendingDown, Scale, Percent, Landmark, CreditCard as CreditCardIcon } from 'lucide-react';
 import api from '../services/api';
-import type { Spent, SpendingLimit, Account, CreditCard, Subscription, MonthlyBalanceSummary } from '../types';
+import type { Spent, SpendingLimit, Account, CreditCard, Subscription, MonthlyBalanceSummary, IncomeCategory } from '../types';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
@@ -57,6 +57,8 @@ export const Dashboard = () => {
     const [selectedCreditCards, setSelectedCreditCards] = useState<Set<string>>(new Set());
 
     const [categoryNames, setCategoryNames] = useState<Record<string, string>>({});
+    const [incomeCategoryNames, setIncomeCategoryNames] = useState<Record<string, string>>({});
+    const [selectedIncomeCategories, setSelectedIncomeCategories] = useState<Set<string>>(new Set());
     const [paymentMethodNames, setPaymentMethodNames] = useState<Record<string, string>>({});
 
     const fetchData = async () => {
@@ -89,6 +91,10 @@ export const Dashboard = () => {
             setSubscriptions(subscriptionsRes.data.items);
             if (summaryRes) {
                 setMonthlySummary(summaryRes.data);
+                if (summaryRes.data.incomes_by_category) {
+                    const incCats = Object.keys(summaryRes.data.incomes_by_category);
+                    setSelectedIncomeCategories(prev => prev.size === 0 ? new Set(incCats) : prev);
+                }
             }
 
             if (selectedCategories.size === 0) {
@@ -114,12 +120,21 @@ export const Dashboard = () => {
 
     const fetchCategories = async () => {
         try {
-            const res = await api.get<{ items: Category[] }>('/categories/');
+            const [res, incRes] = await Promise.all([
+                api.get<{ items: Category[] }>('/categories/'),
+                api.get<{ items: IncomeCategory[] }>('/income-categories/?size=200').catch(() => ({ data: { items: [] } })),
+            ]);
             const categoryMap = res.data.items.reduce((acc, cat) => {
                 acc[cat.key] = cat.display_name;
                 return acc;
             }, {} as Record<string, string>);
             setCategoryNames(categoryMap);
+
+            const incMap = (incRes.data.items || []).reduce((acc, cat) => {
+                acc[cat.key] = cat.display_name;
+                return acc;
+            }, {} as Record<string, string>);
+            setIncomeCategoryNames(incMap);
         } catch (error) {
             console.error("Error fetching categories", error);
         }
@@ -187,6 +202,25 @@ export const Dashboard = () => {
 
     const deselectAllCategories = () => {
         setSelectedCategories(new Set());
+    };
+
+    const toggleIncomeCategory = (cat: string) => {
+        const next = new Set(selectedIncomeCategories);
+        if (next.has(cat)) {
+            next.delete(cat);
+        } else {
+            next.add(cat);
+        }
+        setSelectedIncomeCategories(next);
+    };
+
+    const selectAllIncomeCategories = () => {
+        const all = Object.keys(monthlySummary?.incomes_by_category || {});
+        setSelectedIncomeCategories(new Set(all));
+    };
+
+    const deselectAllIncomeCategories = () => {
+        setSelectedIncomeCategories(new Set());
     };
 
     const cardKeySet = new Set(creditCards.map(c => c.key));
@@ -395,6 +429,19 @@ export const Dashboard = () => {
         }
     };
 
+    const totalFilteredIncomes = monthlySummary?.incomes_by_category
+        ? Object.entries(monthlySummary.incomes_by_category)
+            .filter(([cat]) => selectedIncomeCategories.has(cat))
+            .reduce((sum, [, amt]) => sum + amt, 0)
+        : (monthlySummary?.total_incomes ?? 0);
+
+    const totalFilteredSpents = monthlySummary ? monthlySummary.total_spents : 0;
+    const netBalance = Math.round((totalFilteredIncomes - totalFilteredSpents) * 100) / 100;
+    const isPositiveBalance = netBalance >= 0;
+    const savingsRate = totalFilteredIncomes > 0
+        ? Math.round((netBalance / totalFilteredIncomes) * 1000) / 10
+        : 0;
+
     // Gráfico comparativo Entradas vs Saídas
     const cashFlowChartData = {
         labels: ['Receitas (Entradas)', 'Despesas (Saídas)'],
@@ -402,7 +449,7 @@ export const Dashboard = () => {
             {
                 label: 'Total em R$',
                 data: [
-                    monthlySummary ? monthlySummary.total_incomes : 0,
+                    totalFilteredIncomes,
                     monthlySummary ? monthlySummary.total_spents : 0,
                 ],
                 backgroundColor: ['rgba(34, 197, 94, 0.85)', 'rgba(239, 68, 68, 0.85)'],
@@ -588,8 +635,6 @@ export const Dashboard = () => {
         ],
     };
 
-    const netBalance = monthlySummary?.net_balance ?? 0;
-    const isPositiveBalance = monthlySummary ? monthlySummary.is_positive : netBalance >= 0;
 
     return (
         <div>
@@ -723,7 +768,7 @@ export const Dashboard = () => {
                         </div>
                     </div>
                     <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#22c55e', marginBottom: '0.25rem' }}>
-                        R$ {monthlySummary ? monthlySummary.total_incomes.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '0,00'}
+                        R$ {totalFilteredIncomes.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Entradas financeiras registradas</span>
                 </div>
@@ -793,11 +838,123 @@ export const Dashboard = () => {
                         </div>
                     </div>
                     <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#6366f1', marginBottom: '0.25rem' }}>
-                        {monthlySummary ? monthlySummary.savings_rate.toFixed(1) : '0.0'}%
+                        {savingsRate.toFixed(1)}%
                     </div>
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Da receita total poupada</span>
                 </div>
             </div>
+
+            {/* Income Categories Filter Card (Sempre que houver receitas registradas) */}
+            {monthlySummary && Object.keys(monthlySummary.incomes_by_category || {}).length > 0 && (
+                <div style={{
+                    backgroundColor: 'var(--bg-secondary)',
+                    padding: '1.5rem',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(34, 197, 94, 0.25)',
+                    marginBottom: '2rem'
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem', flexWrap: 'wrap', gap: '0.8rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                            <div style={{ padding: '0.4rem', borderRadius: '8px', backgroundColor: 'rgba(34, 197, 94, 0.15)' }}>
+                                <TrendingUp size={20} color="#22c55e" />
+                            </div>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Categorias de Receitas</h3>
+                                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                    Filtre fontes de renda consideradas no painel (ex: desmarque premiações/bônus para ver balanço sem extras)
+                                </span>
+                            </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.6rem' }}>
+                            <button
+                                type="button"
+                                onClick={selectAllIncomeCategories}
+                                style={{
+                                    padding: '0.4rem 0.9rem',
+                                    borderRadius: '6px',
+                                    border: '1px solid #22c55e',
+                                    background: 'transparent',
+                                    color: '#22c55e',
+                                    fontSize: '0.82rem',
+                                    fontWeight: 500,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                Todas
+                            </button>
+                            <button
+                                type="button"
+                                onClick={deselectAllIncomeCategories}
+                                style={{
+                                    padding: '0.4rem 0.9rem',
+                                    borderRadius: '6px',
+                                    border: '1px solid #ef4444',
+                                    background: 'transparent',
+                                    color: '#ef4444',
+                                    fontSize: '0.82rem',
+                                    fontWeight: 500,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                Nenhuma
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                        gap: '0.75rem'
+                    }}>
+                        {Object.entries(monthlySummary.incomes_by_category).map(([catKey, amount]) => {
+                            const isSelected = selectedIncomeCategories.has(catKey);
+                            const displayName = incomeCategoryNames[catKey] || catKey.charAt(0).toUpperCase() + catKey.slice(1);
+                            return (
+                                <div
+                                    key={catKey}
+                                    onClick={() => toggleIncomeCategory(catKey)}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        padding: '0.75rem 1rem',
+                                        borderRadius: '8px',
+                                        background: isSelected ? 'rgba(34, 197, 94, 0.12)' : 'var(--bg-tertiary)',
+                                        border: `1.5px solid ${isSelected ? '#22c55e' : 'transparent'}`,
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                        userSelect: 'none'
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                        {isSelected ? (
+                                            <CheckSquare size={18} color="#22c55e" />
+                                        ) : (
+                                            <Square size={18} color="var(--text-secondary)" />
+                                        )}
+                                        <span style={{
+                                            fontSize: '0.9rem',
+                                            color: isSelected ? 'white' : 'var(--text-secondary)',
+                                            fontWeight: isSelected ? 500 : 400
+                                        }}>
+                                            {displayName}
+                                        </span>
+                                    </div>
+                                    <span style={{
+                                        fontSize: '0.85rem',
+                                        fontWeight: 600,
+                                        color: isSelected ? '#22c55e' : 'var(--text-secondary)'
+                                    }}>
+                                        R$ {amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                    </span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
             {/* Category Selection Panel */}
             <div style={{
