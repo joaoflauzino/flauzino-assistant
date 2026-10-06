@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -17,6 +17,7 @@ class IncomeBase(BaseModel):
     received_at: datetime | None = Field(
         default=None, description="Data/hora em que a receita foi recebida"
     )
+    competence_date: date | None = Field(default=None, description="Data de competência da receita")
 
     @field_validator("category")
     @classmethod
@@ -40,6 +41,7 @@ class IncomeUpdate(BaseModel):
     payment_method: str | None = Field(default=None, max_length=50)
     account_id: UUID | None = None
     received_at: datetime | None = None
+    competence_date: date | None = None
 
     @field_validator("category")
     @classmethod
@@ -60,6 +62,7 @@ class IncomeResponse(BaseModel):
     payment_method: str | None = None
     account_id: UUID | None = None
     received_at: datetime
+    competence_date: date | None = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

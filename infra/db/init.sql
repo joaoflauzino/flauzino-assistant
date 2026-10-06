@@ -129,6 +129,7 @@ CREATE TABLE IF NOT EXISTS incomes (
     payment_method VARCHAR(50),
     account_id UUID REFERENCES accounts(id) ON DELETE SET NULL,
     received_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    competence_date DATE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_income_category
         FOREIGN KEY(category)
@@ -139,6 +140,7 @@ CREATE TABLE IF NOT EXISTS incomes (
 CREATE INDEX IF NOT EXISTS ix_incomes_category ON incomes (category);
 CREATE INDEX IF NOT EXISTS ix_incomes_received_at ON incomes (received_at);
 CREATE INDEX IF NOT EXISTS ix_incomes_account_id ON incomes (account_id);
+CREATE INDEX IF NOT EXISTS ix_incomes_competence_date ON incomes (competence_date);
 
 -- Seeds para categories
 INSERT INTO categories (key, display_name) VALUES
@@ -279,6 +281,10 @@ CREATE TABLE IF NOT EXISTS staged_transactions (
     location VARCHAR,
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     fingerprint VARCHAR(64) NOT NULL UNIQUE,
+    current_installment INT,
+    total_installments INT,
+    card_last_digits VARCHAR(10),
+    competence_date DATE,
     possible_duplicate_of_spent_id UUID,
     possible_duplicate_of_income_id UUID,
     committed_spent_id UUID,
@@ -289,6 +295,7 @@ CREATE TABLE IF NOT EXISTS staged_transactions (
 CREATE INDEX IF NOT EXISTS ix_staged_transactions_batch_id ON staged_transactions (batch_id);
 CREATE INDEX IF NOT EXISTS ix_staged_transactions_status ON staged_transactions (status);
 CREATE INDEX IF NOT EXISTS ix_staged_transactions_occurred_at ON staged_transactions (occurred_at);
+CREATE INDEX IF NOT EXISTS ix_staged_transactions_competence_date ON staged_transactions (competence_date);
 
 CREATE TABLE IF NOT EXISTS category_rules (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

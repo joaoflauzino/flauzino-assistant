@@ -65,6 +65,7 @@ export interface Income {
     payment_method?: string;
     account_id?: string;
     received_at: string;
+    competence_date?: string | null;
     created_at: string;
 }
 
@@ -167,6 +168,10 @@ export interface StagedTransaction {
     description: string;
     location?: string | null;
     status: 'PENDING' | 'APPROVED' | 'COMMITTED' | 'IGNORED' | 'LINKED';
+    current_installment?: number | null;
+    total_installments?: number | null;
+    card_last_digits?: string | null;
+    competence_date?: string | null;
     possible_duplicate?: PossibleDuplicateInfo | null;
     committed_spent_id?: string | null;
     committed_income_id?: string | null;
@@ -178,6 +183,8 @@ export interface ImportBatch {
     parser: string;
     account_id?: string | null;
     account_name?: string | null;
+    credit_card_id?: string | null;
+    credit_card_name?: string | null;
     period_start?: string | null;
     period_end?: string | null;
     total_rows: number;
