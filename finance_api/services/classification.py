@@ -25,6 +25,25 @@ class ClassificationResult:
     location: str | None = None
 
 
+# Mapeamento heurístico de categorias fornecidas por bancos (ex: C6) para categorias do sistema
+BANK_CATEGORY_MAP: dict[str, tuple[str, Decimal]] = {
+    "RESTAURANTE / LANCHONETE / BAR": ("comer_fora", Decimal("0.950")),
+    "SUPERMERCADOS / MERCEARIA / PADARIAS / LOJAS DE CONVENIENCIA": ("mercado", Decimal("0.950")),
+    "ASSISTENCIA MEDICA E ODONTOLOGICA": ("saude", Decimal("0.950")),
+    "TRANSPORTE": ("transporte", Decimal("0.950")),
+    "RELACIONADOS A AUTOMOTIVO": ("transporte", Decimal("0.900")),
+    "TV POR ASSINATURA / SERVICOS DE RADIO": ("servicos", Decimal("0.950")),
+    "SERVICOS DE TELECOMUNICACOES": ("servicos", Decimal("0.950")),
+    "VESTUARIO / ROUPAS": ("vestuario", Decimal("0.950")),
+    "ALUGUEL": ("moradia", Decimal("0.900")),
+    "ESPECIALIDADE VAREJO": ("compras", Decimal("0.850")),
+    "DEPARTAMENTO / DESCONTO": ("compras", Decimal("0.850")),
+    "T&E": ("viagem", Decimal("0.900")),
+    "MARKETING DIRETO": ("outros", Decimal("0.800")),
+    "SERVICOS PESSOAIS": ("servicos", Decimal("0.850")),
+}
+
+
 class ClassificationService:
     def __init__(
         self,
@@ -50,10 +69,18 @@ class ClassificationService:
     ) -> tuple[str, str | None, str]:
         title = (raw_title or "").strip()
         desc = (raw_description or "").strip()
+        norm_title = _normalize(title)
+
+        # 0. Pagamento de fatura e taxas de cartão
+        if "INCLUSAO DE PAGAMENTO" in norm_title or "PGTO FAT CARTAO" in norm_title:
+            return "C6 BANK", None, "Pagamento de Fatura"
+        if "ANUIDADE" in norm_title:
+            return "C6 BANK", None, "Anuidade Cartão"
+        if "ESTORNO TARIFA" in norm_title or "ESTORNO" in norm_title:
+            return "C6 BANK", None, "Estorno Tarifa"
 
         # 1. Cartão de Débito / Crédito format (ex: PAYGO*AUGUSTS BURGE    Uberlandia    BRA. Cartão 1633)
         if desc and ("PAYGO*" in desc or "CARTAO" in _normalize(title)):
-            # Tentar extrair do desc: PAYGO*<ESTABELECIMENTO> <CIDADE>
             m = re.search(
                 r"PAYGO\*([^\s]+(?:\s+[^\s]+)*?)\s{2,}([A-Za-zÀ-ÿ]+(?:\s+[A-Za-zÀ-ÿ]+)*?)\s+BRA",
                 desc,
@@ -62,7 +89,6 @@ class ClassificationService:
                 merchant = m.group(1).strip()
                 location = m.group(2).strip()
                 return merchant, location, (title if len(title) <= 50 else merchant[:50])
-            # Alternativa mais simples
             m2 = re.search(r"PAYGO\*([^.]+?)(?:\s{2,}|\.|$)", desc)
             if m2:
                 merchant = m2.group(1).strip()
@@ -86,14 +112,8 @@ class ClassificationService:
             merchant = m_devol.group(1).strip()
             return merchant, None, (title[:50])
 
-        # 5. Pagamento de fatura
-        if "PGTO FAT CARTAO" in _normalize(title) or "FATURA DE CARTAO" in _normalize(desc):
-            return "C6 BANK", None, (title[:50])
-
-        # 6. Salário / PPR
-        if any(
-            k in _normalize(title) for k in ["CRED SALARIO", "ADTO SALARIO", "PAGAMENTO PPR", "PLR"]
-        ):
+        # 5. Salário / PPR
+        if any(k in norm_title for k in ["CRED SALARIO", "ADTO SALARIO", "PAGAMENTO PPR", "PLR"]):
             return "C6 BANK", None, (title[:50])
 
         # Fallback padrão
@@ -108,6 +128,8 @@ class ClassificationService:
         raw_description: str | None,
         direction: str,
         amount: Decimal,
+        bank_category: str | None = None,
+        is_credit_card: bool = False,
     ) -> ClassificationResult:
         merchant, location, description = self.extract_merchant_location_desc(
             raw_title, raw_description, direction
@@ -136,6 +158,7 @@ class ClassificationService:
         if any(
             inv_pat in norm_combined
             for inv_pat in [
+                "INCLUSAO DE PAGAMENTO",
                 "PGTO FAT CARTAO",
                 "FATURA DE CARTAO",
                 "NU PAGAMENTOS",
@@ -143,12 +166,12 @@ class ClassificationService:
             ]
         ):
             return ClassificationResult(
-                merchant=merchant,
+                merchant="C6 BANK",
                 kind="INVOICE_PAYMENT",
-                payment_type="DEBIT",
+                payment_type="CREDIT" if is_credit_card else "DEBIT",
                 suggested_category=None,
                 suggestion_source="RULE",
-                confidence=Decimal("0.950"),
+                confidence=Decimal("1.000"),
                 description=description,
                 location=location,
             )
@@ -158,15 +181,28 @@ class ClassificationService:
             return ClassificationResult(
                 merchant=merchant,
                 kind="REFUND",
-                payment_type="PIX",
+                payment_type="CREDIT" if is_credit_card else "PIX",
                 suggested_category=None,
                 suggestion_source="RULE",
-                confidence=Decimal("0.900"),
+                confidence=Decimal("0.950"),
                 description=description,
                 location=location,
             )
 
-        # 1.4 Receitas de Salário e PLR
+        # 1.4 Anuidade do Cartão
+        if "ANUIDADE" in norm_title:
+            return ClassificationResult(
+                merchant="C6 BANK",
+                kind="EXPENSE",
+                payment_type="CREDIT",
+                suggested_category="servicos",
+                suggestion_source="RULE",
+                confidence=Decimal("0.950"),
+                description=description,
+                location=location,
+            )
+
+        # 1.5 Receitas de Salário e PLR
         if "CRED SALARIO" in norm_title or "ADTO SALARIO" in norm_title:
             return ClassificationResult(
                 merchant="C6 BANK",
@@ -190,7 +226,7 @@ class ClassificationService:
                 location=location,
             )
 
-        # 1.5 Pix recebido de terceiros (INCOME padrão)
+        # 1.6 Pix recebido de terceiros (INCOME padrão)
         if direction == "IN" and ("PIX RECEBIDO" in norm_title or "TRANSF RECEBIDA" in norm_title):
             return ClassificationResult(
                 merchant=merchant,
@@ -203,12 +239,13 @@ class ClassificationService:
                 location=location,
             )
 
-        # 1.6 Débito de cartão
-        default_payment_type = "OTHER"
-        if "DEBITO DE CARTAO" in norm_title or "PAYGO*" in norm_desc:
-            default_payment_type = "DEBIT"
-        elif "PIX" in norm_combined:
-            default_payment_type = "PIX"
+        # Tipo padrão de pagamento
+        default_payment_type = "CREDIT" if is_credit_card else "OTHER"
+        if not is_credit_card:
+            if "DEBITO DE CARTAO" in norm_title or "PAYGO*" in norm_desc:
+                default_payment_type = "DEBIT"
+            elif "PIX" in norm_combined:
+                default_payment_type = "PIX"
 
         default_kind = "INCOME" if direction == "IN" else "EXPENSE"
 
@@ -230,6 +267,24 @@ class ClassificationService:
                 description=description,
                 location=location,
             )
+
+        # ---------------------------------------------------------
+        # Camada 2.5: Categoria Fornecida pelo Banco (ex: C6)
+        # ---------------------------------------------------------
+        if bank_category and default_kind == "EXPENSE":
+            norm_bcat = _normalize(bank_category)
+            if norm_bcat in BANK_CATEGORY_MAP:
+                sug_cat, conf = BANK_CATEGORY_MAP[norm_bcat]
+                return ClassificationResult(
+                    merchant=merchant,
+                    kind=default_kind,
+                    payment_type=default_payment_type,
+                    suggested_category=sug_cat,
+                    suggestion_source="RULE",
+                    confidence=conf,
+                    description=description,
+                    location=location,
+                )
 
         # Sem categoria ainda — aguarda LLM na fase em lote
         return ClassificationResult(

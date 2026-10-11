@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Sequence
 from uuid import UUID
 
-from sqlalchemy import and_, desc, func, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from finance_api.models.incomes import Income
@@ -15,33 +15,42 @@ class StagedTransactionRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def create_many(self, transactions: list[StagedTransaction]) -> list[StagedTransaction]:
-        if not transactions:
-            return []
-        self.db.add_all(transactions)
-        await self.db.commit()
-        for t in transactions:
-            await self.db.refresh(t)
-        return transactions
-
     async def get_by_id(self, tx_id: UUID) -> StagedTransaction | None:
-        result = await self.db.execute(
-            select(StagedTransaction).where(StagedTransaction.id == tx_id)
-        )
+        query = select(StagedTransaction).where(StagedTransaction.id == tx_id)
+        result = await self.db.execute(query)
         return result.scalar_one_or_none()
 
     async def get_existing_fingerprints(self, fps: list[str]) -> set[str]:
         if not fps:
             return set()
-        stmt = select(StagedTransaction.fingerprint).where(StagedTransaction.fingerprint.in_(fps))
-        result = await self.db.execute(stmt)
+        query = select(StagedTransaction.fingerprint).where(StagedTransaction.fingerprint.in_(fps))
+        result = await self.db.execute(query)
         return set(result.scalars().all())
+
+    async def create_many(self, transactions: list[StagedTransaction]) -> list[StagedTransaction]:
+        if not transactions:
+            return []
+        self.db.add_all(transactions)
+        await self.db.commit()
+        for tx in transactions:
+            await self.db.refresh(tx)
+        return transactions
+
+    async def save_all(self, transactions: list[StagedTransaction]) -> list[StagedTransaction]:
+        return await self.create_many(transactions)
+
+    async def save(self, tx: StagedTransaction) -> StagedTransaction:
+        self.db.add(tx)
+        await self.db.commit()
+        await self.db.refresh(tx)
+        return tx
 
     async def find_possible_duplicate_spent(
         self,
         account_id: UUID | None,
         amount: Decimal,
         tx_date: date,
+        credit_card_id: UUID | None = None,
         tolerance_days: int = 3,
     ) -> Spent | None:
         start_d = tx_date - timedelta(days=tolerance_days)
@@ -56,7 +65,11 @@ class StagedTransactionRepository:
             Spent.amount >= low_amt,
             Spent.amount <= high_amt,
         )
-        if account_id:
+        if credit_card_id:
+            query = query.where(
+                or_(Spent.credit_card_id == credit_card_id, Spent.credit_card_id.is_(None))
+            )
+        elif account_id:
             query = query.where(or_(Spent.account_id == account_id, Spent.account_id.is_(None)))
         result = await self.db.execute(query.limit(1))
         return result.scalar_one_or_none()
@@ -118,46 +131,51 @@ class StagedTransactionRepository:
             )
 
         query = select(StagedTransaction)
+        count_query = select(func.count(StagedTransaction.id))
+
         if conditions:
             query = query.where(and_(*conditions))
+            count_query = count_query.where(and_(*conditions))
 
-        count_query = select(func.count()).select_from(query.subquery())
-        total_res = await self.db.execute(count_query)
-        total = total_res.scalar() or 0
-
+        offset = (page - 1) * size
         query = (
             query.order_by(
-                desc(StagedTransaction.occurred_at),
-                desc(StagedTransaction.created_at),
+                StagedTransaction.occurred_at.desc(), StagedTransaction.created_at.desc()
             )
-            .offset((page - 1) * size)
+            .offset(offset)
             .limit(size)
         )
-        items_res = await self.db.execute(query)
-        items = items_res.scalars().all()
+
+        total_res = await self.db.execute(count_query)
+        total = total_res.scalar_one() or 0
+
+        res = await self.db.execute(query)
+        items = res.scalars().all()
         return items, total
 
     async def get_approved_for_commit(
         self, batch_id: UUID | None = None
     ) -> Sequence[StagedTransaction]:
-        query = select(StagedTransaction).where(StagedTransaction.status == "APPROVED")
+        conditions = [StagedTransaction.status == "APPROVED"]
         if batch_id:
-            query = query.where(StagedTransaction.batch_id == batch_id)
-        result = await self.db.execute(query.order_by(StagedTransaction.occurred_at.asc()))
-        return result.scalars().all()
-
-    async def get_pending_unclassified(self, batch_id: UUID) -> Sequence[StagedTransaction]:
-        query = select(StagedTransaction).where(
-            StagedTransaction.batch_id == batch_id,
-            StagedTransaction.status == "PENDING",
-            StagedTransaction.suggested_category.is_(None),
-            StagedTransaction.kind.in_(["EXPENSE", "INCOME"]),
+            conditions.append(StagedTransaction.batch_id == batch_id)
+        query = (
+            select(StagedTransaction)
+            .where(and_(*conditions))
+            .order_by(StagedTransaction.occurred_at.asc())
         )
-        result = await self.db.execute(query)
-        return result.scalars().all()
+        res = await self.db.execute(query)
+        return res.scalars().all()
 
-    async def save(self, tx: StagedTransaction) -> StagedTransaction:
-        self.db.add(tx)
-        await self.db.commit()
-        await self.db.refresh(tx)
-        return tx
+    async def list_for_reclassification(
+        self, batch_id: UUID | None = None
+    ) -> Sequence[StagedTransaction]:
+        conditions = [
+            StagedTransaction.status == "PENDING",
+            StagedTransaction.kind.in_(["EXPENSE", "INCOME"]),
+        ]
+        if batch_id:
+            conditions.append(StagedTransaction.batch_id == batch_id)
+        query = select(StagedTransaction).where(and_(*conditions))
+        res = await self.db.execute(query)
+        return res.scalars().all()
