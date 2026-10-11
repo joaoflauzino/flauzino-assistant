@@ -14,6 +14,7 @@ import api from '../services/api';
 import { showToast } from '../components/Toast';
 import type {
     Account,
+    CreditCard,
     BulkActionResult,
     Category,
     CommitResult,
@@ -27,6 +28,7 @@ import type {
 export const ImportsPage: React.FC = () => {
     // Master data
     const [accounts, setAccounts] = useState<Account[]>([]);
+    const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
     const [expenseCategories, setExpenseCategories] = useState<Category[]>([]);
     const [incomeCategories, setIncomeCategories] = useState<IncomeCategory[]>([]);
 
@@ -36,7 +38,7 @@ export const ImportsPage: React.FC = () => {
     const [summary, setSummary] = useState<ImportSummary>({ pending: 0, approved: 0 });
 
     // Upload form
-    const [uploadAccountId, setUploadAccountId] = useState<string>('');
+    const [uploadTargetKey, setUploadTargetKey] = useState<string>('');
     const [uploadFile, setUploadFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [lastUploadBatch, setLastUploadBatch] = useState<ImportBatch | null>(null);
@@ -74,16 +76,22 @@ export const ImportsPage: React.FC = () => {
 
     const fetchMasterData = async () => {
         try {
-            const [accRes, expRes, incRes] = await Promise.all([
+            const [accRes, cardRes, expRes, incRes] = await Promise.all([
                 api.get<PaginatedResponse<Account>>('/accounts/?size=100'),
+                api.get<PaginatedResponse<CreditCard>>('/credit-cards/?size=100'),
                 api.get<PaginatedResponse<Category>>('/categories/?size=200'),
                 api.get<PaginatedResponse<IncomeCategory>>('/income-categories/?size=200'),
             ]);
             setAccounts(accRes.data.items);
-            if (accRes.data.items.length > 0 && !uploadAccountId) {
-                // Auto-select first C6 or first account
-                const c6 = accRes.data.items.find(a => a.bank.toLowerCase().includes('c6') || a.key.includes('c6'));
-                setUploadAccountId(c6 ? c6.id : accRes.data.items[0].id);
+            setCreditCards(cardRes.data.items);
+
+            if (!uploadTargetKey) {
+                const c6Card = cardRes.data.items.find(c => c.key.toLowerCase().includes('c6') || c.name.toLowerCase().includes('c6'));
+                if (c6Card) {
+                    setUploadTargetKey(`card:${c6Card.id}`);
+                } else if (accRes.data.items.length > 0) {
+                    setUploadTargetKey(`account:${accRes.data.items[0].id}`);
+                }
             }
             setExpenseCategories(expRes.data.items);
             setIncomeCategories(incRes.data.items);
@@ -133,19 +141,24 @@ export const ImportsPage: React.FC = () => {
     const handleUpload = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!uploadFile) {
-            showToast('Selecione um arquivo de extrato (.csv)', 'error');
+            showToast('Selecione um arquivo de extrato ou fatura (.csv)', 'error');
             return;
         }
-        if (!uploadAccountId) {
-            showToast('Selecione a conta bancária correspondente', 'error');
+        if (!uploadTargetKey) {
+            showToast('Selecione a conta ou cartão correspondente', 'error');
             return;
         }
 
         setIsUploading(true);
         try {
+            const [targetType, targetId] = uploadTargetKey.split(':');
             const formData = new FormData();
             formData.append('file', uploadFile);
-            formData.append('account_id', uploadAccountId);
+            if (targetType === 'card') {
+                formData.append('credit_card_id', targetId);
+            } else {
+                formData.append('account_id', targetId);
+            }
 
             const res = await api.post<ImportBatch>('/imports/', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
@@ -172,7 +185,7 @@ export const ImportsPage: React.FC = () => {
     // Single item field update (PATCH)
     const handleUpdateField = async (
         txId: string,
-        fields: { kind?: string; category?: string; status?: string; remember?: boolean; location?: string | null }
+        fields: { kind?: string; category?: string; status?: string; remember?: boolean; location?: string | null; competence_date?: string | null }
     ) => {
         try {
             const payload = { ...fields, remember: fields.remember ?? rememberRule };
@@ -405,13 +418,13 @@ export const ImportsPage: React.FC = () => {
                     Novo Upload de Extrato
                 </h3>
                 <form onSubmit={handleUpload} style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'flex-end' }}>
-                    <div style={{ flex: '1 1 250px' }}>
+                    <div style={{ flex: '1 1 280px' }}>
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                            Conta Bancária de Destino
+                            Destino (Conta ou Cartão)
                         </label>
                         <select
-                            value={uploadAccountId}
-                            onChange={e => setUploadAccountId(e.target.value)}
+                            value={uploadTargetKey}
+                            onChange={e => setUploadTargetKey(e.target.value)}
                             style={{
                                 width: '100%',
                                 padding: '0.65rem 0.75rem',
@@ -422,11 +435,20 @@ export const ImportsPage: React.FC = () => {
                             }}
                             required
                         >
-                            {accounts.map(acc => (
-                                <option key={acc.id} value={acc.id}>
-                                    {acc.name} ({acc.bank.toUpperCase()})
-                                </option>
-                            ))}
+                            <optgroup label="💳 Cartões de Crédito (Fatura)">
+                                {creditCards.map(c => (
+                                    <option key={`card:${c.id}`} value={`card:${c.id}`}>
+                                        💳 {c.name}
+                                    </option>
+                                ))}
+                            </optgroup>
+                            <optgroup label="🏦 Contas Bancárias (Extrato)">
+                                {accounts.map(acc => (
+                                    <option key={`account:${acc.id}`} value={`account:${acc.id}`}>
+                                        🏦 {acc.name} ({acc.bank.toUpperCase()})
+                                    </option>
+                                ))}
+                            </optgroup>
                         </select>
                     </div>
 
@@ -567,7 +589,7 @@ export const ImportsPage: React.FC = () => {
                             <option value="">Todos os lotes de extrato</option>
                             {batches.map(b => (
                                 <option key={b.id} value={b.id}>
-                                    {b.filename} - {b.account_name || 'Conta'} ({formatDate(b.created_at)})
+                                    {b.filename} - {b.credit_card_name ? `💳 ${b.credit_card_name}` : (b.account_name ? `🏦 ${b.account_name}` : 'Lote')} ({formatDate(b.created_at)})
                                 </option>
                             ))}
                         </select>
@@ -834,11 +856,57 @@ export const ImportsPage: React.FC = () => {
                                                 />
                                             </td>
                                             <td style={{ padding: '0.75rem 1rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                                                {formatDate(tx.occurred_at)}
+                                                <div>{formatDate(tx.occurred_at)}</div>
+                                                {tx.kind === 'INCOME' && (
+                                                    <div style={{ marginTop: '0.35rem' }}>
+                                                        <span style={{ fontSize: '0.7rem', color: '#9ca3af', display: 'block' }}>Competência:</span>
+                                                        <input
+                                                            type="date"
+                                                            value={tx.competence_date ? tx.competence_date.substring(0, 10) : tx.occurred_at.substring(0, 10)}
+                                                            disabled={tx.status === 'COMMITTED'}
+                                                            onChange={e => handleUpdateField(tx.id, { competence_date: e.target.value })}
+                                                            style={{
+                                                                fontSize: '0.75rem',
+                                                                padding: '0.15rem 0.35rem',
+                                                                backgroundColor: 'var(--bg-primary)',
+                                                                color: 'var(--text-primary)',
+                                                                border: '1px solid var(--border-color)',
+                                                                borderRadius: '4px',
+                                                                cursor: tx.status === 'COMMITTED' ? 'not-allowed' : 'pointer',
+                                                            }}
+                                                        />
+                                                    </div>
+                                                )}
                                             </td>
                                             <td style={{ padding: '0.75rem 1rem' }}>
-                                                <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                                                    {tx.merchant || tx.raw_title}
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                                                        {tx.merchant || tx.raw_title}
+                                                    </span>
+                                                    {tx.current_installment && tx.total_installments && (
+                                                        <span style={{
+                                                            fontSize: '0.72rem',
+                                                            padding: '0.15rem 0.5rem',
+                                                            borderRadius: '4px',
+                                                            backgroundColor: 'rgba(99, 102, 241, 0.15)',
+                                                            color: 'var(--accent-color)',
+                                                            fontWeight: 600,
+                                                        }}>
+                                                            Parcela {tx.current_installment}/{tx.total_installments}
+                                                        </span>
+                                                    )}
+                                                    {tx.card_last_digits && (
+                                                        <span style={{
+                                                            fontSize: '0.72rem',
+                                                            padding: '0.15rem 0.45rem',
+                                                            borderRadius: '4px',
+                                                            backgroundColor: 'var(--bg-tertiary)',
+                                                            color: 'var(--text-secondary)',
+                                                            fontWeight: 500,
+                                                        }}>
+                                                            Final {tx.card_last_digits}
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                                                     {tx.raw_title} {tx.raw_description ? `• ${tx.raw_description}` : ''}

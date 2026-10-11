@@ -171,3 +171,42 @@ async def test_monthly_summary_calculation(income_service, mock_income_repo, moc
 async def test_monthly_summary_invalid_month_format(income_service):
     with pytest.raises(ValidationError, match="Formato de mês inválido"):
         await income_service.get_monthly_summary("2026/08")
+
+
+@pytest.mark.asyncio
+async def test_create_income_with_competence_date(
+    income_service, mock_income_repo, mock_cat_repo, mock_pm_repo
+):
+    from datetime import date
+
+    mock_cat_repo.get_by_key.return_value = IncomeCategory(
+        id=uuid4(), key="salario", display_name="Salário"
+    )
+    mock_pm_repo.get_by_key.return_value = PaymentMethod(
+        id=uuid4(), key="itau_joao", display_name="Itaú"
+    )
+
+    created_model = Income(
+        id=uuid4(),
+        description="Salário de Setembro pago em Outubro",
+        amount=5000.0,
+        category="salario",
+        payment_method="itau_joao",
+        received_at=datetime(2026, 10, 1, 10, 0, tzinfo=ZoneInfo("America/Sao_Paulo")),
+        competence_date=date(2026, 9, 30),
+        created_at=datetime.now(ZoneInfo("America/Sao_Paulo")),
+    )
+    mock_income_repo.create.return_value = created_model
+
+    dto = IncomeCreate(
+        description="Salário de Setembro pago em Outubro",
+        amount=5000.0,
+        category="salario",
+        payment_method="itau_joao",
+        received_at=datetime(2026, 10, 1, 10, 0, tzinfo=ZoneInfo("America/Sao_Paulo")),
+        competence_date=date(2026, 9, 30),
+    )
+    result = await income_service.create(dto)
+
+    assert result.description == "Salário de Setembro pago em Outubro"
+    assert result.competence_date == date(2026, 9, 30)

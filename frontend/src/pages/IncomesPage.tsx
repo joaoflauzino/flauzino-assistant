@@ -46,7 +46,8 @@ export const IncomesPage = () => {
         amount: '',
         category: '',
         payment_method: '',
-        received_at: monthDates.end
+        received_at: monthDates.end,
+        competence_date: ''
     });
 
     const handleSetPeriod = (type: 'current' | '90days' | 'all') => {
@@ -123,7 +124,8 @@ export const IncomesPage = () => {
                 amount: parseFloat(formData.amount),
                 category: formData.category,
                 payment_method: formData.payment_method || null,
-                received_at: new Date(formData.received_at + 'T12:00:00Z').toISOString()
+                received_at: new Date(formData.received_at + 'T12:00:00Z').toISOString(),
+                competence_date: formData.competence_date || null
             };
 
             if (editingIncome) {
@@ -133,7 +135,7 @@ export const IncomesPage = () => {
             }
             setIsModalOpen(false);
             setEditingIncome(null);
-            setFormData({ description: '', amount: '', category: '', payment_method: '', received_at: monthDates.end });
+            setFormData({ description: '', amount: '', category: '', payment_method: '', received_at: monthDates.end, competence_date: '' });
             fetchData(page);
         } catch (error) {
             console.error("Failed to save income", error);
@@ -147,7 +149,8 @@ export const IncomesPage = () => {
             amount: income.amount.toString(),
             category: income.category,
             payment_method: income.payment_method || '',
-            received_at: income.received_at ? income.received_at.split('T')[0] : monthDates.end
+            received_at: income.received_at ? income.received_at.split('T')[0] : monthDates.end,
+            competence_date: income.competence_date ? income.competence_date.split('T')[0] : ''
         });
         setIsModalOpen(true);
     };
@@ -189,7 +192,7 @@ export const IncomesPage = () => {
                 <button
                     onClick={() => {
                         setEditingIncome(null);
-                        setFormData({ description: '', amount: '', category: '', payment_method: '', received_at: monthDates.end });
+                        setFormData({ description: '', amount: '', category: '', payment_method: '', received_at: monthDates.end, competence_date: '' });
                         setIsModalOpen(true);
                     }}
                     style={{
@@ -333,7 +336,12 @@ export const IncomesPage = () => {
                             incomes.map(income => (
                                 <tr key={income.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                                     <td style={{ padding: '1rem' }}>
-                                        {new Date(income.received_at).toLocaleDateString('pt-BR')}
+                                        <div>{new Date(income.received_at).toLocaleDateString('pt-BR')}</div>
+                                        {income.competence_date && (
+                                            <div style={{ fontSize: '0.75rem', color: '#a5b4fc', marginTop: '0.2rem' }}>
+                                                Comp: {new Date(income.competence_date + 'T12:00:00').toLocaleDateString('pt-BR')}
+                                            </div>
+                                        )}
                                     </td>
                                     <td style={{ padding: '1rem', fontWeight: 500 }}>{income.description}</td>
                                     <td style={{ padding: '1rem' }}>
@@ -527,6 +535,25 @@ export const IncomesPage = () => {
                             required
                             value={formData.received_at}
                             onChange={e => setFormData({ ...formData, received_at: e.target.value })}
+                            style={{
+                                width: '100%',
+                                padding: '0.6rem 0.8rem',
+                                borderRadius: '6px',
+                                border: '1px solid var(--border-color)',
+                                background: 'var(--bg-tertiary)',
+                                color: 'white'
+                            }}
+                        />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                            Data de Competência (Opcional - mês de planejamento)
+                        </label>
+                        <input
+                            type="date"
+                            value={formData.competence_date}
+                            onChange={e => setFormData({ ...formData, competence_date: e.target.value })}
+                            placeholder="Vazio = data de recebimento"
                             style={{
                                 width: '100%',
                                 padding: '0.6rem 0.8rem',
