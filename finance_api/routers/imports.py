@@ -1,10 +1,11 @@
-from typing import Optional
+from collections.abc import Sequence
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, File, Form, Query, UploadFile, status
 
-from finance_api.core.dependencies import get_category_rule_repository, get_import_service
-from finance_api.repositories.category_rules import CategoryRuleRepository
+from finance_api.core.dependencies import ClassificationServiceDep, ImportServiceDep
+from finance_api.core.exceptions import ValidationError
+from finance_api.models.category_rules import CategoryRule
 from finance_api.schemas.imports import (
     BulkActionRequest,
     BulkActionResult,
@@ -18,22 +19,21 @@ from finance_api.schemas.imports import (
     SummaryResponse,
 )
 from finance_api.schemas.pagination import PaginatedResponse
-from finance_api.services.imports import ImportService
 
 router = APIRouter()
 
 
 @router.post("/", response_model=ImportBatchResponse, status_code=status.HTTP_201_CREATED)
 async def upload_statement(
+    service: ImportServiceDep,
     file: UploadFile = File(..., description="Arquivo de extrato (CSV)"),
-    account_id: Optional[UUID] = Form(None, description="ID da conta bancária"),
-    credit_card_id: Optional[UUID] = Form(None, description="ID do cartão de crédito"),
-    service: ImportService = Depends(get_import_service),
-):
+    account_id: UUID | None = Form(None, description="ID da conta bancária"),
+    credit_card_id: UUID | None = Form(None, description="ID do cartão de crédito"),
+) -> ImportBatchResponse:
     """Realiza o upload de um arquivo de extrato bancário para staging."""
     content = await file.read()
     if not content:
-        raise HTTPException(status_code=400, detail="Arquivo vazio.")
+        raise ValidationError("Arquivo vazio.")
     return await service.create_batch_from_upload(
         file_bytes=content,
         filename=file.filename or "extrato.csv",
@@ -44,31 +44,31 @@ async def upload_statement(
 
 @router.get("/", response_model=list[ImportBatchResponse])
 async def list_import_batches(
-    service: ImportService = Depends(get_import_service),
-):
+    service: ImportServiceDep,
+) -> list[ImportBatchResponse]:
     """Lista todos os lotes de importação registrados."""
     return await service.list_batches()
 
 
 @router.get("/summary", response_model=SummaryResponse)
 async def get_imports_summary(
-    service: ImportService = Depends(get_import_service),
-):
+    service: ImportServiceDep,
+) -> SummaryResponse:
     """Retorna contadores de transações pendentes e aprovadas."""
     return await service.get_summary()
 
 
 @router.get("/transactions", response_model=PaginatedResponse[StagedTransactionResponse])
 async def list_staged_transactions(
-    batch_id: Optional[UUID] = Query(None, description="Filtrar por ID do lote"),
-    status_filter: Optional[str] = Query(None, alias="status", description="Filtrar por status"),
-    kind: Optional[str] = Query(None, description="Filtrar por tipo (EXPENSE, INCOME, etc.)"),
+    service: ImportServiceDep,
+    batch_id: UUID | None = Query(None, description="Filtrar por ID do lote"),
+    status_filter: str | None = Query(None, alias="status", description="Filtrar por status"),
+    kind: str | None = Query(None, description="Filtrar por tipo (EXPENSE, INCOME, etc.)"),
     only_duplicates: bool = Query(False, description="Filtrar apenas possíveis duplicatas"),
     only_unclassified: bool = Query(False, description="Filtrar apenas sem categoria"),
     page: int = Query(1, ge=1, description="Número da página"),
     size: int = Query(50, ge=1, le=200, description="Tamanho da página"),
-    service: ImportService = Depends(get_import_service),
-):
+) -> PaginatedResponse[StagedTransactionResponse]:
     """Lista transações em staging com paginação e filtros."""
     return await service.list_transactions(
         batch_id=batch_id,
@@ -85,8 +85,8 @@ async def list_staged_transactions(
 async def update_staged_transaction(
     tx_id: UUID,
     data: StagedTransactionUpdate,
-    service: ImportService = Depends(get_import_service),
-):
+    service: ImportServiceDep,
+) -> StagedTransactionResponse:
     """Atualiza categoria, tipo, descrição, localização ou status de uma transação pendente."""
     return await service.update_transaction(tx_id, data)
 
@@ -94,8 +94,8 @@ async def update_staged_transaction(
 @router.post("/transactions/bulk", response_model=BulkActionResult)
 async def bulk_action_transactions(
     req: BulkActionRequest,
-    service: ImportService = Depends(get_import_service),
-):
+    service: ImportServiceDep,
+) -> BulkActionResult:
     """Executa ações em lote sobre transações selecionadas (approve, ignore, reopen, set_category)."""
     return await service.bulk_action(req)
 
@@ -103,17 +103,17 @@ async def bulk_action_transactions(
 @router.post("/transactions/{tx_id}/link", response_model=StagedTransactionResponse)
 async def link_staged_transaction(
     tx_id: UUID,
-    service: ImportService = Depends(get_import_service),
-):
+    service: ImportServiceDep,
+) -> StagedTransactionResponse:
     """Vincula a transação pendente a um gasto/receita já existente identificado como duplicata."""
     return await service.link_transaction(tx_id)
 
 
 @router.post("/commit", response_model=CommitResult)
 async def commit_approved_transactions(
+    service: ImportServiceDep,
     req: CommitRequest = CommitRequest(),
-    service: ImportService = Depends(get_import_service),
-):
+) -> CommitResult:
     """Efetiva todas as transações com status APPROVED, criando spents/incomes reais."""
     return await service.commit_approved(req)
 
@@ -121,8 +121,8 @@ async def commit_approved_transactions(
 @router.post("/{batch_id}/classify", response_model=ReclassifyResult)
 async def reclassify_batch(
     batch_id: UUID,
-    service: ImportService = Depends(get_import_service),
-):
+    service: ImportServiceDep,
+) -> ReclassifyResult:
     """Executa reclassificação por IA para transações pendentes sem categoria em um lote."""
     return await service.reclassify_batch(batch_id)
 
@@ -133,19 +133,16 @@ rules_router = APIRouter()
 
 @rules_router.get("/", response_model=list[ImportRuleResponse])
 async def list_import_rules(
-    rule_repo: CategoryRuleRepository = Depends(get_category_rule_repository),
-):
+    service: ClassificationServiceDep,
+) -> Sequence[CategoryRule]:
     """Lista regras aprendidas e configuradas para classificação de comerciantes."""
-    rules = await rule_repo.list_all()
-    return [ImportRuleResponse.model_validate(r) for r in rules]
+    return await service.list_rules()
 
 
 @rules_router.delete("/{rule_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_import_rule(
     rule_id: UUID,
-    rule_repo: CategoryRuleRepository = Depends(get_category_rule_repository),
-):
+    service: ClassificationServiceDep,
+) -> None:
     """Exclui uma regra de classificação."""
-    deleted = await rule_repo.delete_by_id(rule_id)
-    if not deleted:
-        raise HTTPException(status_code=404, detail="Regra não encontrada.")
+    await service.delete_rule(rule_id)

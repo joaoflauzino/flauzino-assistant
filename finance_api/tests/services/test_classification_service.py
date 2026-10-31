@@ -1,7 +1,10 @@
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock
+from uuid import uuid4
+
 import pytest
 
+from finance_api.core.exceptions import EntityNotFoundError
 from finance_api.models.category_rules import CategoryRule
 from finance_api.repositories.category_rules import CategoryRuleRepository
 from finance_api.services.classification import ClassificationService
@@ -12,6 +15,23 @@ def mock_rule_repo():
     repo = MagicMock(spec=CategoryRuleRepository)
     repo.increment_hits = AsyncMock()
     return repo
+
+
+@pytest.mark.asyncio
+async def test_list_and_delete_rules_service(mock_rule_repo):
+    rule = CategoryRule(id=uuid4(), pattern="CEMIG", direction="OUT", kind="EXPENSE")
+    mock_rule_repo.list_all = AsyncMock(return_value=[rule])
+    mock_rule_repo.delete_by_id = AsyncMock(side_effect=[True, False])
+
+    service = ClassificationService(rule_repo=mock_rule_repo)
+
+    rules = await service.list_rules()
+    assert list(rules) == [rule]
+
+    await service.delete_rule(rule.id)
+
+    with pytest.raises(EntityNotFoundError):
+        await service.delete_rule(uuid4())
 
 
 @pytest.mark.asyncio

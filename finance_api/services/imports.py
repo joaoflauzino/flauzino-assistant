@@ -13,12 +13,12 @@ from finance_api.importers.registry import detect_parser
 from finance_api.models.accounts import Account
 from finance_api.models.import_batches import ImportBatch
 from finance_api.models.staged_transactions import StagedTransaction
-from finance_api.repositories.accounts import AccountRepository
+from finance_api.repositories.accounts import AccountRepositoryProtocol
 from finance_api.repositories.categories import CategoryRepository
-from finance_api.repositories.category_rules import CategoryRuleRepository
+from finance_api.repositories.category_rules import CategoryRuleRepositoryProtocol
 from finance_api.repositories.credit_cards import CreditCardRepository
+from finance_api.repositories.imports import ImportBatchRepositoryProtocol
 from finance_api.repositories.income_categories import IncomeCategoryRepository
-from finance_api.repositories.imports import ImportBatchRepository
 from finance_api.repositories.staged_transactions import StagedTransactionRepository
 from finance_api.schemas.imports import (
     BulkActionError,
@@ -49,18 +49,18 @@ SP_TZ = ZoneInfo("America/Sao_Paulo")
 class ImportService:
     def __init__(
         self,
-        batch_repo: ImportBatchRepository,
+        batch_repo: ImportBatchRepositoryProtocol,
         tx_repo: StagedTransactionRepository,
-        rule_repo: CategoryRuleRepository,
+        rule_repo: CategoryRuleRepositoryProtocol,
         classification_service: ClassificationService,
-        account_repo: AccountRepository,
+        account_repo: AccountRepositoryProtocol,
         credit_card_repo: CreditCardRepository,
         spent_service: SpentService,
         income_service: IncomeService,
         category_repo: CategoryRepository,
         income_category_repo: IncomeCategoryRepository,
         ai_client: AIClassifierClient | None = None,
-    ):
+    ) -> None:
         self.batch_repo = batch_repo
         self.tx_repo = tx_repo
         self.rule_repo = rule_repo
@@ -339,12 +339,12 @@ class ImportService:
         # Salva transações
         await self.tx_repo.create_many(staged_list)
 
-        # Atualiza batch com ai_used e possible_duplicates
-        batch.possible_duplicates = possible_duplicates_count
-        batch.ai_used = ai_used
-        self.batch_repo.db.add(batch)
-        await self.batch_repo.db.commit()
-        await self.batch_repo.db.refresh(batch)
+        # Atualiza batch com ai_used e possible_duplicates via repositório (sem acessar db diretamente)
+        batch = await self.batch_repo.update_batch_stats(
+            batch=batch,
+            possible_duplicates=possible_duplicates_count,
+            ai_used=ai_used,
+        )
 
         counts = await self.batch_repo.get_counts_by_status(batch.id)
         res = ImportBatchResponse.model_validate(batch)

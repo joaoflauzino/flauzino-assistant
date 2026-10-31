@@ -1,9 +1,14 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
 from decimal import Decimal
 import re
 import unicodedata
+from uuid import UUID
 
-from finance_api.repositories.category_rules import CategoryRuleRepository
+from finance_api.core.decorators import handle_service_errors
+from finance_api.core.exceptions import EntityNotFoundError
+from finance_api.models.category_rules import CategoryRule
+from finance_api.repositories.category_rules import CategoryRuleRepositoryProtocol
 from finance_api.services.ai_classifier import AIClassifierClient
 from finance_api.settings import settings
 
@@ -47,11 +52,21 @@ BANK_CATEGORY_MAP: dict[str, tuple[str, Decimal]] = {
 class ClassificationService:
     def __init__(
         self,
-        rule_repo: CategoryRuleRepository,
+        rule_repo: CategoryRuleRepositoryProtocol,
         ai_client: AIClassifierClient | None = None,
-    ):
+    ) -> None:
         self.rule_repo = rule_repo
         self.ai_client = ai_client or AIClassifierClient()
+
+    @handle_service_errors
+    async def list_rules(self) -> Sequence[CategoryRule]:
+        return await self.rule_repo.list_all()
+
+    @handle_service_errors
+    async def delete_rule(self, rule_id: UUID) -> None:
+        deleted = await self.rule_repo.delete_by_id(rule_id)
+        if not deleted:
+            raise EntityNotFoundError(f"Regra com ID {rule_id} não encontrada.")
 
     def get_own_holder_names(self) -> list[str]:
         raw = settings.OWN_HOLDER_NAMES

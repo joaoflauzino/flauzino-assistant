@@ -1,6 +1,6 @@
-import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Protocol
+import uuid
 
 from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert
@@ -12,11 +12,23 @@ from telegram_api.models.session import TelegramSession
 logger = get_logger(__name__)
 
 
+class SessionRepositoryProtocol(Protocol):
+    """Domain repository contract for TelegramSession persistence."""
+
+    async def get_session(self, chat_id: int, ttl_minutes: int | None = None) -> str | None: ...
+
+    async def save_session(self, chat_id: int, session_id: str) -> None: ...
+
+    async def delete_session(self, chat_id: int) -> None: ...
+
+    async def list_distinct_chat_ids(self) -> list[int]: ...
+
+
 class SessionRepository:
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def get_session(self, chat_id: int, ttl_minutes: int | None = None) -> Optional[str]:
+    async def get_session(self, chat_id: int, ttl_minutes: int | None = None) -> str | None:
         """Retrieve the session ID for a given chat ID if not expired."""
         try:
             query = select(TelegramSession).where(TelegramSession.chat_id == chat_id)
@@ -60,7 +72,7 @@ class SessionRepository:
                 )
                 .on_conflict_do_update(
                     index_elements=[TelegramSession.chat_id],
-                    set_=dict(session_id=uuid.UUID(session_id), updated_at=now),
+                    set_={"session_id": uuid.UUID(session_id), "updated_at": now},
                 )
             )
 
@@ -81,3 +93,13 @@ class SessionRepository:
         except Exception as e:
             logger.error(f"Error deleting session for chat_id {chat_id}: {e}")
             await self.session.rollback()
+
+    async def list_distinct_chat_ids(self) -> list[int]:
+        """Return all distinct chat IDs stored in Telegram sessions."""
+        try:
+            stmt = select(TelegramSession.chat_id).distinct()
+            result = await self.session.execute(stmt)
+            return list(result.scalars().all())
+        except Exception as e:
+            logger.error(f"Error listing distinct chat_ids: {e}")
+            return []

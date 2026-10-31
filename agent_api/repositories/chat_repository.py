@@ -1,19 +1,43 @@
-import uuid
+from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import List
+from typing import Protocol
+import uuid
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from agent_api.models.chat import ChatMessage, ChatSession
 from agent_api.core.logger import get_logger
+from agent_api.models.chat import ChatMessage, ChatSession
 
 logger = get_logger(__name__)
 
 
+class ChatRepositoryProtocol(Protocol):
+    """Domain repository contract for ChatSession and ChatMessage persistence."""
+
+    async def create_session(self) -> ChatSession: ...
+
+    async def get_session(self, session_id: uuid.UUID) -> ChatSession | None: ...
+
+    async def add_message(
+        self,
+        session_id: uuid.UUID,
+        role: str,
+        content: str,
+    ) -> ChatMessage: ...
+
+    async def get_messages(
+        self,
+        session_id: uuid.UUID,
+        limit: int = 10,
+    ) -> Sequence[ChatMessage]: ...
+
+    async def cleanup_stale_sessions(self, max_age_minutes: int = 30) -> int: ...
+
+
 class ChatRepository:
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
     async def create_session(self) -> ChatSession:
@@ -36,7 +60,12 @@ class ChatRepository:
             logger.info(f"Retrieved session: {session.id}")
         return session
 
-    async def add_message(self, session_id: uuid.UUID, role: str, content: str) -> ChatMessage:
+    async def add_message(
+        self,
+        session_id: uuid.UUID,
+        role: str,
+        content: str,
+    ) -> ChatMessage:
         message = ChatMessage(session_id=session_id, role=role, content=content)
         self.session.add(message)
         await self.session.commit()
@@ -44,7 +73,11 @@ class ChatRepository:
         logger.info(f"Message added to session {session_id} by {role}")
         return message
 
-    async def get_messages(self, session_id: uuid.UUID, limit: int = 10) -> List[ChatMessage]:
+    async def get_messages(
+        self,
+        session_id: uuid.UUID,
+        limit: int = 10,
+    ) -> Sequence[ChatMessage]:
         query = (
             select(ChatMessage)
             .where(ChatMessage.session_id == session_id)
@@ -60,7 +93,6 @@ class ChatRepository:
         """Delete sessions with no messages in the last `max_age_minutes` minutes."""
         cutoff = datetime.utcnow() - timedelta(minutes=max_age_minutes)
 
-        # Find sessions whose last message is older than cutoff
         subquery = (
             select(
                 ChatMessage.session_id,

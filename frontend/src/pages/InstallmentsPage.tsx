@@ -8,6 +8,7 @@ import {
   Title,
   Tooltip,
   Legend,
+  type TooltipItem,
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import api from '../services/api';
@@ -133,7 +134,7 @@ export const InstallmentsPage = () => {
                                 },
                                 tooltip: {
                                     callbacks: {
-                                        afterLabel: function(context: any) {
+                                        afterLabel: function(context: TooltipItem<'bar'>) {
                                             const itemIndex = context.dataIndex;
                                             const item = items[itemIndex];
                                             return `Valor da parcela: R$ ${item.amount.toFixed(2)}`;
@@ -155,8 +156,10 @@ export const InstallmentsPage = () => {
                                     {isExpanded ? <ChevronDown size={20} className="text-gray-500" /> : <ChevronRight size={20} className="text-gray-500" />}
                                 </div>
                                 {isExpanded && (
-                                    <div className="p-6" style={{ height: `${Math.max(200, items.length * 60 + 100)}px` }}>
-                                        <Bar data={chartData} options={chartOptions} />
+                                    <div className="p-6">
+                                        <div style={{ height: `${Math.max(200, items.length * 60)}px` }}>
+                                            <Bar data={chartData} options={chartOptions} />
+                                        </div>
                                     </div>
                                 )}
                             </div>

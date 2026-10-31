@@ -67,11 +67,13 @@ export const ImportsPage: React.FC = () => {
     useEffect(() => {
         fetchMasterData();
         fetchBatchesAndSummary();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // When filters or page change, reload transactions
     useEffect(() => {
         fetchTransactions();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [page, selectedBatchId, statusFilter, kindFilter, onlyDuplicates, onlyUnclassified]);
 
     const fetchMasterData = async () => {
