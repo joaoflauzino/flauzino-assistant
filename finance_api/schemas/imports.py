@@ -1,7 +1,39 @@
+from dataclasses import dataclass
 from datetime import date, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from finance_api.schemas.enums import (
+    BulkActionType,
+    CommitOutcomeStatus,
+    StepOutcomeStatus,
+)
+
+
+@dataclass(frozen=True, slots=True)
+class StepOutcome:
+    """Outcome of a single staged transaction bulk action step."""
+
+    status: StepOutcomeStatus | str
+    error_message: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class CommitContext:
+    """Resolved payment context for committing a staged transaction."""
+
+    payment_method_key: str
+    payment_type_value: str
+    account_id: UUID | None
+
+
+@dataclass(frozen=True, slots=True)
+class CommitStepOutcome:
+    """Outcome of committing a single approved staged transaction."""
+
+    status: CommitOutcomeStatus | str
+    error_message: str | None = None
 
 
 class PossibleDuplicateInfo(BaseModel):
@@ -77,7 +109,7 @@ class StagedTransactionUpdate(BaseModel):
 
 class BulkActionRequest(BaseModel):
     ids: list[UUID]
-    action: str  # "approve", "ignore", "reopen", "set_category"
+    action: BulkActionType | str  # "approve", "ignore", "reopen", "set_category"
     category: str | None = None
     remember: bool = True
 

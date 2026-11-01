@@ -40,3 +40,23 @@ class SuggestionSource(StrEnum):
     MEMORY = "MEMORY"
     LLM = "LLM"
     CUSTOM = "CUSTOM"
+
+
+class BulkActionType(StrEnum):
+    APPROVE = "approve"
+    IGNORE = "ignore"
+    REOPEN = "reopen"
+    SET_CATEGORY = "set_category"
+
+
+class StepOutcomeStatus(StrEnum):
+    UPDATED = "updated"
+    SKIPPED = "skipped"
+    ERROR = "error"
+
+
+class CommitOutcomeStatus(StrEnum):
+    COMMITTED_SPENT = "committed_spent"
+    COMMITTED_INCOME = "committed_income"
+    PROCESSED_WITHOUT_RECORD = "processed_without_record"
+    FAILED = "failed"

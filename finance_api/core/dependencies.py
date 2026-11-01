@@ -26,6 +26,10 @@ from finance_api.services.accounts import AccountService
 from finance_api.services.balances import BalanceService
 from finance_api.services.classification import ClassificationService
 from finance_api.services.credit_cards import CreditCardService
+from finance_api.services.import_strategies import (
+    build_default_bulk_strategies,
+    build_default_commit_strategies,
+)
 from finance_api.services.imports import ImportService
 from finance_api.services.income_categories import IncomeCategoryService
 from finance_api.services.incomes import IncomeService
@@ -239,6 +243,15 @@ def get_import_service(
     spent_svc: SpentServiceDep,
     inc_svc: IncomeServiceDep,
 ) -> ImportService:
+    bulk_strategies = build_default_bulk_strategies(
+        rule_repo=rule_repo,
+        category_repo=cat_repo,
+        income_category_repo=inc_cat_repo,
+    )
+    commit_strategies = build_default_commit_strategies(
+        spent_service=spent_svc,
+        income_service=inc_svc,
+    )
     return ImportService(
         batch_repo=batch_repo,
         tx_repo=tx_repo,
@@ -250,6 +263,8 @@ def get_import_service(
         income_service=inc_svc,
         category_repo=cat_repo,
         income_category_repo=inc_cat_repo,
+        bulk_strategies=bulk_strategies,
+        commit_strategies=commit_strategies,
     )
 
 

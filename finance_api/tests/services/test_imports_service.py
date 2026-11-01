@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
@@ -17,7 +17,7 @@ from finance_api.repositories.credit_cards import CreditCardRepository
 from finance_api.repositories.imports import ImportBatchRepository
 from finance_api.repositories.income_categories import IncomeCategoryRepository
 from finance_api.repositories.staged_transactions import StagedTransactionRepository
-from finance_api.schemas.imports import CommitRequest
+from finance_api.schemas.imports import BulkActionRequest, CommitRequest
 from finance_api.services.ai_classifier import AIClassifierClient
 from finance_api.services.classification import ClassificationService
 from finance_api.services.imports import ImportService
@@ -323,8 +323,6 @@ async def test_upload_credit_card_batch_and_commit(mock_dependencies):
 
 @pytest.mark.asyncio
 async def test_salary_competence_date_early_month(mock_dependencies):
-    from datetime import date
-
     service, acc_id, _, tx_repo, _, _, _ = mock_dependencies
 
     salary_csv = (
@@ -349,3 +347,72 @@ async def test_salary_competence_date_early_month(mock_dependencies):
 
     st_sep = staged_items[1]
     assert st_sep.competence_date == date(2026, 9, 20)
+
+
+@pytest.mark.asyncio
+async def test_bulk_action_dispatch_and_unknown_action(mock_dependencies):
+    service, acc_id, _, tx_repo, _, _, rule_repo = mock_dependencies
+
+    tx_ok = StagedTransaction(
+        id=uuid4(),
+        batch_id=uuid4(),
+        account_id=acc_id,
+        occurred_at=datetime.now(ZoneInfo("America/Sao_Paulo")),
+        raw_title="Mercado",
+        merchant="SUPERMERCADO",
+        amount=Decimal("100.00"),
+        direction="OUT",
+        kind="EXPENSE",
+        payment_type="DEBIT",
+        category="moradia",
+        description="Mercado",
+        location="Brasil",
+        status="PENDING",
+        fingerprint="fp_bulk_1",
+    )
+    tx_committed = StagedTransaction(
+        id=uuid4(),
+        batch_id=uuid4(),
+        account_id=acc_id,
+        occurred_at=datetime.now(ZoneInfo("America/Sao_Paulo")),
+        raw_title="Mercado 2",
+        merchant="SUPERMERCADO",
+        amount=Decimal("50.00"),
+        direction="OUT",
+        kind="EXPENSE",
+        payment_type="DEBIT",
+        category="moradia",
+        description="Mercado 2",
+        location="Brasil",
+        status="COMMITTED",
+        fingerprint="fp_bulk_2",
+    )
+    missing_id = uuid4()
+
+    by_id = {tx_ok.id: tx_ok, tx_committed.id: tx_committed}
+    tx_repo.get_by_id = AsyncMock(side_effect=lambda tid: by_id.get(tid))
+
+    res = await service.bulk_action(
+        BulkActionRequest(
+            ids=[tx_ok.id, tx_committed.id, missing_id],
+            action="approve",
+            remember=True,
+        )
+    )
+    assert res.updated == 1
+    assert res.skipped == 1
+    assert len(res.errors) == 1
+    assert res.errors[0].id == missing_id
+    assert tx_ok.status == "APPROVED"
+    rule_repo.upsert_rule.assert_awaited_once()
+
+    # Unknown action
+    res_unknown = await service.bulk_action(
+        BulkActionRequest(
+            ids=[tx_ok.id],
+            action="invalid_action",
+        )
+    )
+    assert res_unknown.updated == 0
+    assert len(res_unknown.errors) == 1
+    assert "Ação desconhecida" in res_unknown.errors[0].error
