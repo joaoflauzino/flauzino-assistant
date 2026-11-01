@@ -1,9 +1,9 @@
-from unittest.mock import AsyncMock
 import uuid
+from unittest.mock import AsyncMock
 
+import pytest
 from asgi_lifespan import LifespanManager
 from httpx import ASGITransport, AsyncClient
-import pytest
 
 from agent_api.dependencies import get_chat_service
 from agent_api.main import app

@@ -1,8 +1,9 @@
-from typing import Any, Callable
-
 import functools
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from collections.abc import Callable
+from typing import Any
+
 from fastapi import HTTPException
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from finance_api.core.exceptions import (
     DatabaseError,

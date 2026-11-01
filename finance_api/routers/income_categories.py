@@ -19,7 +19,7 @@ async def list_income_categories(
     page: int = Query(1, ge=1, description="Número da página"),
     size: int = Query(100, ge=1, le=1000, description="Tamanho da página"),
     service: IncomeCategoryService = Depends(get_income_category_service),
-):
+) -> PaginatedResponse[IncomeCategoryResponse]:
     """Lista todas as categorias de receitas com paginação."""
     items, total = await service.list(page, size)
     pages = (total + size - 1) // size if total > 0 else 0
@@ -30,7 +30,7 @@ async def list_income_categories(
 async def get_income_category(
     category_id: UUID,
     service: IncomeCategoryService = Depends(get_income_category_service),
-):
+) -> IncomeCategoryResponse:
     """Busca uma categoria de receita por ID."""
     return await service.get_by_id(category_id)
 
@@ -39,7 +39,7 @@ async def get_income_category(
 async def create_income_category(
     category_data: IncomeCategoryCreate,
     service: IncomeCategoryService = Depends(get_income_category_service),
-):
+) -> IncomeCategoryResponse:
     """Cria uma nova categoria de receita."""
     return await service.create(category_data)
 
@@ -49,7 +49,7 @@ async def update_income_category(
     category_id: UUID,
     update_data: IncomeCategoryUpdate,
     service: IncomeCategoryService = Depends(get_income_category_service),
-):
+) -> IncomeCategoryResponse:
     """Atualiza uma categoria de receita existente."""
     return await service.update(category_id, update_data)
 
@@ -59,7 +59,7 @@ async def patch_income_category(
     category_id: UUID,
     update_data: IncomeCategoryUpdate,
     service: IncomeCategoryService = Depends(get_income_category_service),
-):
+) -> IncomeCategoryResponse:
     """Atualiza parcialmente uma categoria de receita existente."""
     return await service.update(category_id, update_data)
 
@@ -68,6 +68,6 @@ async def patch_income_category(
 async def delete_income_category(
     category_id: UUID,
     service: IncomeCategoryService = Depends(get_income_category_service),
-):
+) -> None:
     """Exclui uma categoria de receita."""
     await service.delete(category_id)

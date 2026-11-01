@@ -1,12 +1,12 @@
-from typing import Optional, Sequence
+from collections.abc import Sequence
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from finance_api.core.logger import get_logger
 from finance_api.models.payment_methods import PaymentMethod
 from finance_api.schemas.payment_methods import PaymentMethodCreate, PaymentMethodUpdate
-from finance_api.core.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -15,7 +15,7 @@ class PaymentMethodRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def get_by_id(self, method_id: UUID) -> Optional[PaymentMethod]:
+    async def get_by_id(self, method_id: UUID) -> PaymentMethod | None:
         logger.debug(f"Repository: Fetching payment method by ID: {method_id}")
         result = await self.db.execute(select(PaymentMethod).where(PaymentMethod.id == method_id))
         method = result.scalar_one_or_none()
@@ -25,7 +25,7 @@ class PaymentMethodRepository:
             logger.debug(f"Repository: Payment method {method_id} not found")
         return method
 
-    async def get_by_key(self, key: str) -> Optional[PaymentMethod]:
+    async def get_by_key(self, key: str) -> PaymentMethod | None:
         logger.debug(f"Repository: Fetching payment method by key: {key}")
         result = await self.db.execute(
             select(PaymentMethod).where(PaymentMethod.key == key.lower())
@@ -81,8 +81,8 @@ class PaymentMethodRepository:
     async def list(self, page: int = 1, size: int = 100) -> tuple[Sequence[PaymentMethod], int]:
         logger.debug(f"Repository: Listing payment methods page={page} size={size}")
         try:
-            from finance_api.models.credit_cards import CreditCard
             from finance_api.models.accounts import Account
+            from finance_api.models.credit_cards import CreditCard
 
             cards_res = await self.db.execute(select(CreditCard).order_by(CreditCard.name))
             cards = cards_res.scalars().all()
@@ -183,7 +183,7 @@ class PaymentMethodRepository:
 
     async def update(
         self, method_id: UUID, update_data: PaymentMethodUpdate
-    ) -> Optional[PaymentMethod]:
+    ) -> PaymentMethod | None:
         logger.debug(f"Repository: Updating payment method: {method_id}")
         method = await self.get_by_id(method_id)
         if not method:

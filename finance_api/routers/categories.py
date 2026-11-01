@@ -6,11 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from finance_api.core.database import get_db
 from finance_api.repositories.categories import CategoryRepository
-from finance_api.schemas.categories import (
-    CategoryCreate,
-    CategoryUpdate,
-    CategoryResponse,
-)
+from finance_api.schemas.categories import CategoryCreate, CategoryResponse, CategoryUpdate
 from finance_api.schemas.pagination import PaginatedResponse
 from finance_api.services.categories import CategoryService
 
@@ -29,7 +25,7 @@ async def list_categories(
     page: int = Query(1, ge=1, description="Page number"),
     size: int = Query(100, ge=1, le=1000, description="Page size"),
     service: CategoryService = Depends(get_category_service),
-):
+) -> PaginatedResponse[CategoryResponse]:
     """List all categories with pagination."""
     items, total = await service.list(page, size)
     pages = (total + size - 1) // size if total > 0 else 0
@@ -40,7 +36,7 @@ async def list_categories(
 async def get_category(
     category_id: UUID,
     service: CategoryService = Depends(get_category_service),
-):
+) -> CategoryResponse:
     """Get a category by ID."""
     return await service.get_by_id(category_id)
 
@@ -49,7 +45,7 @@ async def get_category(
 async def create_category(
     category_data: CategoryCreate,
     service: CategoryService = Depends(get_category_service),
-):
+) -> CategoryResponse:
     """Create a new category."""
     return await service.create(category_data)
 
@@ -59,7 +55,7 @@ async def update_category(
     category_id: UUID,
     update_data: CategoryUpdate,
     service: CategoryService = Depends(get_category_service),
-):
+) -> CategoryResponse:
     """Update an existing category."""
     return await service.update(category_id, update_data)
 
@@ -68,6 +64,6 @@ async def update_category(
 async def delete_category(
     category_id: UUID,
     service: CategoryService = Depends(get_category_service),
-):
+) -> None:
     """Delete a category."""
     await service.delete(category_id)

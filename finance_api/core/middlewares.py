@@ -1,6 +1,7 @@
 """HTTP middlewares for finance_api."""
 
 from collections.abc import Awaitable, Callable
+
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 

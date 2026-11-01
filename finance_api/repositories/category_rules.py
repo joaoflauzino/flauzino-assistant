@@ -1,6 +1,6 @@
+import unicodedata
 from collections.abc import Sequence
 from typing import Protocol
-import unicodedata
 from uuid import UUID
 
 from sqlalchemy import delete, desc, select, update

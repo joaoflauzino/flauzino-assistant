@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from agent_api.core.exceptions import LLMProviderError
 from agent_api.schemas.classify import (

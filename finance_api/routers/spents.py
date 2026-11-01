@@ -1,19 +1,18 @@
 from datetime import date
-from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status, Response
+from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from finance_api.core.database import get_db
-from finance_api.repositories.spents import SpentRepository
-from finance_api.services.spents import SpentService
 from finance_api.repositories.invoices import InvoiceRepository
 from finance_api.repositories.payment_methods import PaymentMethodRepository
-from finance_api.services.invoices import InvoiceService
-from finance_api.schemas.spents import SpentCreate, SpentResponse, SpentUpdate, DashboardMode
-from finance_api.schemas.pagination import PaginatedResponse
+from finance_api.repositories.spents import SpentRepository
 from finance_api.schemas.installments import InstallmentSummary
+from finance_api.schemas.pagination import PaginatedResponse
+from finance_api.schemas.spents import DashboardMode, SpentCreate, SpentResponse, SpentUpdate
+from finance_api.services.invoices import InvoiceService
+from finance_api.services.spents import SpentService
 
 router = APIRouter()
 
@@ -29,8 +28,8 @@ async def create_spent(spent: SpentCreate, db: AsyncSession = Depends(get_db)) -
 async def list_spents(
     page: int = 1,
     size: int = 10,
-    start_date: Optional[date] = None,
-    end_date: Optional[date] = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
     db: AsyncSession = Depends(get_db),
 ) -> PaginatedResponse[SpentResponse]:
     repo = SpentRepository(db)

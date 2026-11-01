@@ -1,5 +1,3 @@
-from typing import List
-
 from pydantic import BaseModel
 
 
@@ -17,7 +15,7 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     response: str
     session_id: str
-    history: List[ChatMessage]
+    history: list[ChatMessage]
     is_complete: bool = False
     suggested_options: list[str] | None = None
     image_base64: str | None = None

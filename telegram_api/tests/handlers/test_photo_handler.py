@@ -1,7 +1,8 @@
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from telegram import Update, Message, User, Chat, PhotoSize
+from telegram import Chat, Message, PhotoSize, Update, User
 from telegram.ext import ContextTypes
 
 from telegram_api.handlers.photo_handler import handle_photo_message

@@ -1,5 +1,5 @@
+import builtins
 from datetime import date
-from typing import List, Optional
 from uuid import UUID
 
 from sqlalchemy import delete, func, select, update
@@ -29,10 +29,10 @@ class IncomeRepository:
         self,
         skip: int = 0,
         limit: int = 100,
-        start_date: Optional[date] = None,
-        end_date: Optional[date] = None,
-        category: Optional[str] = None,
-    ) -> tuple[List[Income], int]:
+        start_date: date | None = None,
+        end_date: date | None = None,
+        category: str | None = None,
+    ) -> tuple[list[Income], int]:
         effective_date = func.coalesce(
             Income.competence_date,
             func.date(Income.received_at.op("AT TIME ZONE")("America/Sao_Paulo")),
@@ -60,7 +60,7 @@ class IncomeRepository:
         logger.info(f"Listed {len(items)} incomes")
         return items, total
 
-    async def list_by_period(self, start_date: date, end_date: date) -> List[Income]:
+    async def list_by_period(self, start_date: date, end_date: date) -> builtins.list[Income]:
         effective_date = func.coalesce(
             Income.competence_date,
             func.date(Income.received_at.op("AT TIME ZONE")("America/Sao_Paulo")),
@@ -76,14 +76,14 @@ class IncomeRepository:
         result = await self.db.execute(query)
         return list(result.scalars().all())
 
-    async def get_by_id(self, income_id: UUID) -> Optional[Income]:
+    async def get_by_id(self, income_id: UUID) -> Income | None:
         result = await self.db.execute(select(Income).where(Income.id == income_id))
         income = result.scalar_one_or_none()
         if income:
             logger.info(f"Retrieved income: {income_id}")
         return income
 
-    async def update(self, income_id: UUID, update_data: IncomeUpdate) -> Optional[Income]:
+    async def update(self, income_id: UUID, update_data: IncomeUpdate) -> Income | None:
         stmt = (
             update(Income)
             .where(Income.id == income_id)

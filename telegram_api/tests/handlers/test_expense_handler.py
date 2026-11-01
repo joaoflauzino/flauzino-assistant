@@ -1,29 +1,30 @@
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from telegram.ext import ConversationHandler
 
 from telegram_api.handlers.expense_handler import (
+    SELECT_CATEGORY,
+    SELECT_DATE_OPTION,
+    SELECT_PAYMENT_METHOD,
+    SELECT_PURCHASE_TYPE,
+    TYPE_CURRENT_INSTALLMENT,
+    TYPE_ITEM_BOUGHT,
+    TYPE_LOCATION,
+    TYPE_TOTAL_INSTALLMENTS,
+    TYPE_VALUE,
+    cancel,
+    confirm_expense,
     gasto_command,
     select_category,
-    type_item_bought,
-    type_value,
     select_payment_method,
-    type_location,
     select_purchase_type,
-    type_total_installments,
     type_current_installment,
-    confirm_expense,
-    cancel,
-    SELECT_CATEGORY,
-    TYPE_ITEM_BOUGHT,
-    TYPE_VALUE,
-    SELECT_PAYMENT_METHOD,
-    TYPE_LOCATION,
-    SELECT_PURCHASE_TYPE,
-    TYPE_TOTAL_INSTALLMENTS,
-    TYPE_CURRENT_INSTALLMENT,
-    SELECT_DATE_OPTION,
+    type_item_bought,
+    type_location,
+    type_total_installments,
+    type_value,
 )
-from telegram.ext import ConversationHandler
 
 
 @pytest.fixture

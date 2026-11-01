@@ -1,13 +1,13 @@
+import builtins
 from datetime import date
-from typing import List, Optional
 from uuid import UUID
 
-from sqlalchemy import select, update, delete, func, text, case, or_, and_
+from sqlalchemy import and_, case, delete, func, or_, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from finance_api.core.logger import get_logger
 from finance_api.models.spents import Spent
 from finance_api.schemas.spents import SpentCreate, SpentUpdate
-from finance_api.core.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -24,7 +24,7 @@ class SpentRepository:
         logger.info(f"Created spent: {new_spent.id}")
         return new_spent
 
-    async def create_many(self, spents: List[Spent]) -> List[Spent]:
+    async def create_many(self, spents: list[Spent]) -> list[Spent]:
         self.db.add_all(spents)
         await self.db.commit()
         for s in spents:
@@ -36,9 +36,9 @@ class SpentRepository:
         self,
         skip: int = 0,
         limit: int = 100,
-        start_date: Optional[date] = None,
-        end_date: Optional[date] = None,
-    ) -> tuple[List[Spent], int]:
+        start_date: date | None = None,
+        end_date: date | None = None,
+    ) -> tuple[list[Spent], int]:
         query = select(Spent)
 
         # Convert UTC timestamp to Brazil timezone (America/Sao_Paulo) before extracting date
@@ -67,10 +67,10 @@ class SpentRepository:
 
     async def list_by_multiple_periods(
         self,
-        periods: List[tuple[str, date, date]],
+        periods: builtins.list[tuple[str, date, date]],
         skip: int = 0,
         limit: int = 100,
-    ) -> tuple[List[Spent], int]:
+    ) -> tuple[builtins.list[Spent], int]:
         query = select(Spent)
 
         conditions = []
@@ -96,14 +96,14 @@ class SpentRepository:
         items = list(result.scalars().all())
         return items, total
 
-    async def get_by_id(self, spent_id: UUID) -> Optional[Spent]:
+    async def get_by_id(self, spent_id: UUID) -> Spent | None:
         result = await self.db.execute(select(Spent).where(Spent.id == spent_id))
         spent = result.scalar_one_or_none()
         if spent:
             logger.info(f"Retrieved spent: {spent_id}")
         return spent
 
-    async def get_installments_summary(self) -> List[dict]:
+    async def get_installments_summary(self) -> builtins.list[dict]:
         """Get an aggregated summary of active installments."""
         query = (
             select(
@@ -136,7 +136,7 @@ class SpentRepository:
             for row in rows
         ]
 
-    async def update(self, spent_id: UUID, update_data: SpentUpdate) -> Optional[Spent]:
+    async def update(self, spent_id: UUID, update_data: SpentUpdate) -> Spent | None:
         stmt = (
             update(Spent)
             .where(Spent.id == spent_id)

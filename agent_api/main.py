@@ -1,5 +1,6 @@
 import asyncio
 import os
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -34,17 +35,17 @@ from agent_api.core.middlewares import CorrelationIdMiddleware
 from agent_api.repositories.chat_repository import ChatRepository
 from agent_api.routers.audio import router as audio_router
 from agent_api.routers.chat import router as chat_router
-from agent_api.routers.ocr import router as ocr_router
 from agent_api.routers.classify import router as classify_router
+from agent_api.routers.ocr import router as ocr_router
 
 logger = get_logger(__name__)
 
-CLEANUP_INTERVAL_SECONDS = 600  # 10 minutes
-STALE_SESSION_MAX_AGE_MINUTES = 30
+STALE_SESSION_MAX_AGE_MINUTES = int(os.getenv("STALE_SESSION_MAX_AGE_MINUTES", "1440"))
+CLEANUP_INTERVAL_SECONDS = int(os.getenv("SESSION_CLEANUP_INTERVAL_SECONDS", "3600"))
 
 
 async def _session_cleanup_loop() -> None:
-    """Periodically clean up stale chat sessions."""
+    """Periodically purge stale sessions in the background."""
     while True:
         await asyncio.sleep(CLEANUP_INTERVAL_SECONDS)
         try:
@@ -58,7 +59,7 @@ async def _session_cleanup_loop() -> None:
 
 
 @asynccontextmanager
-async def lifespan(application: FastAPI):
+async def lifespan(application: FastAPI) -> AsyncIterator[None]:
     """Manage startup/shutdown lifecycle events."""
     cleanup_task = asyncio.create_task(_session_cleanup_loop())
     logger.info("Started session cleanup background task")
@@ -98,7 +99,7 @@ app.add_exception_handler(InvalidAudioError, invalid_audio_handler)
 
 
 @app.get("/health", tags=["health"])
-async def health_check():
+async def health_check() -> dict[str, str]:
     return {"status": "ok", "service": "agent_api"}
 
 
@@ -108,6 +109,4 @@ app.include_router(audio_router)
 app.include_router(classify_router)
 
 # Instrument Prometheus metrics and expose on /metrics
-Instrumentator(excluded_handlers=["/metrics", "/health"]).instrument(app).expose(
-    app, include_in_schema=False, tags=["metrics"]
-)
+Instrumentator().instrument(app).expose(app, endpoint="/metrics")

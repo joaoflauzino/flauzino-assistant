@@ -273,7 +273,7 @@ async def test_upload_credit_card_batch_and_commit(mock_dependencies):
         "Data de Compra;Nome no Cartão;Final do Cartão;Categoria;Descrição;Parcela;Valor (em US$);Cotação (em R$);Valor (em R$)\n"
         "26/05/2026;JOAO L F CASSIANO;1141;Empresa para empresa;DELL;4/12;0;0;235.25\n"
         "05/09/2026;JOAO L F CASSIANO;1633;-;Inclusao de Pagamento;Única;0;0;-3610.14\n"
-    ).encode("utf-8")
+    ).encode()
 
     res = await service.create_batch_from_upload(
         file_bytes=card_csv,
@@ -330,7 +330,7 @@ async def test_salary_competence_date_early_month(mock_dependencies):
 01/10/2026,01/10/2026,CRED SALARIO MENSAL,C6 BANK,5000.00,0.00,5000.00
 20/09/2026,20/09/2026,ADTO SALARIO,C6 BANK,3000.00,0.00,8000.00
 """
-    ).encode("utf-8")
+    ).encode()
 
     res = await service.create_batch_from_upload(
         file_bytes=salary_csv,

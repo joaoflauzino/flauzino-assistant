@@ -1,7 +1,7 @@
 """Database module for Telegram API using SQLAlchemy."""
 
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
@@ -10,8 +10,8 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.orm import DeclarativeBase
 
-from telegram_api.settings import settings
 from telegram_api.core.logger import get_logger
+from telegram_api.settings import settings
 
 logger = get_logger(__name__)
 
@@ -35,7 +35,7 @@ class Base(DeclarativeBase):
 
 
 @asynccontextmanager
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
+async def get_db() -> AsyncGenerator[AsyncSession]:
     """Dependency for getting async session."""
     async with AsyncSessionLocal() as session:
         try:

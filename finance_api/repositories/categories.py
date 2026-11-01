@@ -1,4 +1,3 @@
-from typing import List, Optional
 import unicodedata
 from uuid import UUID
 
@@ -29,7 +28,7 @@ class CategoryRepository:
         logger.info(f"Created category: {new_category.key}")
         return new_category
 
-    async def list(self, skip: int = 0, limit: int = 100) -> tuple[List[Category], int]:
+    async def list(self, skip: int = 0, limit: int = 100) -> tuple[list[Category], int]:
         query = select(Category).order_by(Category.display_name)
 
         # Count query
@@ -46,14 +45,14 @@ class CategoryRepository:
         logger.info(f"Listed {len(items)} categories")
         return items, total
 
-    async def get_by_id(self, category_id: UUID) -> Optional[Category]:
+    async def get_by_id(self, category_id: UUID) -> Category | None:
         result = await self.db.execute(select(Category).where(Category.id == category_id))
         category = result.scalar_one_or_none()
         if category:
             logger.info(f"Retrieved category: {category_id}")
         return category
 
-    async def get_by_key(self, key: str) -> Optional[Category]:
+    async def get_by_key(self, key: str) -> Category | None:
         # Exact match first
         result = await self.db.execute(select(Category).where(Category.key == key))
         category = result.scalar_one_or_none()
@@ -72,7 +71,7 @@ class CategoryRepository:
 
         return None
 
-    async def update(self, category_id: UUID, update_data: CategoryUpdate) -> Optional[Category]:
+    async def update(self, category_id: UUID, update_data: CategoryUpdate) -> Category | None:
         stmt = (
             update(Category)
             .where(Category.id == category_id)

@@ -1,13 +1,14 @@
-import pytest
 from datetime import date, datetime
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
+import pytest
+
 from finance_api.models.invoices import InvoiceStatus
 from finance_api.services.invoices import (
+    InvoiceService,
     compute_real_date,
     get_due_reference_month,
-    InvoiceService,
 )
 
 

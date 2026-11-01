@@ -4,11 +4,11 @@ from uuid import uuid4
 import pytest
 from asgi_lifespan import LifespanManager
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.exc import IntegrityError
 
 from finance_api.core.database import get_db
 from finance_api.main import app
 from finance_api.repositories.limits import SpendingLimitRepository
-from sqlalchemy.exc import IntegrityError
 
 # Mark all tests in this file as async
 pytestmark = pytest.mark.asyncio

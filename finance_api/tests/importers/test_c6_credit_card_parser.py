@@ -1,10 +1,11 @@
 from datetime import date
 from decimal import Decimal
+
 import pytest
 
 from finance_api.core.exceptions import ValidationError
-from finance_api.importers.schemas import StatementType
 from finance_api.importers.c6_credit_card_csv import C6CreditCardInvoiceCsvParser
+from finance_api.importers.schemas import StatementType
 
 SAMPLE_CARD_CSV = b"""Data de Compra;Nome no Cart\xc3\xa3o;Final do Cart\xc3\xa3o;Categoria;Descri\xc3\xa7\xc3\xa3o;Parcela;Valor (em US$);Cota\xc3\xa7\xc3\xa3o (em R$);Valor (em R$)
 26/05/2026;JOAO L F CASSIANO;1141;Empresa para empresa;DELL;4/12;0;0;235.25

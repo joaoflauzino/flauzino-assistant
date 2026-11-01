@@ -1,7 +1,7 @@
+import uuid
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
-import uuid
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import Date, DateTime, ForeignKey, Integer, Numeric, String

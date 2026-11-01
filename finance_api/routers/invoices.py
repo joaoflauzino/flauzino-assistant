@@ -1,5 +1,3 @@
-from typing import List
-
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,11 +20,11 @@ def get_invoice_service(db: AsyncSession = Depends(get_db)) -> InvoiceService:
     return InvoiceService(repo, pm_repo)
 
 
-@router.get("/{reference_month}", response_model=List[InvoiceResponse])
+@router.get("/{reference_month}", response_model=list[InvoiceResponse])
 async def list_invoices(
     reference_month: str,
     service: InvoiceService = Depends(get_invoice_service),
-) -> List[InvoiceResponse]:
+) -> list[InvoiceResponse]:
     return await service.list_previews(reference_month)
 
 

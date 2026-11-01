@@ -1,5 +1,6 @@
 import os
 import tempfile
+
 from faster_whisper import WhisperModel
 
 from agent_api.core.decorators import handle_audio_errors

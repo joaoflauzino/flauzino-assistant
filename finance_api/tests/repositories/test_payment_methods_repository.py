@@ -3,8 +3,8 @@ from uuid import uuid4
 
 import pytest
 
-from finance_api.models.credit_cards import CreditCard
 from finance_api.models.accounts import Account
+from finance_api.models.credit_cards import CreditCard
 from finance_api.models.payment_methods import PaymentMethod
 from finance_api.repositories.payment_methods import PaymentMethodRepository
 from finance_api.schemas.payment_methods import PaymentMethodCreate

@@ -181,23 +181,8 @@ class AgentService:
         {platform_instructions}
     """
 
-    @handle_llm_errors
-    async def get_response(
-        self,
-        chat_history: list[dict[str, Any]],
-        platform: str | None = None,
-    ) -> AssistantResponse:
-        """Run agent with LangChain create_agent and extract response via ToolStrategy(AssistantResponse)."""
-        system_prompt = await self.get_system_prompt(platform=platform)
-
-        agent = create_agent(
-            model=self.llm,
-            tools=self.tools,
-            system_prompt=system_prompt,
-            response_format=ToolStrategy(schema=AssistantResponse),
-            state_schema=AgentStateWithCustom,
-        )
-
+    def _build_messages(self, chat_history: list[dict[str, Any]]) -> list[BaseMessage]:
+        """Converts incoming chat history dictionaries into LangChain BaseMessage objects."""
         messages: list[BaseMessage] = []
         for msg in chat_history:
             role = msg.get("role")
@@ -206,26 +191,13 @@ class AgentService:
                 messages.append(HumanMessage(content=content))
             else:
                 messages.append(AIMessage(content=content))
+        return messages
 
-        callback_handler = AgentLoggingCallbackHandler()
-        agent_input = cast(Any, {"messages": messages})
-        result = await agent.ainvoke(
-            agent_input,
-            config={"callbacks": [callback_handler]},
-        )
-
-        # Logging detalhado do que o agent.ainvoke produziu
-        msgs = result.get("messages", [])
-        msgs_summary = [
-            f"{type(m).__name__}(content={repr(m.content)[:80]}, tool_calls={getattr(m, 'tool_calls', None)})"
-            for m in msgs
-        ]
-        logger.info(
-            f"🔍 [AGENT:RESULT] keys={list(result.keys())} | structured_response={repr(result.get('structured_response'))} | messages={msgs_summary}"
-        )
-
+    def _extract_assistant_response(self, result: dict[str, Any]) -> AssistantResponse:
+        """Extracts and normalizes AssistantResponse from LangChain result dictionary."""
         image_base64 = result.get("image_base64")
         structured_resp = result.get("structured_response")
+        msgs = result.get("messages", [])
 
         # 1. Se structured_response veio na raiz do state retornado
         if isinstance(structured_resp, AssistantResponse):
@@ -270,3 +242,40 @@ class AgentService:
             suggested_options=["Sim", "Não"],
             image_base64=image_base64,
         )
+
+    @handle_llm_errors
+    async def get_response(
+        self,
+        chat_history: list[dict[str, Any]],
+        platform: str | None = None,
+    ) -> AssistantResponse:
+        """Run agent with LangChain create_agent and extract response via ToolStrategy(AssistantResponse)."""
+        system_prompt = await self.get_system_prompt(platform=platform)
+
+        agent = create_agent(
+            model=self.llm,
+            tools=self.tools,
+            system_prompt=system_prompt,
+            response_format=ToolStrategy(schema=AssistantResponse),
+            state_schema=AgentStateWithCustom,
+        )
+
+        messages = self._build_messages(chat_history)
+        callback_handler = AgentLoggingCallbackHandler()
+        agent_input = cast(Any, {"messages": messages})
+        result = await agent.ainvoke(
+            agent_input,
+            config={"callbacks": [callback_handler]},
+        )
+
+        # Logging detalhado do que o agent.ainvoke produziu
+        msgs = result.get("messages", [])
+        msgs_summary = [
+            f"{type(m).__name__}(content={repr(m.content)[:80]}, tool_calls={getattr(m, 'tool_calls', None)})"
+            for m in msgs
+        ]
+        logger.info(
+            f"🔍 [AGENT:RESULT] keys={list(result.keys())} | structured_response={repr(result.get('structured_response'))} | messages={msgs_summary}"
+        )
+
+        return self._extract_assistant_response(result)

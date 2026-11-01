@@ -31,6 +31,17 @@ from finance_api.services.protocols import (
 )
 from finance_api.services.spents import SpentService
 
+SALARY_KEYWORDS: tuple[str, ...] = (
+    "SALARIO",
+    "SALÁRIO",
+    "FOLHA",
+    "PRO-LABORE",
+    "REMUNERACAO",
+    "VENCIMENTO",
+    "PPR",
+    "PLR",
+)
+
 
 class ApproveBulkStrategy:
     """Approves a staged transaction if it has no duplicate flags and has a category when required."""
@@ -158,7 +169,7 @@ class ExpenseCommitStrategy:
 
         spent_data = SpentCreate(
             category=tx.category,
-            amount=float(tx.amount),
+            amount=tx.amount,
             item_bought=tx.description[:50],
             payment_method=ctx.payment_method_key,
             payment_type=ctx.payment_type_value,
@@ -195,7 +206,7 @@ class IncomeCommitStrategy:
 
         income_data = IncomeCreate(
             description=tx.description[:100],
-            amount=float(tx.amount),
+            amount=tx.amount,
             category=tx.category,
             payment_method=ctx.payment_method_key,
             account_id=ctx.account_id,
@@ -220,10 +231,9 @@ class NonRecordCommitStrategy:
         return CommitStepOutcome(status=CommitOutcomeStatus.PROCESSED_WITHOUT_RECORD)
 
 
-# ---------------------------------------------------------------------------
-# Duplicate Detection Strategies (Replaces inline if/elif branching in batch upload)
-# ---------------------------------------------------------------------------
 class DuplicateDetectorStrategy(Protocol):
+    """Protocol for duplicate detection strategies."""
+
     async def detect(
         self,
         tx_repo: StagedTransactionRepository,
@@ -299,17 +309,7 @@ def resolve_salary_competence_date(
         return None
     tx_dt = occurred_at.date()
     norm_raw = f"{raw_title} {raw_description or ''}".upper()
-    salary_keywords = (
-        "SALARIO",
-        "SALÁRIO",
-        "FOLHA",
-        "PRO-LABORE",
-        "REMUNERACAO",
-        "VENCIMENTO",
-        "PPR",
-        "PLR",
-    )
-    if any(k in norm_raw for k in salary_keywords) and tx_dt.day <= 7:
+    if any(k in norm_raw for k in SALARY_KEYWORDS) and tx_dt.day <= 7:
         first_of_month = tx_dt.replace(day=1)
         return first_of_month - timedelta(days=1)
     return tx_dt

@@ -1,5 +1,4 @@
 from datetime import date
-from typing import Optional, List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Response, status
@@ -8,15 +7,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from finance_api.core.database import get_db
 from finance_api.core.dependencies import get_balance_service
 from finance_api.repositories.limits import SpendingLimitRepository
-from finance_api.services.limits import SpendingLimitService
-from finance_api.services.balances import BalanceService
 from finance_api.schemas.limits import (
+    CategoryBalance,
     SpendingLimitCreate,
     SpendingLimitResponse,
     SpendingLimitUpdate,
-    CategoryBalance,
 )
 from finance_api.schemas.pagination import PaginatedResponse
+from finance_api.services.balances import BalanceService
+from finance_api.services.limits import SpendingLimitService
 
 router = APIRouter()
 
@@ -34,8 +33,8 @@ async def create_limit(
 async def list_limits(
     page: int = 1,
     size: int = 10,
-    start_date: Optional[date] = None,
-    end_date: Optional[date] = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
     db: AsyncSession = Depends(get_db),
 ) -> PaginatedResponse[SpendingLimitResponse]:
     repo = SpendingLimitRepository(db)
@@ -43,12 +42,12 @@ async def list_limits(
     return await service.list(page, size, start_date, end_date)
 
 
-@router.get("/balance", response_model=List[CategoryBalance])
+@router.get("/balance", response_model=list[CategoryBalance])
 async def get_balance(
-    reference_month: Optional[str] = None,
-    categories: Optional[str] = None,
+    reference_month: str | None = None,
+    categories: str | None = None,
     service: BalanceService = Depends(get_balance_service),
-) -> List[CategoryBalance]:
+) -> list[CategoryBalance]:
     category_list = [c.strip().lower() for c in categories.split(",")] if categories else None
     return await service.get_balance(reference_month=reference_month, categories=category_list)
 

@@ -1,6 +1,7 @@
 from datetime import date
 from unittest.mock import AsyncMock
 from uuid import uuid4
+
 import pytest
 
 from finance_api.models.payment_methods import PaymentMethod

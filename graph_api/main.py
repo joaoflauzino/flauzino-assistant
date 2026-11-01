@@ -22,7 +22,7 @@ app.add_exception_handler(GraphAPIError, graph_api_error_handler)
 
 
 @app.get("/health", tags=["health"])
-async def health_check():
+async def health_check() -> dict[str, str]:
     return {"status": "ok", "service": "graph_api"}
 
 

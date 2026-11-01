@@ -1,6 +1,6 @@
 """OCR Router for receipt image processing."""
 
-from typing import Optional
+from typing import Any
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/ocr", tags=["OCR"])
 @router.post("/extract")
 async def extract_text_from_image(
     file: UploadFile = File(..., description="Receipt image file"),
-):
+) -> dict[str, Any]:
     """Extract text from an uploaded receipt image using OCR."""
     logger.info(f"Received OCR request for file: {file.filename}")
 
@@ -40,10 +40,10 @@ async def extract_text_from_image(
 @router.post("/process-receipt", response_model=ChatResponse)
 async def process_receipt_image(
     file: UploadFile = File(..., description="Receipt image file"),
-    session_id: Optional[str] = Form(None, description="Chat session ID for context"),
-    platform: Optional[str] = Form(None, description="Platform originating the request"),
+    session_id: str | None = Form(None, description="Chat session ID for context"),
+    platform: str | None = Form(None, description="Platform originating the request"),
     service: ChatService = Depends(get_chat_service),
-):
+) -> ChatResponse:
     """Process a receipt image and start/continue a chat session."""
     logger.info(f"Received receipt processing request: {file.filename}, session: {session_id}")
 

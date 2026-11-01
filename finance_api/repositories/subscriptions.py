@@ -1,12 +1,11 @@
-from typing import List, Optional
 from uuid import UUID
 
-from sqlalchemy import select, update, delete, func
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from finance_api.core.logger import get_logger
 from finance_api.models.subscriptions import Subscription
 from finance_api.schemas.subscriptions import SubscriptionCreate, SubscriptionUpdate
-from finance_api.core.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -25,7 +24,7 @@ class SubscriptionRepository:
 
     async def list(
         self, skip: int = 0, limit: int = 100, active_only: bool = False
-    ) -> tuple[List[Subscription], int]:
+    ) -> tuple[list[Subscription], int]:
         query = select(Subscription)
 
         if active_only:
@@ -43,7 +42,7 @@ class SubscriptionRepository:
         logger.info(f"Listed {len(items)} subscriptions")
         return items, total
 
-    async def get_by_id(self, subscription_id: UUID) -> Optional[Subscription]:
+    async def get_by_id(self, subscription_id: UUID) -> Subscription | None:
         result = await self.db.execute(
             select(Subscription).where(Subscription.id == subscription_id)
         )
@@ -54,7 +53,7 @@ class SubscriptionRepository:
 
     async def update(
         self, subscription_id: UUID, update_data: SubscriptionUpdate
-    ) -> Optional[Subscription]:
+    ) -> Subscription | None:
         stmt = (
             update(Subscription)
             .where(Subscription.id == subscription_id)

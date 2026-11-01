@@ -1,7 +1,8 @@
 import calendar
+from collections.abc import Sequence
 from datetime import date, datetime
-from typing import List, Optional, Sequence, Tuple
 from zoneinfo import ZoneInfo
+
 from dateutil.relativedelta import relativedelta
 
 from finance_api.core.decorators import handle_service_errors
@@ -37,9 +38,9 @@ class BalanceService:
     @handle_service_errors
     async def get_balance(
         self,
-        reference_month: Optional[str] = None,
-        categories: Optional[List[str]] = None,
-    ) -> List[CategoryBalance]:
+        reference_month: str | None = None,
+        categories: list[str] | None = None,
+    ) -> list[CategoryBalance]:
         """Orchestrates fetching data and calculating category balances for a reference month."""
         logger.info(
             f"Getting balances for reference_month={reference_month} categories={categories}"
@@ -74,11 +75,11 @@ class BalanceService:
     async def _resolve_periods(
         self,
         payment_methods: Sequence[PaymentMethod],
-        reference_month: Optional[str],
+        reference_month: str | None,
         today: date,
-    ) -> List[Tuple[str, date, date]]:
+    ) -> list[tuple[str, date, date]]:
         """Resolves billing period (start_date, end_date) for each payment method."""
-        periods: List[Tuple[str, date, date]] = []
+        periods: list[tuple[str, date, date]] = []
         for pm in payment_methods:
             start_d, end_d = await self._resolve_pm_invoice_period(
                 pm=pm, reference_month=reference_month, today=today
@@ -89,9 +90,9 @@ class BalanceService:
     async def _resolve_pm_invoice_period(
         self,
         pm: PaymentMethod,
-        reference_month: Optional[str],
+        reference_month: str | None,
         today: date,
-    ) -> Tuple[date, date]:
+    ) -> tuple[date, date]:
         """Resolves invoice start and end dates for a payment method based on current date or reference month."""
         if not pm.is_credit_card:
             target_month = reference_month or today.strftime("%Y-%m")
@@ -139,9 +140,9 @@ class BalanceService:
         limits: Sequence[SpendingLimit],
         spent_by_category: dict[str, float],
         cat_map: dict[str, str],
-    ) -> List[CategoryBalance]:
+    ) -> list[CategoryBalance]:
         """Calculates available balance and percentage used for each category."""
-        balances: List[CategoryBalance] = []
+        balances: list[CategoryBalance] = []
         processed_cats = set()
 
         for limit in limits:

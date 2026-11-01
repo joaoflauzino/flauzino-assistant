@@ -1,11 +1,11 @@
-from typing import Sequence
+from collections.abc import Sequence
 from uuid import UUID
 
 from finance_api.core.decorators import handle_service_errors
 from finance_api.core.exceptions import EntityConflictError, EntityNotFoundError
 from finance_api.core.logger import get_logger
-from finance_api.repositories.payment_methods import PaymentMethodRepository
 from finance_api.models.payment_methods import PaymentMethod
+from finance_api.repositories.payment_methods import PaymentMethodRepository
 from finance_api.schemas.payment_methods import PaymentMethodCreate, PaymentMethodUpdate
 
 logger = get_logger(__name__)

@@ -1,6 +1,7 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
+
+import pytest
 
 from finance_api.repositories.categories import CategoryRepository
 from finance_api.schemas.categories import CategoryCreate, CategoryUpdate

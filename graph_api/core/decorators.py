@@ -1,6 +1,7 @@
 import functools
 import logging
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from graph_api.core.exceptions import GraphGenerationError, ServiceError
 

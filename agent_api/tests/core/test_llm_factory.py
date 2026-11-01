@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock, patch
 
-from langchain_core.language_models.chat_models import BaseChatModel
 import pytest
+from langchain_core.language_models.chat_models import BaseChatModel
 
 from agent_api.core.exceptions import LLMProviderError
 from agent_api.core.llm import (

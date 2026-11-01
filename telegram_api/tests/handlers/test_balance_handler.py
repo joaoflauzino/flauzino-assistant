@@ -1,13 +1,14 @@
 from unittest.mock import AsyncMock, patch
+
 import pytest
-from telegram import Update, Message, User, Chat, CallbackQuery
+from telegram import CallbackQuery, Chat, Message, Update, User
 from telegram.ext import ContextTypes, ConversationHandler
 
 from telegram_api.handlers.balance_handler import (
-    balance_command,
-    select_category,
-    cancel,
     SELECT_CATEGORY,
+    balance_command,
+    cancel,
+    select_category,
 )
 
 

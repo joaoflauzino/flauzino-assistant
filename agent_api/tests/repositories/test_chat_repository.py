@@ -1,10 +1,12 @@
-from unittest.mock import AsyncMock, MagicMock
-from datetime import datetime, timezone
 import uuid
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from agent_api.models.chat import ChatMessage, ChatSession
 from agent_api.repositories.chat_repository import ChatRepository
-from agent_api.models.chat import ChatSession, ChatMessage
 
 
 @pytest.fixture
@@ -89,10 +91,8 @@ async def test_get_messages(mock_db_session):
     # Mock return value
     # The repo queries DESC (Newest first), so we should provide them in that order logically
     # msg2 is newer than msg1
-    mock_msg1 = ChatMessage(role="user", content="Hi", created_at=datetime.now(timezone.utc))
-    mock_msg2 = ChatMessage(
-        role="assistant", content="Hello", created_at=datetime.now(timezone.utc)
-    )
+    mock_msg1 = ChatMessage(role="user", content="Hi", created_at=datetime.now(UTC))
+    mock_msg2 = ChatMessage(role="assistant", content="Hello", created_at=datetime.now(UTC))
 
     # DB returns [Newest, Oldest] -> [msg2, msg1]
     mock_db_session.execute.return_value.scalars.return_value.all.return_value = [

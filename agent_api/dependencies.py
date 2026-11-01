@@ -1,7 +1,7 @@
 from typing import Annotated
 
-from fastapi import Depends
 import httpx
+from fastapi import Depends
 from langchain_core.language_models.chat_models import BaseChatModel
 from sqlalchemy.ext.asyncio import AsyncSession
 

@@ -1,7 +1,7 @@
 """Correlation ID context manager and helpers."""
 
-from contextvars import ContextVar
 import uuid
+from contextvars import ContextVar
 
 CORRELATION_HEADER = "X-Request-ID"
 

@@ -14,7 +14,7 @@ router = APIRouter(prefix="/classify", tags=["Classify"])
 async def classify_transactions(
     request: ClassifyBatchRequest,
     service: ClassifyService = Depends(get_classify_service),
-):
+) -> ClassifyBatchResponse:
     """Classifica um lote de transações em categorias válidas usando LLM."""
     logger.info(f"Received classification request for {len(request.transactions)} transactions")
     return await service.classify_transactions(request)

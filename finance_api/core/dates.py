@@ -3,8 +3,9 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Self
 from zoneinfo import ZoneInfo
-from dateutil.relativedelta import relativedelta
+
 import holidays
+from dateutil.relativedelta import relativedelta
 
 from finance_api.core.exceptions import ValidationError
 

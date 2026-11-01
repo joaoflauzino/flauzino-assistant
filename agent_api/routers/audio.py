@@ -1,7 +1,5 @@
 """Audio Router for processing voice messages and audio files."""
 
-from typing import Optional
-
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 
 from agent_api.core.logger import get_logger
@@ -18,10 +16,10 @@ router = APIRouter(prefix="/audio", tags=["Audio"])
 @router.post("/process-audio", response_model=ChatResponse)
 async def process_audio_file(
     file: UploadFile = File(..., description="Audio file"),
-    session_id: Optional[str] = Form(None, description="Chat session ID for context"),
-    platform: Optional[str] = Form(None, description="Platform originating the request"),
+    session_id: str | None = Form(None, description="Chat session ID for context"),
+    platform: str | None = Form(None, description="Platform originating the request"),
     service: ChatService = Depends(get_chat_service),
-):
+) -> ChatResponse:
     """Process an audio file and start/continue a chat session."""
     logger.info(
         f"Received audio processing request: {file.filename}, session: {session_id}, content_type: {file.content_type}"

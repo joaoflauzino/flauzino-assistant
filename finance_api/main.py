@@ -1,9 +1,11 @@
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 
+import finance_api.mcp.tools  # noqa: F401 - Register MCP tools
 from finance_api.core.exceptions import (
     DatabaseError,
     EntityConflictError,
@@ -19,10 +21,12 @@ from finance_api.core.handlers import (
     validation_error_handler,
 )
 from finance_api.core.middlewares import CorrelationIdMiddleware
+from finance_api.mcp.server import mcp_streamable_app
 from finance_api.routers import (
     accounts,
     categories,
     credit_cards,
+    imports,
     income_categories,
     incomes,
     invoices,
@@ -30,14 +34,11 @@ from finance_api.routers import (
     payment_methods,
     spents,
     subscriptions,
-    imports,
 )
-from finance_api.mcp.server import mcp_streamable_app
-import finance_api.mcp.tools  # noqa: F401 - Register MCP tools
 
 
 @asynccontextmanager
-async def lifespan(application: FastAPI):
+async def lifespan(application: FastAPI) -> AsyncIterator[None]:
     """Gerencia o ciclo de vida do session manager do Streamable HTTP para o MCP."""
     session_manager = mcp_streamable_app.create_manager()
     async with session_manager.run():
@@ -64,7 +65,7 @@ app.add_exception_handler(ServiceError, service_error_handler)
 
 
 @app.get("/health", tags=["health"])
-async def health_check():
+async def health_check() -> dict[str, str]:
     return {"status": "ok", "service": "finance_api"}
 
 
@@ -73,21 +74,16 @@ app.include_router(accounts.router, prefix="/accounts", tags=["accounts"])
 app.include_router(credit_cards.router, prefix="/credit-cards", tags=["credit-cards"])
 app.include_router(spents.router, prefix="/spents", tags=["spents"])
 app.include_router(limits.router, prefix="/limits", tags=["limits"])
+app.include_router(invoices.router, prefix="/invoices", tags=["invoices"])
 app.include_router(categories.router, prefix="/categories", tags=["categories"])
+app.include_router(payment_methods.router, prefix="/payment-methods", tags=["payment-methods"])
+app.include_router(subscriptions.router, prefix="/subscriptions", tags=["subscriptions"])
 app.include_router(
     income_categories.router, prefix="/income-categories", tags=["income-categories"]
 )
 app.include_router(incomes.router, prefix="/incomes", tags=["incomes"])
-app.include_router(payment_methods.router, prefix="/payment-methods", tags=["payment-methods"])
-app.include_router(subscriptions.router, prefix="/subscriptions", tags=["subscriptions"])
-app.include_router(invoices.router, prefix="/invoices", tags=["invoices"])
 app.include_router(imports.router, prefix="/imports", tags=["imports"])
 app.include_router(imports.rules_router, prefix="/import-rules", tags=["import-rules"])
 
-# Mount Streamable HTTP transport for the MCP protocol on /mcp
-app.mount("/mcp", mcp_streamable_app)
-
-# Instrument Prometheus metrics and expose on /metrics
-Instrumentator(excluded_handlers=["/metrics", "/health"]).instrument(app).expose(
-    app, include_in_schema=False, tags=["metrics"]
-)
+# Initialize Prometheus instrumentation
+Instrumentator().instrument(app).expose(app, endpoint="/metrics")

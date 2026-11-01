@@ -1,5 +1,5 @@
-from decimal import Decimal
 import hashlib
+from decimal import Decimal
 from typing import Any
 from uuid import UUID
 from zoneinfo import ZoneInfo
@@ -13,7 +13,7 @@ from finance_api.importers.registry import (
     build_default_parser_factory,
     build_default_target_resolvers,
 )
-from finance_api.importers.schemas import ParsedTransaction, StatementType
+from finance_api.importers.schemas import ParsedTransaction, ResolvedImportTarget, StatementType
 from finance_api.models.accounts import Account
 from finance_api.models.import_batches import ImportBatch
 from finance_api.models.staged_transactions import StagedTransaction
@@ -45,10 +45,10 @@ from finance_api.services.ai_classifier import AIClassifierClient
 from finance_api.services.classification import ClassificationResult, ClassificationService
 from finance_api.services.import_strategies import (
     DuplicateDetectorStrategy,
-    build_default_duplicate_detectors,
-    resolve_salary_competence_date,
     build_default_bulk_strategies,
     build_default_commit_strategies,
+    build_default_duplicate_detectors,
+    resolve_salary_competence_date,
 )
 from finance_api.services.incomes import IncomeService
 from finance_api.services.protocols import BulkActionStrategy, TransactionCommitStrategy
@@ -121,75 +121,36 @@ class ImportService:
         raw = f"{target_key}|{date_str}|{amt_str}|{tx.direction}|{tx.raw_title.upper().strip()}|{installment_str}|{tx.occurrence_index}"
         return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
-    @handle_service_errors
-    async def create_batch_from_upload(
+    def _build_fingerprint_map(
         self,
-        file_bytes: bytes,
-        filename: str,
-        account_id: UUID | None = None,
-        credit_card_id: UUID | None = None,
+        target_key: str,
+        transactions: list[ParsedTransaction],
+    ) -> list[tuple[ParsedTransaction, str]]:
+        return [(tx, self._calc_fingerprint(target_key, tx)) for tx in transactions]
+
+    def _build_batch_response(
+        self,
+        batch: ImportBatch,
+        target: ResolvedImportTarget,
+        counts: dict[str, int],
     ) -> ImportBatchResponse:
-        parser = self._parser_factory.detect_and_create(file_bytes, filename)
-        resolver = self._target_resolvers.get(parser.statement_type)
-        if resolver is None:
-            raise ValidationError(
-                f"Tipo de extrato '{parser.statement_type}' não suportado para importação."
-            )
-        target = await resolver.resolve(account_id, credit_card_id, bank_hint="c6")
+        res = ImportBatchResponse.model_validate(batch)
+        res.account_name = target.target_name
+        if target.credit_card_id:
+            res.credit_card_id = target.credit_card_id
+            res.credit_card_name = target.target_name
+        res.counts = counts
+        return res
 
-        file_sha256 = self._calc_sha256(file_bytes)
-        existing_batch = await self.batch_repo.get_by_sha256(file_sha256)
-        if existing_batch:
-            raise EntityConflictError(
-                f"Este arquivo ('{filename}') já foi importado anteriormente em {existing_batch.created_at.strftime('%d/%m/%Y %H:%M')}."
-            )
-
-        parsed = parser.parse(file_bytes, filename)
-
-        # Calcula fingerprints de todas as transações
-        fp_map: list[tuple[ParsedTransaction, str]] = []
-        for tx in parsed.transactions:
-            fp = self._calc_fingerprint(target.target_key, tx)
-            fp_map.append((tx, fp))
-
-        all_fps = [fp for _, fp in fp_map]
-        existing_fps = await self.tx_repo.get_existing_fingerprints(all_fps)
-
-        new_pairs = [(tx, fp) for tx, fp in fp_map if fp not in existing_fps]
-        duplicate_rows_count = len(parsed.transactions) - len(new_pairs)
-
-        # Cria lote no banco
-        batch = ImportBatch(
-            account_id=target.account_id,
-            credit_card_id=target.credit_card_id,
-            parser=parser.name,
-            filename=filename,
-            file_sha256=file_sha256,
-            period_start=parsed.metadata.period_start,
-            period_end=parsed.metadata.period_end,
-            total_rows=len(parsed.transactions),
-            new_rows=len(new_pairs),
-            duplicate_rows=duplicate_rows_count,
-            possible_duplicates=0,
-            ai_used=False,
-        )
-        batch = await self.batch_repo.create(batch)
-
-        if not new_pairs:
-            # Todas eram duplicadas
-            counts = await self.batch_repo.get_counts_by_status(batch.id)
-            res = ImportBatchResponse.model_validate(batch)
-            res.account_name = target.target_name
-            if target.credit_card_id:
-                res.credit_card_id = target.credit_card_id
-                res.credit_card_name = target.target_name
-            res.counts = counts
-            return res
-
-        # Classificação Camadas 1 & 2 e Detecção de Duplicatas Manuais
+    async def _build_staged_transactions(
+        self,
+        batch_id: UUID,
+        target: ResolvedImportTarget,
+        new_pairs: list[tuple[ParsedTransaction, str]],
+        is_credit_card: bool,
+    ) -> tuple[list[StagedTransaction], int]:
         staged_list: list[StagedTransaction] = []
         possible_duplicates_count = 0
-        is_credit_card = parser.statement_type == StatementType.CREDIT_CARD
 
         for tx, fp in new_pairs:
             clf: ClassificationResult = await self.classification_service.classify_transaction(
@@ -224,7 +185,7 @@ class ImportService:
             )
 
             staged = StagedTransaction(
-                batch_id=batch.id,
+                batch_id=batch_id,
                 account_id=target.account_id,
                 credit_card_id=target.credit_card_id,
                 occurred_at=tx.occurred_at,
@@ -240,7 +201,7 @@ class ImportService:
                 suggested_category=clf.suggested_category,
                 suggestion_source=clf.suggestion_source,
                 confidence=clf.confidence,
-                category=clf.suggested_category,  # Pré-preenchido com sugestão se houver
+                category=clf.suggested_category,
                 description=clf.description[:50],
                 location=clf.location,
                 status="PENDING",
@@ -254,59 +215,120 @@ class ImportService:
             )
             staged_list.append(staged)
 
-        # ---------------------------------------------------------
-        # Camada 3: LLM em lote via agent_api para o que sobrou sem categoria
-        # ---------------------------------------------------------
+        return staged_list, possible_duplicates_count
+
+    async def _enrich_with_batch_ai(self, staged_list: list[StagedTransaction]) -> bool:
         ai_candidates = [
             st
             for st in staged_list
             if st.kind in ("EXPENSE", "INCOME") and not st.suggested_category
         ]
+        if not ai_candidates:
+            return False
 
-        ai_used = False
-        if ai_candidates:
-            try:
-                exp_cats, _ = await self.category_repo.list(page=1, size=200)
-                inc_cats, _ = await self.income_category_repo.list(page=1, size=200)
+        try:
+            exp_cats, _ = await self.category_repo.list(page=1, size=200)
+            inc_cats, _ = await self.income_category_repo.list(page=1, size=200)
 
-                exp_list = [{"key": c.key, "display_name": c.display_name} for c in exp_cats]
-                inc_list = [{"key": c.key, "display_name": c.display_name} for c in inc_cats]
+            exp_list = [{"key": c.key, "display_name": c.display_name} for c in exp_cats]
+            inc_list = [{"key": c.key, "display_name": c.display_name} for c in inc_cats]
 
-                payload_items = [
-                    {
-                        "id": str(idx),
-                        "merchant": st.merchant,
-                        "raw_title": st.raw_title,
-                        "raw_description": st.raw_description,
-                        "direction": st.direction,
-                        "amount": float(st.amount),
-                    }
-                    for idx, st in enumerate(ai_candidates)
-                ]
+            payload_items = [
+                {
+                    "id": str(idx),
+                    "merchant": st.merchant,
+                    "raw_title": st.raw_title,
+                    "raw_description": st.raw_description,
+                    "direction": st.direction,
+                    "amount": float(st.amount),
+                }
+                for idx, st in enumerate(ai_candidates)
+            ]
 
-                suggestions_map, ai_success = await self.ai_client.classify_batch(
-                    transactions=payload_items,
-                    expense_categories=exp_list,
-                    income_categories=inc_list,
-                )
-                if ai_success:
-                    ai_used = True
-                    for idx, cand in enumerate(ai_candidates):
-                        sug = suggestions_map.get(str(idx))
-                        if sug:
-                            sug_cat = sug.get("category")
-                            conf = sug.get("confidence")
-                            cand.suggested_category = sug_cat
-                            cand.category = sug_cat
-                            cand.suggestion_source = "LLM"
-                            cand.confidence = Decimal(str(conf)) if conf else Decimal("0.750")
-            except Exception as e:
-                logger.warning(f"Failed to run AI classification on import batch: {e}")
+            suggestions_map, ai_success = await self.ai_client.classify_batch(
+                transactions=payload_items,
+                expense_categories=exp_list,
+                income_categories=inc_list,
+            )
+            if ai_success:
+                for idx, cand in enumerate(ai_candidates):
+                    sug = suggestions_map.get(str(idx))
+                    if sug:
+                        sug_cat = sug.get("category")
+                        conf = sug.get("confidence")
+                        cand.suggested_category = sug_cat
+                        cand.category = sug_cat
+                        cand.suggestion_source = "LLM"
+                        cand.confidence = Decimal(str(conf)) if conf else Decimal("0.750")
+                return True
+        except Exception as e:
+            logger.warning(f"Failed to run AI classification on import batch: {e}")
 
-        # Salva transações
+        return False
+
+    @handle_service_errors
+    async def create_batch_from_upload(
+        self,
+        file_bytes: bytes,
+        filename: str,
+        account_id: UUID | None = None,
+        credit_card_id: UUID | None = None,
+    ) -> ImportBatchResponse:
+        parser = self._parser_factory.detect_and_create(file_bytes, filename)
+        resolver = self._target_resolvers.get(parser.statement_type)
+        if resolver is None:
+            raise ValidationError(
+                f"Tipo de extrato '{parser.statement_type}' não suportado para importação."
+            )
+        target = await resolver.resolve(account_id, credit_card_id, bank_hint="c6")
+
+        file_sha256 = self._calc_sha256(file_bytes)
+        existing_batch = await self.batch_repo.get_by_sha256(file_sha256)
+        if existing_batch:
+            raise EntityConflictError(
+                f"Este arquivo ('{filename}') já foi importado anteriormente em {existing_batch.created_at.strftime('%d/%m/%Y %H:%M')}."
+            )
+
+        parsed = parser.parse(file_bytes, filename)
+        fp_map = self._build_fingerprint_map(target.target_key, parsed.transactions)
+        all_fps = [fp for _, fp in fp_map]
+        existing_fps = await self.tx_repo.get_existing_fingerprints(all_fps)
+
+        new_pairs = [(tx, fp) for tx, fp in fp_map if fp not in existing_fps]
+        duplicate_rows_count = len(parsed.transactions) - len(new_pairs)
+
+        # Cria lote no banco
+        batch = ImportBatch(
+            account_id=target.account_id,
+            credit_card_id=target.credit_card_id,
+            parser=parser.name,
+            filename=filename,
+            file_sha256=file_sha256,
+            period_start=parsed.metadata.period_start,
+            period_end=parsed.metadata.period_end,
+            total_rows=len(parsed.transactions),
+            new_rows=len(new_pairs),
+            duplicate_rows=duplicate_rows_count,
+            possible_duplicates=0,
+            ai_used=False,
+        )
+        batch = await self.batch_repo.create(batch)
+
+        if not new_pairs:
+            counts = await self.batch_repo.get_counts_by_status(batch.id)
+            return self._build_batch_response(batch, target, counts)
+
+        is_credit_card = parser.statement_type == StatementType.CREDIT_CARD
+        staged_list, possible_duplicates_count = await self._build_staged_transactions(
+            batch_id=batch.id,
+            target=target,
+            new_pairs=new_pairs,
+            is_credit_card=is_credit_card,
+        )
+
+        ai_used = await self._enrich_with_batch_ai(staged_list)
         await self.tx_repo.create_many(staged_list)
 
-        # Atualiza batch com ai_used e possible_duplicates via repositório (sem acessar db diretamente)
         batch = await self.batch_repo.update_batch_stats(
             batch=batch,
             possible_duplicates=possible_duplicates_count,
@@ -314,13 +336,7 @@ class ImportService:
         )
 
         counts = await self.batch_repo.get_counts_by_status(batch.id)
-        res = ImportBatchResponse.model_validate(batch)
-        res.account_name = target.target_name
-        if target.credit_card_id:
-            res.credit_card_id = target.credit_card_id
-            res.credit_card_name = target.target_name
-        res.counts = counts
-        return res
+        return self._build_batch_response(batch, target, counts)
 
     @handle_service_errors
     async def list_batches(self) -> list[ImportBatchResponse]:
@@ -344,7 +360,7 @@ class ImportService:
 
     async def _to_tx_response(self, tx: StagedTransaction) -> StagedTransactionResponse:
         res = StagedTransactionResponse.model_validate(tx)
-        res.amount = float(tx.amount)
+        res.amount = tx.amount
         res.confidence = float(tx.confidence) if tx.confidence is not None else None
         res.current_installment = tx.current_installment
         res.total_installments = tx.total_installments
@@ -358,7 +374,7 @@ class ImportService:
                     type="spent",
                     id=sp.id,
                     label=sp.item_bought,
-                    amount=sp.amount,
+                    amount=Decimal(str(sp.amount)),
                     date=sp.created_at.date(),
                 )
         elif tx.possible_duplicate_of_income_id:
@@ -368,7 +384,7 @@ class ImportService:
                     type="income",
                     id=inc.id,
                     label=inc.description,
-                    amount=inc.amount,
+                    amount=Decimal(str(inc.amount)),
                     date=inc.received_at.date(),
                 )
         return res

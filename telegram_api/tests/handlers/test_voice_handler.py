@@ -1,7 +1,8 @@
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from telegram import Update, Message, User, Chat, Voice
+from telegram import Chat, Message, Update, User, Voice
 from telegram.ext import ContextTypes
 
 from telegram_api.handlers.voice_handler import handle_voice_message

@@ -3,8 +3,8 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
 
 from finance_api.core.dependencies import (
     get_account_repository,

@@ -1,8 +1,9 @@
-from datetime import date, datetime
-from typing import List, Optional, Tuple
+import builtins
 import uuid
+from datetime import date, datetime
 from uuid import UUID
 from zoneinfo import ZoneInfo
+
 from dateutil.relativedelta import relativedelta
 
 from finance_api.core.decorators import handle_service_errors
@@ -33,10 +34,10 @@ class SpentService:
     def __init__(
         self,
         repo: SpentRepository,
-        category_repo: Optional[CategoryRepository] = None,
-        pm_repo: Optional[PaymentMethodRepository] = None,
-        inv_service: Optional[InvoiceService] = None,
-        payment_resolver: Optional[PaymentResolutionService] = None,
+        category_repo: CategoryRepository | None = None,
+        pm_repo: PaymentMethodRepository | None = None,
+        inv_service: InvoiceService | None = None,
+        payment_resolver: PaymentResolutionService | None = None,
     ):
         self.repo = repo
         self._category_repo = category_repo
@@ -59,7 +60,7 @@ class SpentService:
         return PaymentMethodRepository(self.repo.db)
 
     @property
-    def inv_service(self) -> Optional[InvoiceService]:
+    def inv_service(self) -> InvoiceService | None:
         """Returns the injected invoice service or instantiates one."""
         if self._inv_service is not None:
             return self._inv_service
@@ -90,7 +91,7 @@ class SpentService:
             )
         return payment_method
 
-    def _build_installments(self, spent: SpentCreate) -> List[Spent]:
+    def _build_installments(self, spent: SpentCreate) -> list[Spent]:
         spents_to_create = []
         installment_id = uuid.uuid4()
         current = spent.current_installment or 1
@@ -117,9 +118,9 @@ class SpentService:
     async def _resolve_invoice_periods(
         self,
         reference_month: str,
-        inv_service: Optional[InvoiceService] = None,
-        pm_repo: Optional[PaymentMethodRepository] = None,
-    ) -> List[Tuple[str, date, date]]:
+        inv_service: InvoiceService | None = None,
+        pm_repo: PaymentMethodRepository | None = None,
+    ) -> list[tuple[str, date, date]]:
         """Resolves invoice billing periods for all payment methods."""
         active_inv = inv_service or self.inv_service
         active_pm = pm_repo or self.pm_repo
@@ -162,8 +163,8 @@ class SpentService:
         self,
         page: int = 1,
         size: int = 10,
-        start_date: Optional[date] = None,
-        end_date: Optional[date] = None,
+        start_date: date | None = None,
+        end_date: date | None = None,
     ) -> PaginatedResponse["Spent"]:
         logger.info(f"Listing spents page {page} size {size} start {start_date} end {end_date}")
         skip = (page - 1) * size
@@ -177,8 +178,8 @@ class SpentService:
         mode: str,
         page: int,
         size: int,
-        inv_service: Optional[InvoiceService] = None,
-        pm_repo: Optional[PaymentMethodRepository] = None,
+        inv_service: InvoiceService | None = None,
+        pm_repo: PaymentMethodRepository | None = None,
     ) -> PaginatedResponse["Spent"]:
         logger.info(f"Dashboard mode {mode} for {reference_month}")
         skip = (page - 1) * size
@@ -252,7 +253,7 @@ class SpentService:
         return True
 
     @handle_service_errors
-    async def get_installments_summary(self) -> List[InstallmentSummary]:
+    async def get_installments_summary(self) -> builtins.list[InstallmentSummary]:
         logger.info("Fetching installments summary")
         summary_dicts = await self.repo.get_installments_summary()
         return [InstallmentSummary(**s) for s in summary_dicts]
