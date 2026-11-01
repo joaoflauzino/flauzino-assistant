@@ -1,10 +1,8 @@
-import calendar
 from collections.abc import Sequence
 from datetime import date
 from typing import Protocol
 
 from finance_api.core.dates import DateRange
-from finance_api.core.exceptions import ValidationError
 from finance_api.models.spents import Spent
 from finance_api.repositories.payment_methods import PaymentMethodRepository
 from finance_api.repositories.spents import SpentRepository
@@ -51,9 +49,7 @@ class InvoicesDashboardStrategy:
         self._inv_service = inv_service
         self._pm_repo = pm_repo
 
-    async def _resolve_invoice_periods(
-        self, reference_month: str
-    ) -> list[tuple[str, date, date]]:
+    async def _resolve_invoice_periods(self, reference_month: str) -> list[tuple[str, date, date]]:
         payment_methods, _ = await self._pm_repo.list(page=1, size=1000)
         periods: list[tuple[str, date, date]] = []
 

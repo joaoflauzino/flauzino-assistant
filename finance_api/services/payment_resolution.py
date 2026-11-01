@@ -66,7 +66,9 @@ class PaymentResolutionService:
                         acc_id = getattr(card, "account_id", None)
                         if inspect.iscoroutine(acc_id):
                             acc_id = None
-                        logger.debug(f"PaymentResolution: Matched credit card '{clean_key}' -> card_id={card_id}")
+                        logger.debug(
+                            f"PaymentResolution: Matched credit card '{clean_key}' -> card_id={card_id}"
+                        )
                         return ResolvedPaymentTarget(
                             account_id=acc_id,
                             credit_card_id=card_id,
@@ -87,7 +89,9 @@ class PaymentResolutionService:
                             if requested_payment_type in VALID_ACCOUNT_PAYMENT_TYPES
                             else "DEBIT"
                         )
-                        logger.debug(f"PaymentResolution: Matched account '{clean_key}' -> account_id={acc_id}")
+                        logger.debug(
+                            f"PaymentResolution: Matched account '{clean_key}' -> account_id={acc_id}"
+                        )
                         return ResolvedPaymentTarget(
                             account_id=acc_id,
                             credit_card_id=None,

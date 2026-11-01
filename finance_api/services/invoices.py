@@ -76,9 +76,11 @@ class InvoiceService:
         invoices_map = {inv.payment_method_key: inv for inv in invoices}
 
         return [
-            InvoiceResponse.model_validate(invoices_map[cc.key])
-            if cc.key in invoices_map
-            else self._build_preview_invoice(cc, reference_month)
+            (
+                InvoiceResponse.model_validate(invoices_map[cc.key])
+                if cc.key in invoices_map
+                else self._build_preview_invoice(cc, reference_month)
+            )
             for cc in credit_cards
         ]
 

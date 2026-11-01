@@ -109,12 +109,16 @@ class SetCategoryBulkStrategy:
 
         clean_cat = req.category.strip().lower()
 
-        if tx.kind == TransactionKind.EXPENSE and not await self._category_repo.get_by_key(clean_cat):
+        if tx.kind == TransactionKind.EXPENSE and not await self._category_repo.get_by_key(
+            clean_cat
+        ):
             return StepOutcome(
                 status=StepOutcomeStatus.ERROR,
                 error_message=f"Categoria '{clean_cat}' não existe",
             )
-        if tx.kind == TransactionKind.INCOME and not await self._income_category_repo.get_by_key(clean_cat):
+        if tx.kind == TransactionKind.INCOME and not await self._income_category_repo.get_by_key(
+            clean_cat
+        ):
             return StepOutcome(
                 status=StepOutcomeStatus.ERROR,
                 error_message=f"Categoria '{clean_cat}' não existe",

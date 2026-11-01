@@ -153,7 +153,9 @@ class IncomeService:
         end_date: Optional[date] = None,
     ) -> MonthlyBalanceSummary:
         period = DateRange.from_bounds(start_date, end_date, reference_month)
-        logger.info(f"Calculating balance summary for {period.label} ({period.start} to {period.end})")
+        logger.info(
+            f"Calculating balance summary for {period.label} ({period.start} to {period.end})"
+        )
 
         incomes = await self.repo.list_by_period(period.start, period.end)
         spents, _ = await self.spent_repo.list(

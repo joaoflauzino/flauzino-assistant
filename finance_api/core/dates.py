@@ -45,7 +45,10 @@ class DateRange:
     ) -> Self:
         """Resolves date bounds and label without fragmented procedural if/elif logic."""
         if start_date and end_date:
-            label = reference_month or f"{start_date.strftime('%Y-%m-%d')} a {end_date.strftime('%Y-%m-%d')}"
+            label = (
+                reference_month
+                or f"{start_date.strftime('%Y-%m-%d')} a {end_date.strftime('%Y-%m-%d')}"
+            )
             return cls(start=start_date, end=end_date, label=label)
 
         if start_date:

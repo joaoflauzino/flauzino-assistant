@@ -5,7 +5,6 @@ from uuid import UUID
 from zoneinfo import ZoneInfo
 from dateutil.relativedelta import relativedelta
 
-from finance_api.core.dates import DateRange
 from finance_api.core.decorators import handle_service_errors
 from finance_api.core.exceptions import EntityNotFoundError, ValidationError
 from finance_api.core.logger import get_logger
@@ -192,7 +191,9 @@ class SpentService:
 
         strategies: dict[str, DashboardPeriodStrategy] = {
             "CIVIL_MONTH": CivilMonthDashboardStrategy(self.repo),
-            "INVOICES": InvoicesDashboardStrategy(self.repo, active_inv, active_pm) if active_inv else None,
+            "INVOICES": (
+                InvoicesDashboardStrategy(self.repo, active_inv, active_pm) if active_inv else None
+            ),
         }
 
         strategy = strategies.get(mode)
