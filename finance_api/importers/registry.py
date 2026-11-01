@@ -1,4 +1,6 @@
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass
+from typing import Protocol
 from uuid import UUID
 
 from finance_api.core.exceptions import EntityNotFoundError, ValidationError
@@ -15,16 +17,66 @@ from finance_api.repositories.credit_cards import CreditCardRepositoryProtocol
 
 
 # ---------------------------------------------------------------------------
-# 1. Concrete Products (CreditCardTargetResolver & CheckingAccountTargetResolver)
+# 1. Chain of Responsibility: Credit Card Resolution Steps
+# ---------------------------------------------------------------------------
+@dataclass(frozen=True)
+class CardResolutionContext:
+    account_id: UUID | None
+    credit_card_id: UUID | None
+    bank_hint: str | None
+    account_repo: AccountRepositoryProtocol
+    credit_card_repo: CreditCardRepositoryProtocol
+
+
+class CardResolutionStep(Protocol):
+    async def resolve_card_id(self, ctx: CardResolutionContext) -> UUID | None: ...
+
+
+class DirectCardIdStep:
+    """Prioritizes an explicitly provided credit_card_id."""
+
+    async def resolve_card_id(self, ctx: CardResolutionContext) -> UUID | None:
+        return ctx.credit_card_id
+
+
+class AccountCardFallbackStep:
+    """Resolves the first card associated with the provided account_id."""
+
+    async def resolve_card_id(self, ctx: CardResolutionContext) -> UUID | None:
+        if not ctx.account_id:
+            return None
+        cards, _ = await ctx.credit_card_repo.list(account_id=ctx.account_id)
+        return cards[0].id if cards else None
+
+
+class BankHintCardStep:
+    """Resolves card matching a bank hint (e.g. 'c6')."""
+
+    async def resolve_card_id(self, ctx: CardResolutionContext) -> UUID | None:
+        if not ctx.bank_hint:
+            return None
+        all_cards, _ = await ctx.credit_card_repo.list(page=1, size=100)
+        matched = [c for c in all_cards if ctx.bank_hint.lower() in c.key.lower()]
+        return matched[0].id if matched else None
+
+
+# ---------------------------------------------------------------------------
+# 2. Concrete Target Resolvers
 # ---------------------------------------------------------------------------
 class CreditCardTargetResolver:
     def __init__(
         self,
         account_repo: AccountRepositoryProtocol,
         credit_card_repo: CreditCardRepositoryProtocol,
+        steps: Sequence[CardResolutionStep] | None = None,
     ) -> None:
         self._account_repo = account_repo
         self._credit_card_repo = credit_card_repo
+        self._steps = steps or (
+            DirectCardIdStep(),
+            AccountCardFallbackStep(),
+            BankHintCardStep(),
+        )
 
     async def resolve(
         self,
@@ -32,29 +84,26 @@ class CreditCardTargetResolver:
         credit_card_id: UUID | None,
         bank_hint: str | None = None,
     ) -> ResolvedImportTarget:
-        if not credit_card_id and account_id:
-            cards, _ = await self._credit_card_repo.list(account_id=account_id)
-            if cards:
-                credit_card_id = cards[0].id
+        ctx = CardResolutionContext(
+            account_id=account_id,
+            credit_card_id=credit_card_id,
+            bank_hint=bank_hint,
+            account_repo=self._account_repo,
+            credit_card_repo=self._credit_card_repo,
+        )
 
-        if credit_card_id and not account_id:
-            card = await self._credit_card_repo.get_by_id(credit_card_id)
-            if card:
-                account_id = card.account_id
+        resolved_card_id: UUID | None = None
+        for step in self._steps:
+            resolved_card_id = await step.resolve_card_id(ctx)
+            if resolved_card_id is not None:
+                break
 
-        if not credit_card_id and bank_hint:
-            all_cards, _ = await self._credit_card_repo.list(page=1, size=100)
-            matched = [c for c in all_cards if bank_hint.lower() in c.key.lower()]
-            if matched:
-                credit_card_id = matched[0].id
-                account_id = matched[0].account_id
-
-        if not credit_card_id:
+        if not resolved_card_id:
             raise ValidationError("Informe o cartão de crédito para a importação da fatura.")
 
-        card = await self._credit_card_repo.get_by_id(credit_card_id)
+        card = await self._credit_card_repo.get_by_id(resolved_card_id)
         if not card:
-            raise EntityNotFoundError(f"Cartão com ID {credit_card_id} não encontrado")
+            raise EntityNotFoundError(f"Cartão com ID {resolved_card_id} não encontrado")
 
         return ResolvedImportTarget(
             account_id=account_id or card.account_id,
@@ -79,7 +128,7 @@ class CheckingAccountTargetResolver:
         credit_card_id: UUID | None,
         bank_hint: str | None = None,
     ) -> ResolvedImportTarget:
-        if credit_card_id and not account_id:
+        if not account_id and credit_card_id:
             card = await self._credit_card_repo.get_by_id(credit_card_id)
             if card:
                 account_id = card.account_id
@@ -100,7 +149,7 @@ class CheckingAccountTargetResolver:
 
 
 # ---------------------------------------------------------------------------
-# 2. Factory com Registry para Parsers de Extrato
+# 3. Factory com Registry para Parsers de Extrato
 # ---------------------------------------------------------------------------
 type ParserCreator = Callable[[], StatementParser]
 

@@ -45,6 +45,9 @@ from finance_api.schemas.pagination import PaginatedResponse
 from finance_api.services.ai_classifier import AIClassifierClient
 from finance_api.services.classification import ClassificationResult, ClassificationService
 from finance_api.services.import_strategies import (
+    DuplicateDetectorStrategy,
+    build_default_duplicate_detectors,
+    resolve_salary_competence_date,
     build_default_bulk_strategies,
     build_default_commit_strategies,
 )
@@ -74,6 +77,7 @@ class ImportService:
         commit_strategies: dict[str, TransactionCommitStrategy] | None = None,
         parser_factory: StatementParserFactory | None = None,
         target_resolvers: dict[StatementType, ImportTargetResolver] | None = None,
+        duplicate_detectors: dict[str, DuplicateDetectorStrategy] | None = None,
     ) -> None:
         self.batch_repo = batch_repo
         self.tx_repo = tx_repo
@@ -100,6 +104,7 @@ class ImportService:
             account_repo=self.account_repo,
             credit_card_repo=self.credit_card_repo,
         )
+        self._duplicate_detectors = duplicate_detectors or build_default_duplicate_detectors()
 
     def _calc_sha256(self, content: bytes) -> str:
         return hashlib.sha256(content).hexdigest()
@@ -197,51 +202,27 @@ class ImportService:
                 is_credit_card=is_credit_card,
             )
 
-            # Detecção de duplicata com lançamento manual
-            dup_spent_id = None
-            dup_income_id = None
-            if clf.kind == "EXPENSE":
-                match_sp = await self.tx_repo.find_possible_duplicate_spent(
+            # Detecção de duplicata via Strategy Pattern
+            dup_spent_id, dup_income_id = None, None
+            detector = self._duplicate_detectors.get(clf.kind)
+            if detector:
+                dup_spent_id, dup_income_id = await detector.detect(
+                    tx_repo=self.tx_repo,
                     account_id=target.account_id,
-                    amount=tx.amount,
-                    tx_date=tx.occurred_at.date(),
                     credit_card_id=target.credit_card_id,
-                )
-                if match_sp:
-                    dup_spent_id = match_sp.id
-                    possible_duplicates_count += 1
-            elif clf.kind == "INCOME":
-                match_inc = await self.tx_repo.find_possible_duplicate_income(
-                    account_id=target.account_id,
                     amount=tx.amount,
                     tx_date=tx.occurred_at.date(),
                 )
-                if match_inc:
-                    dup_income_id = match_inc.id
+                if dup_spent_id or dup_income_id:
                     possible_duplicates_count += 1
 
-            comp_date = None
-            if clf.kind == "INCOME":
-                tx_dt = tx.occurred_at.date()
-                norm_raw = f"{tx.raw_title} {tx.raw_description or ''}".upper()
-                is_salary_like = any(
-                    k in norm_raw
-                    for k in [
-                        "SALARIO",
-                        "SALÁRIO",
-                        "FOLHA",
-                        "PRO-LABORE",
-                        "REMUNERACAO",
-                        "VENCIMENTO",
-                        "PPR",
-                        "PLR",
-                    ]
-                )
-                if is_salary_like and tx_dt.day <= 7:
-                    first_of_month = tx_dt.replace(day=1)
-                    comp_date = first_of_month - timedelta(days=1)
-                else:
-                    comp_date = tx_dt
+            # Resolução de competência para salários
+            comp_date = resolve_salary_competence_date(
+                kind=clf.kind,
+                occurred_at=tx.occurred_at,
+                raw_title=tx.raw_title,
+                raw_description=tx.raw_description,
+            )
 
             staged = StagedTransaction(
                 batch_id=batch.id,
@@ -416,6 +397,17 @@ class ImportService:
         tx_responses = [await self._to_tx_response(tx) for tx in items]
         return PaginatedResponse.create(tx_responses, total, page, size)
 
+    async def _validate_category_for_kind(self, kind: str, category_key: str) -> None:
+        """Validates category existence based on transaction kind."""
+        if kind == "EXPENSE":
+            c = await self.category_repo.get_by_key(category_key)
+            if not c:
+                raise ValidationError(f"Categoria de despesa '{category_key}' não existe.")
+        elif kind == "INCOME":
+            ic = await self.income_category_repo.get_by_key(category_key)
+            if not ic:
+                raise ValidationError(f"Categoria de receita '{category_key}' não existe.")
+
     @handle_service_errors
     async def update_transaction(
         self, tx_id: UUID, data: StagedTransactionUpdate
@@ -447,14 +439,7 @@ class ImportService:
         if data.category is not None:
             clean_cat = data.category.strip().lower() if data.category else None
             if clean_cat:
-                if tx.kind == "EXPENSE":
-                    c = await self.category_repo.get_by_key(clean_cat)
-                    if not c:
-                        raise ValidationError(f"Categoria de despesa '{clean_cat}' não existe.")
-                elif tx.kind == "INCOME":
-                    ic = await self.income_category_repo.get_by_key(clean_cat)
-                    if not ic:
-                        raise ValidationError(f"Categoria de receita '{clean_cat}' não existe.")
+                await self._validate_category_for_kind(tx.kind, clean_cat)
             tx.category = clean_cat
 
         if data.status is not None:

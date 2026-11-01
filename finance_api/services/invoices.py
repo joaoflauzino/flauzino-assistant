@@ -1,10 +1,8 @@
-import calendar
 from datetime import date, datetime
 from typing import List, Tuple
 from uuid import UUID
-from dateutil.relativedelta import relativedelta
-import holidays
 
+from finance_api.core.dates import compute_business_day, resolve_due_reference_month
 from finance_api.core.decorators import handle_service_errors
 from finance_api.core.exceptions import EntityNotFoundError
 from finance_api.core.logger import get_logger
@@ -16,38 +14,30 @@ from finance_api.schemas.invoices import InvoiceCreate, InvoiceResponse, Invoice
 
 logger = get_logger(__name__)
 
-
-def compute_real_date(reference_month: str, target_day: int) -> date:
-    year, month = map(int, reference_month.split("-"))
-    _, last_day = calendar.monthrange(year, month)
-    day = min(target_day, last_day)
-
-    target_date = date(year, month, day)
-    br_holidays = holidays.BR()
-
-    while target_date.weekday() >= 5 or target_date in br_holidays:
-        target_date += relativedelta(days=1)
-
-    return target_date
-
-
-def get_due_reference_month(reference_month: str, closing_day: int, due_day: int) -> str:
-    """Resolve the reference month for the invoice due date.
-
-    If the due day is less than or equal to the closing day (e.g. closes on the 28th and
-    due on the 5th), the due date falls into the subsequent month.
-    """
-    if due_day <= closing_day:
-        year, month = map(int, reference_month.split("-"))
-        due_date_ref = date(year, month, 1) + relativedelta(months=1)
-        return due_date_ref.strftime("%Y-%m")
-    return reference_month
+# Backward-compatible exports for existing callers and tests
+compute_real_date = compute_business_day
+get_due_reference_month = resolve_due_reference_month
 
 
 class InvoiceService:
     def __init__(self, repo: InvoiceRepository, pm_repo: PaymentMethodRepository):
         self.repo = repo
         self.pm_repo = pm_repo
+
+    def _build_preview_invoice(self, cc: PaymentMethod, reference_month: str) -> InvoiceResponse:
+        closing_day = cc.closing_day or 1
+        due_day = cc.due_day or 1
+        due_ref_month = resolve_due_reference_month(reference_month, closing_day, due_day)
+        return InvoiceResponse(
+            id=UUID("00000000-0000-0000-0000-000000000000"),
+            payment_method_key=cc.key,
+            credit_card_id=cc.id,
+            reference_month=reference_month,
+            real_closing_date=compute_business_day(reference_month, closing_day),
+            real_due_date=compute_business_day(due_ref_month, due_day),
+            status=InvoiceStatus.OPEN,
+            created_at=datetime.now(),
+        )
 
     @handle_service_errors
     async def get_invoice_dates(
@@ -69,12 +59,10 @@ class InvoiceService:
 
         closing_day = payment_method.closing_day or 1
         due_day = payment_method.due_day or 1
+        due_reference_month = resolve_due_reference_month(reference_month, closing_day, due_day)
 
-        due_reference_month = get_due_reference_month(reference_month, closing_day, due_day)
-
-        real_closing = compute_real_date(reference_month, closing_day)
-        real_due = compute_real_date(due_reference_month, due_day)
-
+        real_closing = compute_business_day(reference_month, closing_day)
+        real_due = compute_business_day(due_reference_month, due_day)
         return real_closing, real_due
 
     @handle_service_errors
@@ -87,31 +75,12 @@ class InvoiceService:
         invoices = await self.repo.list_by_month(reference_month)
         invoices_map = {inv.payment_method_key: inv for inv in invoices}
 
-        result = []
-        for cc in credit_cards:
-            if cc.key in invoices_map:
-                result.append(InvoiceResponse.model_validate(invoices_map[cc.key]))
-            else:
-                closing_day = cc.closing_day or 1
-                due_day = cc.due_day or 1
-                due_reference_month = get_due_reference_month(reference_month, closing_day, due_day)
-                real_closing = compute_real_date(reference_month, closing_day)
-                real_due = compute_real_date(due_reference_month, due_day)
-
-                result.append(
-                    InvoiceResponse(
-                        id=UUID("00000000-0000-0000-0000-000000000000"),
-                        payment_method_key=cc.key,
-                        credit_card_id=cc.id,
-                        reference_month=reference_month,
-                        real_closing_date=real_closing,
-                        real_due_date=real_due,
-                        status=InvoiceStatus.OPEN,
-                        created_at=datetime.now(),
-                    )
-                )
-
-        return result
+        return [
+            InvoiceResponse.model_validate(invoices_map[cc.key])
+            if cc.key in invoices_map
+            else self._build_preview_invoice(cc, reference_month)
+            for cc in credit_cards
+        ]
 
     @handle_service_errors
     async def update_invoice_dates(
@@ -131,33 +100,29 @@ class InvoiceService:
             payment_method_key, reference_month
         )
         if invoice:
-            update_data = InvoiceUpdate()
+            patch: dict[str, object] = {}
             if closing_date is not None:
-                update_data.real_closing_date = closing_date
+                patch["real_closing_date"] = closing_date
             if due_date is not None:
-                update_data.real_due_date = due_date
+                patch["real_due_date"] = due_date
             if status is not None:
-                update_data.status = status
+                patch["status"] = status
             if not invoice.credit_card_id and pm.id:
-                update_data.credit_card_id = pm.id
-            updated = await self.repo.update(invoice.id, update_data)
+                patch["credit_card_id"] = pm.id
+            updated = await self.repo.update(invoice.id, InvoiceUpdate(**patch))
             return InvoiceResponse.model_validate(updated)
 
         closing_d = pm.closing_day or (closing_date.day if closing_date else 1)
         due_d = pm.due_day or (due_date.day if due_date else 1)
-        due_ref_month = get_due_reference_month(reference_month, closing_d, due_d)
-
-        final_closing = closing_date or compute_real_date(reference_month, closing_d)
-        final_due = due_date or compute_real_date(due_ref_month, due_d)
-        final_status = status or InvoiceStatus.OPEN
+        due_ref_month = resolve_due_reference_month(reference_month, closing_d, due_d)
 
         new_inv = InvoiceCreate(
             payment_method_key=payment_method_key,
             credit_card_id=pm.id,
             reference_month=reference_month,
-            real_closing_date=final_closing,
-            real_due_date=final_due,
-            status=final_status,
+            real_closing_date=closing_date or compute_business_day(reference_month, closing_d),
+            real_due_date=due_date or compute_business_day(due_ref_month, due_d),
+            status=status or InvoiceStatus.OPEN,
         )
         created = await self.repo.create(new_inv)
         return InvoiceResponse.model_validate(created)
