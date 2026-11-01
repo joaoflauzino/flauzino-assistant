@@ -1,6 +1,6 @@
-from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock
 import uuid
+from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -24,7 +24,7 @@ async def test_get_session_not_found():
 async def test_get_session_active_not_expired():
     mock_db = AsyncMock()
     session_id = uuid.uuid4()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     session_record = TelegramSession(
         chat_id=123,
@@ -47,7 +47,7 @@ async def test_get_session_active_not_expired():
 async def test_get_session_expired():
     mock_db = AsyncMock()
     session_id = uuid.uuid4()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     session_record = TelegramSession(
         chat_id=123,

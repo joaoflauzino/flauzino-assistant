@@ -1,5 +1,6 @@
 import base64
 from unittest.mock import AsyncMock, MagicMock
+
 import pytest
 from mcp.server.fastmcp import Image
 

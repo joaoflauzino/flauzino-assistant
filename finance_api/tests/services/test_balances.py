@@ -1,5 +1,6 @@
 from datetime import date
 from unittest.mock import AsyncMock, MagicMock
+
 import pytest
 
 from finance_api.core.dependencies import get_balance_service

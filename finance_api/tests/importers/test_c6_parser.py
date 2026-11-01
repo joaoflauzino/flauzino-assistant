@@ -1,5 +1,6 @@
 from datetime import date
 from decimal import Decimal
+
 import pytest
 
 from finance_api.core.exceptions import ValidationError

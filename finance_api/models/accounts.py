@@ -1,6 +1,5 @@
 import uuid
 from datetime import datetime
-from typing import List
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import DateTime, String
@@ -27,6 +26,6 @@ class Account(Base):
         default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
     )
 
-    credit_cards: Mapped[List[CreditCard]] = relationship(
+    credit_cards: Mapped[list[CreditCard]] = relationship(
         "CreditCard", back_populates="account", cascade="all, delete-orphan", lazy="selectin"
     )

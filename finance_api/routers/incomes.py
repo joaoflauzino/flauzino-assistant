@@ -1,5 +1,4 @@
 from datetime import date
-from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
@@ -21,7 +20,7 @@ router = APIRouter()
 async def create_income(
     income_data: IncomeCreate,
     service: IncomeService = Depends(get_income_service),
-):
+) -> IncomeResponse:
     """Registra uma nova receita."""
     return await service.create(income_data)
 
@@ -30,11 +29,11 @@ async def create_income(
 async def list_incomes(
     page: int = Query(1, ge=1, description="Número da página"),
     size: int = Query(100, ge=1, le=1000, description="Tamanho da página"),
-    start_date: Optional[date] = Query(None, description="Data inicial do filtro"),
-    end_date: Optional[date] = Query(None, description="Data final do filtro"),
-    category: Optional[str] = Query(None, description="Chave da categoria para filtro"),
+    start_date: date | None = Query(None, description="Data inicial do filtro"),
+    end_date: date | None = Query(None, description="Data final do filtro"),
+    category: str | None = Query(None, description="Chave da categoria para filtro"),
     service: IncomeService = Depends(get_income_service),
-):
+) -> PaginatedResponse[IncomeResponse]:
     """Lista receitas com paginação e filtros opcionais por data e categoria."""
     items, total = await service.list(
         page=page,
@@ -49,13 +48,13 @@ async def list_incomes(
 
 @router.get("/summary", response_model=MonthlyBalanceSummary)
 async def get_monthly_summary(
-    reference_month: Optional[str] = Query(
+    reference_month: str | None = Query(
         None, description="Mês de referência no formato YYYY-MM (ex: '2026-08')"
     ),
-    start_date: Optional[date] = Query(None, description="Data inicial do período"),
-    end_date: Optional[date] = Query(None, description="Data final do período"),
+    start_date: date | None = Query(None, description="Data inicial do período"),
+    end_date: date | None = Query(None, description="Data final do período"),
     service: IncomeService = Depends(get_income_service),
-):
+) -> MonthlyBalanceSummary:
     """Retorna o balanço mensal ou por período consolidado (receitas, despesas, saldo e taxa de economia)."""
     return await service.get_monthly_summary(
         reference_month=reference_month,
@@ -68,7 +67,7 @@ async def get_monthly_summary(
 async def get_income(
     income_id: UUID,
     service: IncomeService = Depends(get_income_service),
-):
+) -> IncomeResponse:
     """Busca uma receita por ID."""
     return await service.get_by_id(income_id)
 
@@ -78,7 +77,7 @@ async def update_income(
     income_id: UUID,
     update_data: IncomeUpdate,
     service: IncomeService = Depends(get_income_service),
-):
+) -> IncomeResponse:
     """Atualiza uma receita existente."""
     return await service.update(income_id, update_data)
 
@@ -88,7 +87,7 @@ async def patch_income(
     income_id: UUID,
     update_data: IncomeUpdate,
     service: IncomeService = Depends(get_income_service),
-):
+) -> IncomeResponse:
     """Atualiza parcialmente uma receita existente."""
     return await service.update(income_id, update_data)
 
@@ -97,6 +96,6 @@ async def patch_income(
 async def delete_income(
     income_id: UUID,
     service: IncomeService = Depends(get_income_service),
-):
+) -> None:
     """Exclui uma receita."""
     await service.delete(income_id)

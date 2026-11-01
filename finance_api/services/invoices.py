@@ -1,5 +1,4 @@
 from datetime import date, datetime
-from typing import List, Tuple
 from uuid import UUID
 
 from finance_api.core.dates import compute_business_day, resolve_due_reference_month
@@ -42,7 +41,7 @@ class InvoiceService:
     @handle_service_errors
     async def get_invoice_dates(
         self, payment_method: PaymentMethod, reference_month: str
-    ) -> Tuple[date, date]:
+    ) -> tuple[date, date]:
         """Calculates real_closing_date and real_due_date for a given month and payment method.
 
         Checks for an existing override in `invoices` table first.
@@ -66,7 +65,7 @@ class InvoiceService:
         return real_closing, real_due
 
     @handle_service_errors
-    async def list_previews(self, reference_month: str) -> List[InvoiceResponse]:
+    async def list_previews(self, reference_month: str) -> list[InvoiceResponse]:
         """Lists invoices for all credit cards for a given reference month.
 
         Returns persisted invoices or computes preview based on payment methods.

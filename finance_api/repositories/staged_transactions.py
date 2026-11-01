@@ -1,6 +1,6 @@
+from collections.abc import Sequence
 from datetime import date, timedelta
 from decimal import Decimal
-from typing import Sequence
 from uuid import UUID
 
 from sqlalchemy import and_, func, or_, select

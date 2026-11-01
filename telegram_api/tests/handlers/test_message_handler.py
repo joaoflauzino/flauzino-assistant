@@ -1,10 +1,11 @@
 import uuid
 from unittest.mock import AsyncMock, patch
+
 import pytest
-from telegram import Update, Message, User, Chat, CallbackQuery
+from telegram import CallbackQuery, Chat, Message, Update, User
 from telegram.ext import ContextTypes
 
-from telegram_api.handlers.message_handler import handle_text_message, handle_agent_callback
+from telegram_api.handlers.message_handler import handle_agent_callback, handle_text_message
 
 
 @pytest.fixture

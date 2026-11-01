@@ -1,4 +1,5 @@
 from typing import Any
+
 import httpx
 
 from finance_api.core.http_client import get_http_client

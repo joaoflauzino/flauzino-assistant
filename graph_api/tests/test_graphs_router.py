@@ -1,5 +1,5 @@
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
 
 from graph_api.core.exceptions import GraphGenerationError
 from graph_api.main import app

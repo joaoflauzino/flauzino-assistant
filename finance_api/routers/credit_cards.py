@@ -1,4 +1,4 @@
-from typing import Annotated, Optional
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
@@ -30,9 +30,9 @@ def get_credit_card_service(
 async def list_credit_cards(
     page: int = Query(1, ge=1, description="Page number"),
     size: int = Query(100, ge=1, le=1000, description="Page size"),
-    account_id: Optional[UUID] = Query(None, description="Filter by account ID"),
+    account_id: UUID | None = Query(None, description="Filter by account ID"),
     service: CreditCardService = Depends(get_credit_card_service),
-):
+) -> PaginatedResponse[CreditCardResponse]:
     """List all credit cards with pagination and optional account filter."""
     items, total = await service.list(page=page, size=size, account_id=account_id)
     pages = (total + size - 1) // size if total > 0 else 0
@@ -43,7 +43,7 @@ async def list_credit_cards(
 async def get_credit_card(
     card_id: UUID,
     service: CreditCardService = Depends(get_credit_card_service),
-):
+) -> CreditCardResponse:
     """Get a credit card by ID."""
     return await service.get_by_id(card_id)
 
@@ -52,7 +52,7 @@ async def get_credit_card(
 async def create_credit_card(
     card_data: CreditCardCreate,
     service: CreditCardService = Depends(get_credit_card_service),
-):
+) -> CreditCardResponse:
     """Create a new credit card."""
     return await service.create(card_data)
 
@@ -62,7 +62,7 @@ async def update_credit_card(
     card_id: UUID,
     update_data: CreditCardUpdate,
     service: CreditCardService = Depends(get_credit_card_service),
-):
+) -> CreditCardResponse:
     """Update an existing credit card."""
     return await service.update(card_id, update_data)
 
@@ -71,6 +71,6 @@ async def update_credit_card(
 async def delete_credit_card(
     card_id: UUID,
     service: CreditCardService = Depends(get_credit_card_service),
-):
+) -> None:
     """Delete a credit card."""
     await service.delete(card_id)

@@ -2,10 +2,10 @@ import httpx
 
 
 class HTTPClientManager:
-    def __init__(self):
+    def __init__(self) -> None:
         self.client: httpx.AsyncClient | None = None
 
-    async def stop(self):
+    async def stop(self) -> None:
         if self.client:
             await self.client.aclose()
             self.client = None

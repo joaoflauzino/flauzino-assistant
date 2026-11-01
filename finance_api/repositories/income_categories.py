@@ -1,5 +1,4 @@
 import unicodedata
-from typing import List, Optional
 from uuid import UUID
 
 from sqlalchemy import delete, func, select, update
@@ -29,7 +28,7 @@ class IncomeCategoryRepository:
         logger.info(f"Created income category: {new_category.key}")
         return new_category
 
-    async def list(self, skip: int = 0, limit: int = 100) -> tuple[List[IncomeCategory], int]:
+    async def list(self, skip: int = 0, limit: int = 100) -> tuple[list[IncomeCategory], int]:
         query = select(IncomeCategory).order_by(IncomeCategory.display_name)
 
         count_query = select(func.count()).select_from(query.subquery())
@@ -42,7 +41,7 @@ class IncomeCategoryRepository:
         logger.info(f"Listed {len(items)} income categories")
         return items, total
 
-    async def get_by_id(self, category_id: UUID) -> Optional[IncomeCategory]:
+    async def get_by_id(self, category_id: UUID) -> IncomeCategory | None:
         result = await self.db.execute(
             select(IncomeCategory).where(IncomeCategory.id == category_id)
         )
@@ -51,7 +50,7 @@ class IncomeCategoryRepository:
             logger.info(f"Retrieved income category: {category_id}")
         return category
 
-    async def get_by_key(self, key: str) -> Optional[IncomeCategory]:
+    async def get_by_key(self, key: str) -> IncomeCategory | None:
         # Exact match first
         result = await self.db.execute(select(IncomeCategory).where(IncomeCategory.key == key))
         category = result.scalar_one_or_none()
@@ -72,7 +71,7 @@ class IncomeCategoryRepository:
 
     async def update(
         self, category_id: UUID, update_data: IncomeCategoryUpdate
-    ) -> Optional[IncomeCategory]:
+    ) -> IncomeCategory | None:
         stmt = (
             update(IncomeCategory)
             .where(IncomeCategory.id == category_id)

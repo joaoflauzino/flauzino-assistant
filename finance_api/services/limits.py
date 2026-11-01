@@ -1,15 +1,14 @@
 from datetime import date
-from typing import Optional
 from uuid import UUID
 
-from finance_api.models.limits import SpendingLimit
-from finance_api.repositories.limits import SpendingLimitRepository
-from finance_api.repositories.categories import CategoryRepository
-from finance_api.schemas.limits import SpendingLimitCreate, SpendingLimitUpdate
 from finance_api.core.decorators import handle_service_errors
 from finance_api.core.exceptions import EntityNotFoundError, ValidationError
-from finance_api.schemas.pagination import PaginatedResponse
 from finance_api.core.logger import get_logger
+from finance_api.models.limits import SpendingLimit
+from finance_api.repositories.categories import CategoryRepository
+from finance_api.repositories.limits import SpendingLimitRepository
+from finance_api.schemas.limits import SpendingLimitCreate, SpendingLimitUpdate
+from finance_api.schemas.pagination import PaginatedResponse
 
 logger = get_logger(__name__)
 
@@ -18,7 +17,7 @@ class SpendingLimitService:
     def __init__(
         self,
         repo: SpendingLimitRepository,
-        category_repo: Optional[CategoryRepository] = None,
+        category_repo: CategoryRepository | None = None,
     ):
         self.repo = repo
         self.category_repo = category_repo or CategoryRepository(repo.db)
@@ -42,8 +41,8 @@ class SpendingLimitService:
         self,
         page: int = 1,
         size: int = 10,
-        start_date: Optional[date] = None,
-        end_date: Optional[date] = None,
+        start_date: date | None = None,
+        end_date: date | None = None,
     ) -> PaginatedResponse["SpendingLimit"]:
         logger.info(
             f"Listing spending limits page {page} size {size} start {start_date} end {end_date}"
@@ -53,7 +52,7 @@ class SpendingLimitService:
         return PaginatedResponse.create(items, total, page, size)
 
     @handle_service_errors
-    async def get_by_category(self, category: str) -> Optional["SpendingLimit"]:
+    async def get_by_category(self, category: str) -> SpendingLimit | None:
         logger.info(f"Getting spending limit by category: {category}")
         matched_cat = await self.category_repo.get_by_key(category)
         cat_key = matched_cat.key if matched_cat else category

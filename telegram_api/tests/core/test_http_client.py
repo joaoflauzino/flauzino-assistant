@@ -1,5 +1,6 @@
 import base64
 from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 
 from telegram_api.core.http_client import get_balance_graph

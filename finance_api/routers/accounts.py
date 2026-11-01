@@ -1,4 +1,4 @@
-from typing import Annotated, Optional
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
@@ -6,11 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from finance_api.core.database import get_db
 from finance_api.repositories.accounts import AccountRepository
-from finance_api.schemas.accounts import (
-    AccountCreate,
-    AccountResponse,
-    AccountUpdate,
-)
+from finance_api.schemas.accounts import AccountCreate, AccountResponse, AccountUpdate
 from finance_api.schemas.pagination import PaginatedResponse
 from finance_api.services.accounts import AccountService
 
@@ -28,9 +24,9 @@ def get_account_service(
 async def list_accounts(
     page: int = Query(1, ge=1, description="Page number"),
     size: int = Query(100, ge=1, le=1000, description="Page size"),
-    owner: Optional[str] = Query(None, description="Filter by owner"),
+    owner: str | None = Query(None, description="Filter by owner"),
     service: AccountService = Depends(get_account_service),
-):
+) -> PaginatedResponse[AccountResponse]:
     """List all accounts with pagination and optional owner filter."""
     items, total = await service.list(page=page, size=size, owner=owner)
     pages = (total + size - 1) // size if total > 0 else 0
@@ -41,7 +37,7 @@ async def list_accounts(
 async def get_account(
     account_id: UUID,
     service: AccountService = Depends(get_account_service),
-):
+) -> AccountResponse:
     """Get an account by ID."""
     return await service.get_by_id(account_id)
 
@@ -50,7 +46,7 @@ async def get_account(
 async def create_account(
     account_data: AccountCreate,
     service: AccountService = Depends(get_account_service),
-):
+) -> AccountResponse:
     """Create a new account."""
     return await service.create(account_data)
 
@@ -60,7 +56,7 @@ async def update_account(
     account_id: UUID,
     update_data: AccountUpdate,
     service: AccountService = Depends(get_account_service),
-):
+) -> AccountResponse:
     """Update an existing account."""
     return await service.update(account_id, update_data)
 
@@ -69,6 +65,6 @@ async def update_account(
 async def delete_account(
     account_id: UUID,
     service: AccountService = Depends(get_account_service),
-):
+) -> None:
     """Delete an account."""
     await service.delete(account_id)

@@ -1,5 +1,4 @@
 from datetime import date
-from typing import List, Optional
 from uuid import UUID
 
 from finance_api.core.dates import DateRange
@@ -27,10 +26,10 @@ class IncomeService:
     def __init__(
         self,
         repo: IncomeRepository,
-        category_repo: Optional[IncomeCategoryRepository] = None,
-        pm_repo: Optional[PaymentMethodRepository] = None,
-        spent_repo: Optional[SpentRepository] = None,
-        payment_resolver: Optional[PaymentResolutionService] = None,
+        category_repo: IncomeCategoryRepository | None = None,
+        pm_repo: PaymentMethodRepository | None = None,
+        spent_repo: SpentRepository | None = None,
+        payment_resolver: PaymentResolutionService | None = None,
     ):
         self.repo = repo
         self._category_repo = category_repo
@@ -96,10 +95,10 @@ class IncomeService:
         self,
         page: int = 1,
         size: int = 100,
-        start_date: Optional[date] = None,
-        end_date: Optional[date] = None,
-        category: Optional[str] = None,
-    ) -> tuple[List[IncomeResponse], int]:
+        start_date: date | None = None,
+        end_date: date | None = None,
+        category: str | None = None,
+    ) -> tuple[list[IncomeResponse], int]:
         skip = (page - 1) * size
         logger.info(f"Listing incomes page={page} size={size}")
         items, total = await self.repo.list(
@@ -148,9 +147,9 @@ class IncomeService:
     @handle_service_errors
     async def get_monthly_summary(
         self,
-        reference_month: Optional[str] = None,
-        start_date: Optional[date] = None,
-        end_date: Optional[date] = None,
+        reference_month: str | None = None,
+        start_date: date | None = None,
+        end_date: date | None = None,
     ) -> MonthlyBalanceSummary:
         period = DateRange.from_bounds(start_date, end_date, reference_month)
         logger.info(

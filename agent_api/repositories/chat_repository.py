@@ -1,7 +1,7 @@
+import uuid
 from collections.abc import Sequence
 from datetime import datetime, timedelta
 from typing import Protocol
-import uuid
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession

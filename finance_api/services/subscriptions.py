@@ -1,4 +1,3 @@
-from typing import Optional
 from uuid import UUID
 
 from finance_api.core.decorators import handle_service_errors
@@ -18,7 +17,7 @@ class SubscriptionService:
     def __init__(
         self,
         repo: SubscriptionRepository,
-        payment_resolver: Optional[PaymentResolutionService] = None,
+        payment_resolver: PaymentResolutionService | None = None,
     ):
         self.repo = repo
         self._payment_resolver = payment_resolver

@@ -1,14 +1,12 @@
 from datetime import date
-from typing import List, Optional
-
 from uuid import UUID
 
-from sqlalchemy import select, update, delete, func
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from finance_api.core.logger import get_logger
 from finance_api.models.limits import SpendingLimit
 from finance_api.schemas.limits import SpendingLimitCreate, SpendingLimitUpdate
-from finance_api.core.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -29,9 +27,9 @@ class SpendingLimitRepository:
         self,
         skip: int = 0,
         limit: int = 100,
-        start_date: Optional[date] = None,
-        end_date: Optional[date] = None,
-    ) -> tuple[List[SpendingLimit], int]:
+        start_date: date | None = None,
+        end_date: date | None = None,
+    ) -> tuple[list[SpendingLimit], int]:
         query = select(SpendingLimit)
 
         # Note: SpendingLimit doesn't have created_at field currently
@@ -55,7 +53,7 @@ class SpendingLimitRepository:
         logger.info(f"Listed {len(items)} spending limits")
         return items, total
 
-    async def get_by_category(self, category: str) -> Optional[SpendingLimit]:
+    async def get_by_category(self, category: str) -> SpendingLimit | None:
         result = await self.db.execute(
             select(SpendingLimit).where(SpendingLimit.category == category)
         )
@@ -64,7 +62,7 @@ class SpendingLimitRepository:
             logger.info(f"Retrieved limit for category: {category}")
         return limit
 
-    async def get_by_id(self, limit_id: UUID) -> Optional[SpendingLimit]:
+    async def get_by_id(self, limit_id: UUID) -> SpendingLimit | None:
         result = await self.db.execute(select(SpendingLimit).where(SpendingLimit.id == limit_id))
         limit = result.scalar_one_or_none()
         if limit:
@@ -73,7 +71,7 @@ class SpendingLimitRepository:
 
     async def update(
         self, limit_id: UUID, update_data: SpendingLimitUpdate
-    ) -> Optional[SpendingLimit]:
+    ) -> SpendingLimit | None:
         stmt = (
             update(SpendingLimit)
             .where(SpendingLimit.id == limit_id)

@@ -4,8 +4,8 @@ import io
 from unittest.mock import patch
 
 import numpy as np
-from PIL import Image
 import pytest
+from PIL import Image
 
 from agent_api.core.exceptions import InvalidImageError, OCRProcessingError
 from agent_api.services.ocr import (

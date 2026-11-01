@@ -1,14 +1,14 @@
 from uuid import UUID
 
+from finance_api.core.decorators import handle_service_errors
+from finance_api.core.exceptions import EntityNotFoundError, ValidationError
+from finance_api.core.logger import get_logger
 from finance_api.repositories.categories import CategoryRepository
 from finance_api.schemas.categories import (
     CategoryCreate,
-    CategoryUpdate,
     CategoryResponse,
+    CategoryUpdate,
 )
-from finance_api.core.logger import get_logger
-from finance_api.core.decorators import handle_service_errors
-from finance_api.core.exceptions import EntityNotFoundError, ValidationError
 
 logger = get_logger(__name__)
 

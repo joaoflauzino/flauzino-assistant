@@ -1,3 +1,5 @@
+from typing import Any
+
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.server import StreamableHTTPASGIApp
 from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
@@ -14,7 +16,7 @@ class MCPStreamableApp:
     (o que quebrava suítes de testes que reiniciam o lifespan do FastAPI repetidamente).
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.session_manager: StreamableHTTPSessionManager | None = None
         self._asgi_app: StreamableHTTPASGIApp | None = None
 
@@ -28,7 +30,7 @@ class MCPStreamableApp:
         self._asgi_app = StreamableHTTPASGIApp(self.session_manager)
         return self.session_manager
 
-    async def __call__(self, scope, receive, send):
+    async def __call__(self, scope: Any, receive: Any, send: Any) -> None:
         if self._asgi_app is None:
             self.create_manager()
         assert self._asgi_app is not None

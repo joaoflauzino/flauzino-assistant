@@ -1,6 +1,7 @@
 from unittest.mock import AsyncMock, MagicMock
-from fastapi.testclient import TestClient
+
 import pytest
+from fastapi.testclient import TestClient
 
 from agent_api.dependencies import get_classify_service
 from agent_api.main import app

@@ -1,12 +1,13 @@
-import pytest
 from uuid import uuid4
-from langchain_core.outputs import LLMResult, Generation
+
+import pytest
+from langchain_core.outputs import Generation, LLMResult
 
 from agent_api.core.callbacks import AgentLoggingCallbackHandler
 from agent_api.core.metrics import (
+    AGENT_TOOL_EXECUTIONS_TOTAL,
     LLM_REQUESTS_TOTAL,
     LLM_TOKENS_TOTAL,
-    AGENT_TOOL_EXECUTIONS_TOTAL,
 )
 
 

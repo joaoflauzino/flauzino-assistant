@@ -1,6 +1,6 @@
-from datetime import date, datetime
-from typing import Any, List
 import uuid
+from datetime import date, datetime
+from typing import Any
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String
@@ -43,7 +43,7 @@ class ImportBatch(Base):
         default=lambda: datetime.now(ZoneInfo("America/Sao_Paulo")),
     )
 
-    transactions: Mapped[List[Any]] = relationship(
+    transactions: Mapped[list[Any]] = relationship(
         "StagedTransaction",
         back_populates="batch",
         cascade="all, delete-orphan",

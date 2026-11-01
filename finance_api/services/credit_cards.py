@@ -1,4 +1,4 @@
-from typing import Optional, Sequence
+from collections.abc import Sequence
 from uuid import UUID
 
 from finance_api.core.decorators import handle_service_errors
@@ -16,14 +16,14 @@ class CreditCardService:
     def __init__(
         self,
         repository: CreditCardRepository,
-        account_repository: Optional[AccountRepository] = None,
+        account_repository: AccountRepository | None = None,
     ):
         self.repository = repository
         self.account_repository = account_repository
 
     @handle_service_errors
     async def list(
-        self, page: int = 1, size: int = 100, account_id: Optional[UUID] = None
+        self, page: int = 1, size: int = 100, account_id: UUID | None = None
     ) -> tuple[Sequence[CreditCard], int]:
         logger.info(f"Listing credit cards page={page} size={size} account_id={account_id}")
         return await self.repository.list(page, size, account_id)

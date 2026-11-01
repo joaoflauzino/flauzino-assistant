@@ -10,7 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from finance_api.core.database import Base
 
 
-class InvoiceStatus(str, enum.Enum):
+class InvoiceStatus(enum.StrEnum):
     OPEN = "OPEN"
     CLOSED = "CLOSED"
     PAID = "PAID"

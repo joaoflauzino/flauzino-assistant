@@ -1,12 +1,13 @@
-import pytest
 from unittest.mock import AsyncMock
-from telegram.error import BadRequest
+
+import pytest
 from telegram.constants import ParseMode
+from telegram.error import BadRequest
 
 from telegram_api.core.formatter import (
+    build_options_keyboard,
     markdown_to_telegram_html,
     send_agent_reply,
-    build_options_keyboard,
 )
 
 

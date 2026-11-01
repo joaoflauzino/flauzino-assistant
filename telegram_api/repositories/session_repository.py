@@ -1,6 +1,6 @@
-from datetime import datetime, timedelta, timezone
-from typing import Protocol
 import uuid
+from datetime import UTC, datetime, timedelta
+from typing import Protocol
 
 from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert
@@ -39,10 +39,10 @@ class SessionRepository:
                 return None
 
             if ttl_minutes is not None and ttl_minutes > 0:
-                now = datetime.now(timezone.utc)
+                now = datetime.now(UTC)
                 updated_at = session_record.updated_at
                 if updated_at.tzinfo is None:
-                    updated_at = updated_at.replace(tzinfo=timezone.utc)
+                    updated_at = updated_at.replace(tzinfo=UTC)
 
                 if now - updated_at > timedelta(minutes=ttl_minutes):
                     logger.info(
@@ -61,7 +61,7 @@ class SessionRepository:
     async def save_session(self, chat_id: int, session_id: str) -> None:
         """Save or update the session ID for a given chat ID."""
         try:
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             stmt = (
                 insert(TelegramSession)
                 .values(

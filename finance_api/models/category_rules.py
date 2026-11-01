@@ -1,5 +1,5 @@
-from datetime import datetime
 import uuid
+from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import DateTime, Integer, String, UniqueConstraint

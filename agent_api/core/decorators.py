@@ -1,9 +1,10 @@
 import functools
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
+import httpx
 from fastapi import HTTPException
 from groq import GroqError
-import httpx
 from langchain_core.exceptions import OutputParserException
 from openai import OpenAIError
 from sqlalchemy.exc import SQLAlchemyError

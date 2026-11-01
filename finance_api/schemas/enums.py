@@ -1,7 +1,7 @@
-from enum import Enum, StrEnum
+from enum import StrEnum
 
 
-class CardEnum(str, Enum):
+class CardEnum(StrEnum):
     ITAU = "itau"
     PICPAY = "picpay"
     XP = "xp"
@@ -9,7 +9,7 @@ class CardEnum(str, Enum):
     C6 = "c6"
 
 
-class NameEnum(str, Enum):
+class NameEnum(StrEnum):
     JOAO_LUCAS = "joao_lucas"
     LAILLA = "lailla"
 
@@ -59,4 +59,5 @@ class CommitOutcomeStatus(StrEnum):
     COMMITTED_SPENT = "committed_spent"
     COMMITTED_INCOME = "committed_income"
     PROCESSED_WITHOUT_RECORD = "processed_without_record"
+    SKIPPED_NOT_APPROVED = "skipped_not_approved"
     FAILED = "failed"

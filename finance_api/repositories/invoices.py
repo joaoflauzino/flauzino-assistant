@@ -1,12 +1,11 @@
-from typing import List, Optional
 from uuid import UUID
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from finance_api.core.logger import get_logger
 from finance_api.models.invoices import Invoice
 from finance_api.schemas.invoices import InvoiceCreate, InvoiceUpdate
-from finance_api.core.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -25,13 +24,13 @@ class InvoiceRepository:
         )
         return new_invoice
 
-    async def get_by_id(self, invoice_id: UUID) -> Optional[Invoice]:
+    async def get_by_id(self, invoice_id: UUID) -> Invoice | None:
         result = await self.db.execute(select(Invoice).where(Invoice.id == invoice_id))
         return result.scalar_one_or_none()
 
     async def get_by_payment_method_and_month(
         self, payment_method_key: str, reference_month: str
-    ) -> Optional[Invoice]:
+    ) -> Invoice | None:
         query = select(Invoice).where(
             Invoice.payment_method_key == payment_method_key,
             Invoice.reference_month == reference_month,
@@ -39,12 +38,12 @@ class InvoiceRepository:
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
 
-    async def list_by_month(self, reference_month: str) -> List[Invoice]:
+    async def list_by_month(self, reference_month: str) -> list[Invoice]:
         query = select(Invoice).where(Invoice.reference_month == reference_month)
         result = await self.db.execute(query)
         return list(result.scalars().all())
 
-    async def update(self, invoice_id: UUID, update_data: InvoiceUpdate) -> Optional[Invoice]:
+    async def update(self, invoice_id: UUID, update_data: InvoiceUpdate) -> Invoice | None:
         stmt = (
             update(Invoice)
             .where(Invoice.id == invoice_id)

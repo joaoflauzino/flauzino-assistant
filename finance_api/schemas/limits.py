@@ -1,4 +1,3 @@
-from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -19,12 +18,12 @@ class SpendingLimitCreate(SpendingLimitBase): ...
 
 
 class SpendingLimitUpdate(BaseModel):
-    category: Optional[str] = Field(None, min_length=1, max_length=50)
-    amount: Optional[float] = None
+    category: str | None = Field(None, min_length=1, max_length=50)
+    amount: float | None = None
 
     @field_validator("category")
     @classmethod
-    def validate_category(cls, v: Optional[str]) -> Optional[str]:
+    def validate_category(cls, v: str | None) -> str | None:
         """Normalize category to lowercase if provided."""
         return v.lower().strip() if v else None
 

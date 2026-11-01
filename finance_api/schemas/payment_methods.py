@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -19,7 +20,7 @@ class PaymentMethodBase(BaseModel):
 
     @field_validator("closing_day", "due_day", mode="before")
     @classmethod
-    def empty_str_to_none(cls, v):
+    def empty_str_to_none(cls, v: Any) -> Any:
         if v == "" or v is None:
             return None
         return v
@@ -37,7 +38,7 @@ class PaymentMethodUpdate(BaseModel):
 
     @field_validator("closing_day", "due_day", mode="before")
     @classmethod
-    def empty_str_to_none(cls, v):
+    def empty_str_to_none(cls, v: Any) -> Any:
         if v == "" or v is None:
             return None
         return v

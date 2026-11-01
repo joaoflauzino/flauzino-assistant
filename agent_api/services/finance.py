@@ -7,12 +7,12 @@ from agent_api.core.decorators import handle_finance_errors
 from agent_api.core.logger import get_logger
 from agent_api.schemas.assistant import AssistantResponse
 from agent_api.schemas.finance import (
+    _CACHE_TTL_SECONDS,
     DEFAULT_ACCOUNTS,
     DEFAULT_CATEGORIES,
     DEFAULT_CREDIT_CARDS,
     DEFAULT_INCOME_CATEGORIES,
     DEFAULT_PAYMENT_METHODS,
-    _CACHE_TTL_SECONDS,
 )
 from agent_api.schemas.income import IncomeDetails
 from agent_api.schemas.limit import LimitDetails

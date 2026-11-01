@@ -1,7 +1,5 @@
 """OCR Service for extracting text from receipt images."""
 
-from typing import Tuple
-
 import cv2
 import numpy as np
 import pytesseract
@@ -62,7 +60,7 @@ async def preprocess_image(image_bytes: bytes) -> np.ndarray:
 
 
 @handle_ocr_errors
-async def extract_text(image_bytes: bytes, lang: str = "eng") -> Tuple[str, float]:
+async def extract_text(image_bytes: bytes, lang: str = "eng") -> tuple[str, float]:
     """Extract text from image using Tesseract OCR.
 
     Args:

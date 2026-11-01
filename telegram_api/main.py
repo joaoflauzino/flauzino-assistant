@@ -3,12 +3,14 @@
 import datetime
 import signal
 import sys
+from typing import Any
 
 from telegram import Update
 from telegram.ext import (
     Application,
     ApplicationHandlerStop,
     CommandHandler,
+    ContextTypes,
     MessageHandler,
     TypeHandler,
     filters,
@@ -43,7 +45,7 @@ def main() -> None:
     start_metrics_server(port=settings.METRICS_PORT)
     logger.info(f"Prometheus metrics server started on port {settings.METRICS_PORT}")
 
-    async def auth_middleware(update: Update, context) -> None:
+    async def auth_middleware(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Middleware to check if the user is allowed to use the bot and record metrics."""
         msg_type = "unknown"
         if update.message:
@@ -106,7 +108,7 @@ def main() -> None:
     logger.info("Handlers registered successfully")
 
     # Handle graceful shutdown and startup
-    async def post_init(application) -> None:
+    async def post_init(application: Application) -> None:
         """Initialize resources on startup."""
         logger.info("Initializing resources...")
         await init_db()
@@ -122,13 +124,13 @@ def main() -> None:
         )
         logger.info("Scheduled weekly balance summary for Friday 10:00 AM (BRT)")
 
-    async def shutdown(application) -> None:
+    async def shutdown(application: Application) -> None:
         """Cleanup on shutdown."""
         logger.info("Shutting down, cleaning up resources...")
         await close_http_client()
         await close_db()
 
-    def signal_handler(signum, frame) -> None:
+    def signal_handler(signum: int, frame: Any) -> None:
         logger.info(f"Received signal {signum}, shutting down...")
         sys.exit(0)
 
@@ -147,7 +149,7 @@ def main() -> None:
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
-async def send_weekly_balance_summary(context) -> None:
+async def send_weekly_balance_summary(context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send weekly balance summary to all allowed users."""
     logger.info("Running weekly balance summary job")
 

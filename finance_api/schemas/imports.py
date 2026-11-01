@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import date, datetime
+from decimal import Decimal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -40,7 +41,7 @@ class PossibleDuplicateInfo(BaseModel):
     type: str  # "spent" or "income"
     id: UUID
     label: str
-    amount: float
+    amount: Decimal
     date: date
 
 
@@ -54,7 +55,7 @@ class StagedTransactionResponse(BaseModel):
     raw_title: str
     raw_description: str | None = None
     merchant: str
-    amount: float
+    amount: Decimal
     direction: str  # "IN", "OUT"
     kind: str  # "EXPENSE", "INCOME", "TRANSFER", "INVOICE_PAYMENT", "REFUND"
     payment_type: str
