@@ -6,7 +6,7 @@ import re
 from zoneinfo import ZoneInfo
 
 from finance_api.core.exceptions import ValidationError
-from finance_api.importers.base import (
+from finance_api.importers.schemas import (
     ParsedStatement,
     ParsedTransaction,
     StatementMetadata,

@@ -241,8 +241,8 @@ class LLMFactory:
 
 ## 3. Checklist de Execução e Testes (Fase 4)
 
-- [ ] Modernizar `StatementType` em `finance_api/importers/base.py` para herdar de `StrEnum`.
-- [ ] Refatorar `finance_api/importers/registry.py` implementando `StatementParserFactory` e os resolvers `CreditCardTargetResolver` e `CheckingAccountTargetResolver`.
-- [ ] Injetar `StatementParserFactory` e o dicionário de `ImportTargetResolver` no `ImportService` via `finance_api/core/dependencies.py`.
-- [ ] Implementar `LLMFactory` em `agent_api/core/llm.py` mantendo compatibilidade com `get_llm()` para os testes existentes.
-- [ ] Executar `uv run pytest` para validar os parsers e o fluxo de upload de extratos.
+- [x] Modernizar `StatementType` em `finance_api/importers/base.py` para herdar de `StrEnum`.
+- [x] Refatorar `finance_api/importers/registry.py` implementando `StatementParserFactory` e os resolvers `CreditCardTargetResolver` e `CheckingAccountTargetResolver`.
+- [x] Injetar `StatementParserFactory` e o dicionário de `ImportTargetResolver` no `ImportService` via `finance_api/core/dependencies.py`.
+- [x] Implementar `LLMFactory` em `agent_api/core/llm.py` mantendo compatibilidade com `get_llm()` para os testes existentes.
+- [x] Executar `uv run pytest` para validar os parsers e o fluxo de upload de extratos.

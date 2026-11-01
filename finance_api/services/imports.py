@@ -8,15 +8,20 @@ from zoneinfo import ZoneInfo
 from finance_api.core.decorators import handle_service_errors
 from finance_api.core.exceptions import EntityConflictError, EntityNotFoundError, ValidationError
 from finance_api.core.logger import get_logger
-from finance_api.importers.base import ParsedTransaction, StatementType
-from finance_api.importers.registry import detect_parser
+from finance_api.importers.protocols import ImportTargetResolver
+from finance_api.importers.registry import (
+    StatementParserFactory,
+    build_default_parser_factory,
+    build_default_target_resolvers,
+)
+from finance_api.importers.schemas import ParsedTransaction, StatementType
 from finance_api.models.accounts import Account
 from finance_api.models.import_batches import ImportBatch
 from finance_api.models.staged_transactions import StagedTransaction
 from finance_api.repositories.accounts import AccountRepositoryProtocol
 from finance_api.repositories.categories import CategoryRepository
 from finance_api.repositories.category_rules import CategoryRuleRepositoryProtocol
-from finance_api.repositories.credit_cards import CreditCardRepository
+from finance_api.repositories.credit_cards import CreditCardRepositoryProtocol
 from finance_api.repositories.imports import ImportBatchRepositoryProtocol
 from finance_api.repositories.income_categories import IncomeCategoryRepository
 from finance_api.repositories.staged_transactions import StagedTransactionRepository
@@ -59,7 +64,7 @@ class ImportService:
         rule_repo: CategoryRuleRepositoryProtocol,
         classification_service: ClassificationService,
         account_repo: AccountRepositoryProtocol,
-        credit_card_repo: CreditCardRepository,
+        credit_card_repo: CreditCardRepositoryProtocol,
         spent_service: SpentService,
         income_service: IncomeService,
         category_repo: CategoryRepository,
@@ -67,6 +72,8 @@ class ImportService:
         ai_client: AIClassifierClient | None = None,
         bulk_strategies: dict[str, BulkActionStrategy] | None = None,
         commit_strategies: dict[str, TransactionCommitStrategy] | None = None,
+        parser_factory: StatementParserFactory | None = None,
+        target_resolvers: dict[StatementType, ImportTargetResolver] | None = None,
     ) -> None:
         self.batch_repo = batch_repo
         self.tx_repo = tx_repo
@@ -88,6 +95,11 @@ class ImportService:
             spent_service=self.spent_service,
             income_service=self.income_service,
         )
+        self._parser_factory = parser_factory or build_default_parser_factory()
+        self._target_resolvers = target_resolvers or build_default_target_resolvers(
+            account_repo=self.account_repo,
+            credit_card_repo=self.credit_card_repo,
+        )
 
     def _calc_sha256(self, content: bytes) -> str:
         return hashlib.sha256(content).hexdigest()
@@ -105,22 +117,6 @@ class ImportService:
         raw = f"{target_key}|{date_str}|{amt_str}|{tx.direction}|{tx.raw_title.upper().strip()}|{installment_str}|{tx.occurrence_index}"
         return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
-    async def _resolve_target_name_and_key(
-        self, account_id: UUID | None, credit_card_id: UUID | None
-    ) -> tuple[str, str | None]:
-        """Retorna (target_key, target_name) para fingerprint e exibição."""
-        if credit_card_id:
-            card = await self.credit_card_repo.get_by_id(credit_card_id)
-            if not card:
-                raise EntityNotFoundError(f"Cartão com ID {credit_card_id} não encontrado")
-            return card.key, card.name
-        if account_id:
-            acc = await self.account_repo.get_by_id(account_id)
-            if not acc:
-                raise EntityNotFoundError(f"Conta com ID {account_id} não encontrada")
-            return acc.key, acc.name
-        return "unassigned", None
-
     @handle_service_errors
     async def create_batch_from_upload(
         self,
@@ -129,39 +125,13 @@ class ImportService:
         account_id: UUID | None = None,
         credit_card_id: UUID | None = None,
     ) -> ImportBatchResponse:
-        parser = detect_parser(file_bytes, filename)
-        is_credit_card = getattr(parser, "statement_type", None) == StatementType.CREDIT_CARD
-
-        # Auto-resolução inteligente de Cartão e Conta
-        if is_credit_card:
-            if not credit_card_id and account_id:
-                cards, _ = await self.credit_card_repo.list(account_id=account_id)
-                if cards:
-                    credit_card_id = cards[0].id
-            if credit_card_id and not account_id:
-                card = await self.credit_card_repo.get_by_id(credit_card_id)
-                if card:
-                    account_id = card.account_id
-            if not credit_card_id:
-                # Tenta buscar cartão com o mesmo banco do parser (ex: c6)
-                all_cards, _ = await self.credit_card_repo.list(page=1, size=100)
-                matched = [c for c in all_cards if "c6" in c.key.lower()]
-                if matched:
-                    credit_card_id = matched[0].id
-                    account_id = matched[0].account_id
-        else:
-            if credit_card_id and not account_id:
-                card = await self.credit_card_repo.get_by_id(credit_card_id)
-                if card:
-                    account_id = card.account_id
-                credit_card_id = None
-
-        if not account_id and not credit_card_id:
-            raise ValidationError("Informe a conta bancária ou cartão para a importação.")
-
-        target_key, target_name = await self._resolve_target_name_and_key(
-            account_id, credit_card_id
-        )
+        parser = self._parser_factory.detect_and_create(file_bytes, filename)
+        resolver = self._target_resolvers.get(parser.statement_type)
+        if resolver is None:
+            raise ValidationError(
+                f"Tipo de extrato '{parser.statement_type}' não suportado para importação."
+            )
+        target = await resolver.resolve(account_id, credit_card_id, bank_hint="c6")
 
         file_sha256 = self._calc_sha256(file_bytes)
         existing_batch = await self.batch_repo.get_by_sha256(file_sha256)
@@ -175,7 +145,7 @@ class ImportService:
         # Calcula fingerprints de todas as transações
         fp_map: list[tuple[ParsedTransaction, str]] = []
         for tx in parsed.transactions:
-            fp = self._calc_fingerprint(target_key, tx)
+            fp = self._calc_fingerprint(target.target_key, tx)
             fp_map.append((tx, fp))
 
         all_fps = [fp for _, fp in fp_map]
@@ -186,8 +156,8 @@ class ImportService:
 
         # Cria lote no banco
         batch = ImportBatch(
-            account_id=account_id,
-            credit_card_id=credit_card_id,
+            account_id=target.account_id,
+            credit_card_id=target.credit_card_id,
             parser=parser.name,
             filename=filename,
             file_sha256=file_sha256,
@@ -205,16 +175,17 @@ class ImportService:
             # Todas eram duplicadas
             counts = await self.batch_repo.get_counts_by_status(batch.id)
             res = ImportBatchResponse.model_validate(batch)
-            res.account_name = target_name
-            if credit_card_id:
-                res.credit_card_id = credit_card_id
-                res.credit_card_name = target_name
+            res.account_name = target.target_name
+            if target.credit_card_id:
+                res.credit_card_id = target.credit_card_id
+                res.credit_card_name = target.target_name
             res.counts = counts
             return res
 
         # Classificação Camadas 1 & 2 e Detecção de Duplicatas Manuais
         staged_list: list[StagedTransaction] = []
         possible_duplicates_count = 0
+        is_credit_card = parser.statement_type == StatementType.CREDIT_CARD
 
         for tx, fp in new_pairs:
             clf: ClassificationResult = await self.classification_service.classify_transaction(
@@ -231,17 +202,17 @@ class ImportService:
             dup_income_id = None
             if clf.kind == "EXPENSE":
                 match_sp = await self.tx_repo.find_possible_duplicate_spent(
-                    account_id=account_id,
+                    account_id=target.account_id,
                     amount=tx.amount,
                     tx_date=tx.occurred_at.date(),
-                    credit_card_id=credit_card_id,
+                    credit_card_id=target.credit_card_id,
                 )
                 if match_sp:
                     dup_spent_id = match_sp.id
                     possible_duplicates_count += 1
             elif clf.kind == "INCOME":
                 match_inc = await self.tx_repo.find_possible_duplicate_income(
-                    account_id=account_id,
+                    account_id=target.account_id,
                     amount=tx.amount,
                     tx_date=tx.occurred_at.date(),
                 )
@@ -274,8 +245,8 @@ class ImportService:
 
             staged = StagedTransaction(
                 batch_id=batch.id,
-                account_id=account_id,
-                credit_card_id=credit_card_id,
+                account_id=target.account_id,
+                credit_card_id=target.credit_card_id,
                 occurred_at=tx.occurred_at,
                 posted_at=tx.posted_at,
                 raw_title=tx.raw_title,
@@ -364,10 +335,10 @@ class ImportService:
 
         counts = await self.batch_repo.get_counts_by_status(batch.id)
         res = ImportBatchResponse.model_validate(batch)
-        res.account_name = target_name
-        if credit_card_id:
-            res.credit_card_id = credit_card_id
-            res.credit_card_name = target_name
+        res.account_name = target.target_name
+        if target.credit_card_id:
+            res.credit_card_id = target.credit_card_id
+            res.credit_card_name = target.target_name
         res.counts = counts
         return res
 

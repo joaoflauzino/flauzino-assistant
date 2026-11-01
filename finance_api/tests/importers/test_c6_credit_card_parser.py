@@ -3,7 +3,7 @@ from decimal import Decimal
 import pytest
 
 from finance_api.core.exceptions import ValidationError
-from finance_api.importers.base import StatementType
+from finance_api.importers.schemas import StatementType
 from finance_api.importers.c6_credit_card_csv import C6CreditCardInvoiceCsvParser
 
 SAMPLE_CARD_CSV = b"""Data de Compra;Nome no Cart\xc3\xa3o;Final do Cart\xc3\xa3o;Categoria;Descri\xc3\xa7\xc3\xa3o;Parcela;Valor (em US$);Cota\xc3\xa7\xc3\xa3o (em R$);Valor (em R$)
