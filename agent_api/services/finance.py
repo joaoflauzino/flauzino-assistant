@@ -1,5 +1,4 @@
 import time
-from typing import List
 
 import httpx
 
@@ -7,6 +6,14 @@ from agent_api.core.correlation import CORRELATION_HEADER, get_request_id
 from agent_api.core.decorators import handle_finance_errors
 from agent_api.core.logger import get_logger
 from agent_api.schemas.assistant import AssistantResponse
+from agent_api.schemas.finance import (
+    DEFAULT_ACCOUNTS,
+    DEFAULT_CATEGORIES,
+    DEFAULT_CREDIT_CARDS,
+    DEFAULT_INCOME_CATEGORIES,
+    DEFAULT_PAYMENT_METHODS,
+    _CACHE_TTL_SECONDS,
+)
 from agent_api.schemas.income import IncomeDetails
 from agent_api.schemas.limit import LimitDetails
 from agent_api.schemas.spending import SpendingDetails
@@ -15,64 +22,17 @@ from agent_api.settings import settings
 
 logger = get_logger(__name__)
 
-_CACHE_TTL_SECONDS = 300  # 5 minutes
-
-DEFAULT_CATEGORIES = [
-    "alimentacao",
-    "comer_fora",
-    "farmacia",
-    "mercado",
-    "transporte",
-    "moradia",
-    "saude",
-    "lazer",
-    "educação",
-    "compras",
-    "vestuario",
-    "viagem",
-    "serviços",
-    "crianças",
-    "outros",
-]
-
-DEFAULT_INCOME_CATEGORIES = [
-    "salario",
-    "pix",
-    "premiacao",
-    "investimentos",
-    "reembolso",
-    "outros",
-]
-
-DEFAULT_PAYMENT_METHODS = ["itau", "nubank", "picpay", "xp", "c6", "pix"]
-
-DEFAULT_ACCOUNTS = [
-    "itau_joao",
-    "nubank_joao",
-    "nubank_lailla",
-    "picpay_joao",
-    "c6_joao",
-]
-
-DEFAULT_CREDIT_CARDS = [
-    "itau_card_joao",
-    "nubank_card_joao",
-    "nubank_card_lailla",
-    "picpay_card_joao",
-    "c6_card_joao",
-]
-
 
 class FinanceService(BaseHttpService):
-    _cached_categories: List[str] | None = None
+    _cached_categories: list[str] | None = None
     _categories_expiry: float = 0.0
-    _cached_income_categories: List[str] | None = None
+    _cached_income_categories: list[str] | None = None
     _income_categories_expiry: float = 0.0
-    _cached_payment_methods: List[str] | None = None
+    _cached_payment_methods: list[str] | None = None
     _payment_methods_expiry: float = 0.0
-    _cached_accounts: List[str] | None = None
+    _cached_accounts: list[str] | None = None
     _accounts_expiry: float = 0.0
-    _cached_credit_cards: List[str] | None = None
+    _cached_credit_cards: list[str] | None = None
     _credit_cards_expiry: float = 0.0
 
     def __init__(self, client: httpx.AsyncClient):
@@ -82,7 +42,7 @@ class FinanceService(BaseHttpService):
         req_id = get_request_id()
         return {CORRELATION_HEADER: req_id} if req_id else {}
 
-    async def get_categories(self, use_cache: bool = True) -> List[str]:
+    async def get_categories(self, use_cache: bool = True) -> list[str]:
         """Fetch valid categories with in-memory TTL caching."""
         now = time.monotonic()
         if (
@@ -107,7 +67,7 @@ class FinanceService(BaseHttpService):
 
         return FinanceService._cached_categories or DEFAULT_CATEGORIES
 
-    async def get_income_categories(self, use_cache: bool = True) -> List[str]:
+    async def get_income_categories(self, use_cache: bool = True) -> list[str]:
         """Fetch valid income categories with in-memory TTL caching."""
         now = time.monotonic()
         if (
@@ -132,7 +92,7 @@ class FinanceService(BaseHttpService):
 
         return FinanceService._cached_income_categories or DEFAULT_INCOME_CATEGORIES
 
-    async def get_accounts(self, use_cache: bool = True) -> List[str]:
+    async def get_accounts(self, use_cache: bool = True) -> list[str]:
         """Fetch valid account keys with in-memory TTL caching."""
         now = time.monotonic()
         if use_cache and FinanceService._cached_accounts and now < FinanceService._accounts_expiry:
@@ -153,7 +113,7 @@ class FinanceService(BaseHttpService):
 
         return FinanceService._cached_accounts or DEFAULT_ACCOUNTS
 
-    async def get_credit_cards(self, use_cache: bool = True) -> List[str]:
+    async def get_credit_cards(self, use_cache: bool = True) -> list[str]:
         """Fetch valid credit card keys with in-memory TTL caching."""
         now = time.monotonic()
         if (
@@ -178,7 +138,7 @@ class FinanceService(BaseHttpService):
 
         return FinanceService._cached_credit_cards or DEFAULT_CREDIT_CARDS
 
-    async def get_payment_methods(self, use_cache: bool = True) -> List[str]:
+    async def get_payment_methods(self, use_cache: bool = True) -> list[str]:
         """Fetch valid payment methods with in-memory TTL caching."""
         now = time.monotonic()
         if (

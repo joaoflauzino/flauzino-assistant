@@ -7,7 +7,7 @@
 
 ## 1. Diagnóstico Detalhado (Estado Atual)
 
-Em `finance_api/services/classification.py`, existem **dois grandes blocos de condicionais sequenciais (`if`)** que violam o limite máximo de 3 condicionais por função (`AGENTS.md` seção 3.4) e o Princípio da Responsabilidade Única (SRP):
+Em `finance_api/services/classification.py`, existiam **dois grandes blocos de condicionais sequenciais (`if`)** que violavam o limite máximo de 3 condicionais por função (`AGENTS.md` seção 3.4) e o Princípio da Responsabilidade Única (SRP):
 
 1. **`extract_merchant_location_desc`** (linhas 67-123):
    - Avalia sequencialmente **7 regras diferentes** de extração de texto (Pagamento de fatura, Anuidade, Estorno, Cartão `PAYGO*`, Pix enviado, Pix recebido, Devolução Pix, Salário/PPR e Fallback).
@@ -386,7 +386,7 @@ class ClassificationService:
 
 ## 4. Checklist de Execução e Testes (Fase 2)
 
-- [ ] Criar `finance_api/services/extractors.py` com o pipeline funcional de extração de merchant/localização.
-- [ ] Criar `finance_api/services/classification_chain.py` com `ClassificationHandlerProtocol`, `BaseClassificationHandler` e os handlers concretos.
-- [ ] Refatorar `ClassificationService` em `finance_api/services/classification.py` para delegar a `self._extractor_pipeline` e `self._chain_head.handle(ctx)`.
-- [ ] Garantir que todos os testes existentes em `finance_api/tests/services/test_classification_service.py` passem sem regressão e adicionar testes unitários isolados por handler.
+- [x] Criar `finance_api/services/extractors.py` com o pipeline funcional de extração de merchant/localização.
+- [x] Criar `finance_api/services/classification_chain.py` com `ClassificationHandlerProtocol`, `BaseClassificationHandler` e os handlers concretos.
+- [x] Refatorar `ClassificationService` em `finance_api/services/classification.py` para delegar a `self._extractor_pipeline` e `self._chain_head.handle(ctx)`.
+- [x] Garantir que todos os testes existentes em `finance_api/tests/services/test_classification_service.py` passem sem regressão e adicionar testes unitários isolados por handler.
