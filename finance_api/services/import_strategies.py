@@ -1,7 +1,13 @@
 """Strategy Pattern implementations for bulk actions and commit workflows in ImportService."""
 
+from datetime import date, datetime, timedelta
+from decimal import Decimal
+from typing import Protocol
+from uuid import UUID
+
 from finance_api.models.staged_transactions import StagedTransaction
 from finance_api.repositories.category_rules import CategoryRuleRepositoryProtocol
+from finance_api.repositories.staged_transactions import StagedTransactionRepository
 from finance_api.schemas.enums import (
     BulkActionType,
     CommitOutcomeStatus,
@@ -67,19 +73,21 @@ class IgnoreBulkStrategy:
 
 
 class ReopenBulkStrategy:
-    """Reopens a staged transaction back to PENDING status."""
+    """Reopens a staged transaction back to PENDING if not COMMITTED."""
 
     async def execute(
         self,
         tx: StagedTransaction,
         req: BulkActionRequest,
     ) -> StepOutcome:
+        if tx.status == "COMMITTED":
+            return StepOutcome(status=StepOutcomeStatus.SKIPPED)
         tx.status = "PENDING"
         return StepOutcome(status=StepOutcomeStatus.UPDATED)
 
 
 class SetCategoryBulkStrategy:
-    """Validates and assigns a category to a staged transaction, optionally learning the rule."""
+    """Updates the category of a staged transaction with kind-aware validation and rule learning."""
 
     def __init__(
         self,
@@ -100,6 +108,7 @@ class SetCategoryBulkStrategy:
             return StepOutcome(status=StepOutcomeStatus.SKIPPED)
 
         clean_cat = req.category.strip().lower()
+
         if tx.kind == TransactionKind.EXPENSE and not await self._category_repo.get_by_key(
             clean_cat
         ):
@@ -116,19 +125,22 @@ class SetCategoryBulkStrategy:
             )
 
         tx.category = clean_cat
+        if tx.status == "PENDING":
+            tx.status = "APPROVED"
+
         if req.remember and tx.merchant:
             await self._rule_repo.upsert_rule(
                 pattern=tx.merchant,
                 direction=tx.direction,
                 kind=tx.kind,
-                category=clean_cat,
+                category=tx.category,
                 source="LEARNED",
             )
         return StepOutcome(status=StepOutcomeStatus.UPDATED)
 
 
 class ExpenseCommitStrategy:
-    """Commits an EXPENSE staged transaction by creating a real Spent record."""
+    """Commits an EXPENSE transaction into a real Spent record."""
 
     def __init__(self, spent_service: SpentService) -> None:
         self._spent_service = spent_service
@@ -165,7 +177,7 @@ class ExpenseCommitStrategy:
 
 
 class IncomeCommitStrategy:
-    """Commits an INCOME staged transaction by creating a real Income record."""
+    """Commits an INCOME transaction into a real Income record."""
 
     def __init__(self, income_service: IncomeService) -> None:
         self._income_service = income_service
@@ -206,6 +218,101 @@ class NonRecordCommitStrategy:
     ) -> CommitStepOutcome:
         tx.status = "COMMITTED"
         return CommitStepOutcome(status=CommitOutcomeStatus.PROCESSED_WITHOUT_RECORD)
+
+
+# ---------------------------------------------------------------------------
+# Duplicate Detection Strategies (Replaces inline if/elif branching in batch upload)
+# ---------------------------------------------------------------------------
+class DuplicateDetectorStrategy(Protocol):
+    async def detect(
+        self,
+        tx_repo: StagedTransactionRepository,
+        account_id: UUID | None,
+        credit_card_id: UUID | None,
+        amount: Decimal,
+        tx_date: date,
+    ) -> tuple[UUID | None, UUID | None]: ...
+
+
+class ExpenseDuplicateDetector:
+    async def detect(
+        self,
+        tx_repo: StagedTransactionRepository,
+        account_id: UUID | None,
+        credit_card_id: UUID | None,
+        amount: Decimal,
+        tx_date: date,
+    ) -> tuple[UUID | None, UUID | None]:
+        match = await tx_repo.find_possible_duplicate_spent(
+            account_id=account_id,
+            amount=amount,
+            tx_date=tx_date,
+            credit_card_id=credit_card_id,
+        )
+        return (match.id if match else None, None)
+
+
+class IncomeDuplicateDetector:
+    async def detect(
+        self,
+        tx_repo: StagedTransactionRepository,
+        account_id: UUID | None,
+        credit_card_id: UUID | None,
+        amount: Decimal,
+        tx_date: date,
+    ) -> tuple[UUID | None, UUID | None]:
+        match = await tx_repo.find_possible_duplicate_income(
+            account_id=account_id,
+            amount=amount,
+            tx_date=tx_date,
+        )
+        return (None, match.id if match else None)
+
+
+class NullDuplicateDetector:
+    async def detect(
+        self,
+        tx_repo: StagedTransactionRepository,
+        account_id: UUID | None,
+        credit_card_id: UUID | None,
+        amount: Decimal,
+        tx_date: date,
+    ) -> tuple[UUID | None, UUID | None]:
+        return (None, None)
+
+
+def build_default_duplicate_detectors() -> dict[str, DuplicateDetectorStrategy]:
+    return {
+        TransactionKind.EXPENSE: ExpenseDuplicateDetector(),
+        TransactionKind.INCOME: IncomeDuplicateDetector(),
+    }
+
+
+def resolve_salary_competence_date(
+    kind: str,
+    occurred_at: datetime,
+    raw_title: str,
+    raw_description: str | None,
+) -> date | None:
+    """Resolves competence date for salary-like income arriving within the first week of month."""
+    if kind != TransactionKind.INCOME:
+        return None
+    tx_dt = occurred_at.date()
+    norm_raw = f"{raw_title} {raw_description or ''}".upper()
+    salary_keywords = (
+        "SALARIO",
+        "SALÁRIO",
+        "FOLHA",
+        "PRO-LABORE",
+        "REMUNERACAO",
+        "VENCIMENTO",
+        "PPR",
+        "PLR",
+    )
+    if any(k in norm_raw for k in salary_keywords) and tx_dt.day <= 7:
+        first_of_month = tx_dt.replace(day=1)
+        return first_of_month - timedelta(days=1)
+    return tx_dt
 
 
 def build_default_bulk_strategies(

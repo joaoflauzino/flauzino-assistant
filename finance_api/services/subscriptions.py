@@ -1,3 +1,4 @@
+from typing import Optional
 from uuid import UUID
 
 from finance_api.core.decorators import handle_service_errors
@@ -8,13 +9,25 @@ from finance_api.repositories.categories import CategoryRepository
 from finance_api.repositories.subscriptions import SubscriptionRepository
 from finance_api.schemas.pagination import PaginatedResponse
 from finance_api.schemas.subscriptions import SubscriptionCreate, SubscriptionUpdate
+from finance_api.services.payment_resolution import PaymentResolutionService
 
 logger = get_logger(__name__)
 
 
 class SubscriptionService:
-    def __init__(self, repo: SubscriptionRepository):
+    def __init__(
+        self,
+        repo: SubscriptionRepository,
+        payment_resolver: Optional[PaymentResolutionService] = None,
+    ):
         self.repo = repo
+        self._payment_resolver = payment_resolver
+
+    @property
+    def payment_resolver(self) -> PaymentResolutionService:
+        if self._payment_resolver is not None:
+            return self._payment_resolver
+        return PaymentResolutionService(db=getattr(self.repo, "db", None))
 
     async def _resolve_payment_relations(
         self, data: SubscriptionCreate | SubscriptionUpdate
@@ -22,35 +35,15 @@ class SubscriptionService:
         if not data.payment_method:
             return
 
-        from sqlalchemy import select
-        from finance_api.models.accounts import Account
-        from finance_api.models.credit_cards import CreditCard
-
-        try:
-            card_res = await self.repo.db.execute(
-                select(CreditCard).where(CreditCard.key == data.payment_method.lower())
-            )
-            card = card_res.scalar_one_or_none()
-            if card:
-                data.credit_card_id = card.id
-                data.account_id = card.account_id
-                data.payment_type = "CREDIT"
-                return
-        except Exception as e:
-            logger.debug(f"Could not resolve credit card for subscription: {e}")
-
-        try:
-            acc_res = await self.repo.db.execute(
-                select(Account).where(Account.key == data.payment_method.lower())
-            )
-            acc = acc_res.scalar_one_or_none()
-            if acc:
-                data.account_id = acc.id
-                if not getattr(data, "payment_type", None) or data.payment_type == "CREDIT":
-                    data.payment_type = "DEBIT"
-                return
-        except Exception as e:
-            logger.debug(f"Could not resolve account for subscription: {e}")
+        target = await self.payment_resolver.resolve(
+            data.payment_method,
+            requested_payment_type=getattr(data, "payment_type", None),
+        )
+        if target.credit_card_id:
+            data.credit_card_id = target.credit_card_id
+        if target.account_id:
+            data.account_id = target.account_id
+        data.payment_type = target.payment_type
 
     @handle_service_errors
     async def create(self, subscription: SubscriptionCreate) -> "Subscription":

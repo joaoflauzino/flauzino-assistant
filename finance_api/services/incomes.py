@@ -1,10 +1,8 @@
-import calendar
-from datetime import date, datetime
+from datetime import date
 from typing import List, Optional
 from uuid import UUID
-from zoneinfo import ZoneInfo
-from sqlalchemy import select
 
+from finance_api.core.dates import DateRange
 from finance_api.core.decorators import handle_service_errors
 from finance_api.core.exceptions import EntityNotFoundError, ValidationError
 from finance_api.core.logger import get_logger
@@ -20,26 +18,9 @@ from finance_api.schemas.incomes import (
     IncomeUpdate,
     MonthlyBalanceSummary,
 )
+from finance_api.services.payment_resolution import PaymentResolutionService
 
 logger = get_logger(__name__)
-
-
-def _parse_reference_month(reference_month: Optional[str]) -> tuple[str, date, date]:
-    if not reference_month:
-        now = datetime.now(ZoneInfo("America/Sao_Paulo"))
-        reference_month = now.strftime("%Y-%m")
-
-    try:
-        parsed_date = datetime.strptime(reference_month, "%Y-%m")
-    except ValueError as e:
-        raise ValidationError("Formato de mês inválido. Use YYYY-MM.") from e
-
-    year, month = parsed_date.year, parsed_date.month
-    start_date = date(year, month, 1)
-    _, last_day = calendar.monthrange(year, month)
-    end_date = date(year, month, last_day)
-
-    return reference_month, start_date, end_date
 
 
 class IncomeService:
@@ -49,11 +30,13 @@ class IncomeService:
         category_repo: Optional[IncomeCategoryRepository] = None,
         pm_repo: Optional[PaymentMethodRepository] = None,
         spent_repo: Optional[SpentRepository] = None,
+        payment_resolver: Optional[PaymentResolutionService] = None,
     ):
         self.repo = repo
         self._category_repo = category_repo
         self._pm_repo = pm_repo
         self._spent_repo = spent_repo
+        self._payment_resolver = payment_resolver
 
     @property
     def category_repo(self) -> IncomeCategoryRepository:
@@ -72,6 +55,12 @@ class IncomeService:
         if self._spent_repo is not None:
             return self._spent_repo
         return SpentRepository(self.repo.db)
+
+    @property
+    def payment_resolver(self) -> PaymentResolutionService:
+        if self._payment_resolver is not None:
+            return self._payment_resolver
+        return PaymentResolutionService(db=getattr(self.repo, "db", None))
 
     async def _validate_category(self, category_key: str) -> IncomeCategory:
         category = await self.category_repo.get_by_key(category_key)
@@ -94,17 +83,9 @@ class IncomeService:
             matched_pm = await self._validate_payment_method(income_data.payment_method)
             income_data.payment_method = matched_pm.key
             if not income_data.account_id:
-                try:
-                    from finance_api.models.accounts import Account
-
-                    acc_res = await self.repo.db.execute(
-                        select(Account).where(Account.key == matched_pm.key)
-                    )
-                    acc = acc_res.scalar_one_or_none()
-                    if acc:
-                        income_data.account_id = acc.id
-                except Exception:
-                    pass
+                resolved = await self.payment_resolver.resolve(matched_pm.key)
+                if resolved.account_id:
+                    income_data.account_id = resolved.account_id
 
         logger.info(f"Creating income: {income_data.description} ({income_data.amount})")
         income = await self.repo.create(income_data)
@@ -146,17 +127,9 @@ class IncomeService:
             matched_pm = await self._validate_payment_method(update_data.payment_method)
             update_data.payment_method = matched_pm.key
             if not getattr(update_data, "account_id", None):
-                try:
-                    from finance_api.models.accounts import Account
-
-                    acc_res = await self.repo.db.execute(
-                        select(Account).where(Account.key == matched_pm.key)
-                    )
-                    acc = acc_res.scalar_one_or_none()
-                    if acc:
-                        update_data.account_id = acc.id
-                except Exception:
-                    pass
+                resolved = await self.payment_resolver.resolve(matched_pm.key)
+                if resolved.account_id:
+                    update_data.account_id = resolved.account_id
 
         logger.info(f"Updating income: {income_id}")
         income = await self.repo.update(income_id, update_data)
@@ -179,25 +152,14 @@ class IncomeService:
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
     ) -> MonthlyBalanceSummary:
-        if start_date and end_date:
-            ref_month = (
-                reference_month
-                or f"{start_date.strftime('%Y-%m-%d')} a {end_date.strftime('%Y-%m-%d')}"
-            )
-        elif start_date:
-            ref_month = reference_month or f"A partir de {start_date.strftime('%Y-%m-%d')}"
-            end_date = date(2099, 12, 31)
-        elif end_date:
-            ref_month = reference_month or f"Até {end_date.strftime('%Y-%m-%d')}"
-            start_date = date(1970, 1, 1)
-        else:
-            ref_month, start_date, end_date = _parse_reference_month(reference_month)
+        period = DateRange.from_bounds(start_date, end_date, reference_month)
+        logger.info(
+            f"Calculating balance summary for {period.label} ({period.start} to {period.end})"
+        )
 
-        logger.info(f"Calculating balance summary for {ref_month} ({start_date} to {end_date})")
-
-        incomes = await self.repo.list_by_period(start_date, end_date)
+        incomes = await self.repo.list_by_period(period.start, period.end)
         spents, _ = await self.spent_repo.list(
-            skip=0, limit=10000, start_date=start_date, end_date=end_date
+            skip=0, limit=10000, start_date=period.start, end_date=period.end
         )
 
         total_incomes = sum(inc.amount for inc in incomes)
@@ -220,7 +182,7 @@ class IncomeService:
             spents_by_category[cat] = round(spents_by_category.get(cat, 0.0) + sp.amount, 2)
 
         return MonthlyBalanceSummary(
-            reference_month=ref_month,
+            reference_month=period.label,
             total_incomes=round(total_incomes, 2),
             total_spents=round(total_spents, 2),
             net_balance=net_balance,

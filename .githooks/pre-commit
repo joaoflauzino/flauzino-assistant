@@ -10,6 +10,11 @@ echo "=============================="
 echo "1. Formatting code (make format)..."
 make format
 
+# Automatically re-stage any files modified by formatters (black, ruff)
+# This guarantees that formatting changes are included in the current commit
+# and never left behind in the working tree, preventing CI lint failures.
+git update-index --again
+
 echo "2. Linting code (make lint)..."
 make lint
 

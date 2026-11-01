@@ -1,11 +1,9 @@
-import calendar
 from datetime import date, datetime
 from typing import List, Optional, Tuple
 import uuid
 from uuid import UUID
 from zoneinfo import ZoneInfo
 from dateutil.relativedelta import relativedelta
-from sqlalchemy import select
 
 from finance_api.core.decorators import handle_service_errors
 from finance_api.core.exceptions import EntityNotFoundError, ValidationError
@@ -20,7 +18,13 @@ from finance_api.repositories.spents import SpentRepository
 from finance_api.schemas.installments import InstallmentSummary
 from finance_api.schemas.pagination import PaginatedResponse
 from finance_api.schemas.spents import SpentCreate, SpentUpdate
+from finance_api.services.dashboard_strategies import (
+    CivilMonthDashboardStrategy,
+    DashboardPeriodStrategy,
+    InvoicesDashboardStrategy,
+)
 from finance_api.services.invoices import InvoiceService
+from finance_api.services.payment_resolution import PaymentResolutionService
 
 logger = get_logger(__name__)
 
@@ -32,11 +36,13 @@ class SpentService:
         category_repo: Optional[CategoryRepository] = None,
         pm_repo: Optional[PaymentMethodRepository] = None,
         inv_service: Optional[InvoiceService] = None,
+        payment_resolver: Optional[PaymentResolutionService] = None,
     ):
         self.repo = repo
         self._category_repo = category_repo
         self._pm_repo = pm_repo
         self._inv_service = inv_service
+        self._payment_resolver = payment_resolver
 
     @property
     def category_repo(self) -> CategoryRepository:
@@ -60,6 +66,13 @@ class SpentService:
         if hasattr(self.repo, "db") and self.repo.db is not None:
             return InvoiceService(InvoiceRepository(self.repo.db), self.pm_repo)
         return None
+
+    @property
+    def payment_resolver(self) -> PaymentResolutionService:
+        """Returns the injected payment resolver or instantiates one."""
+        if self._payment_resolver is not None:
+            return self._payment_resolver
+        return PaymentResolutionService(db=getattr(self.repo, "db", None))
 
     async def _validate_category(self, category_key: str) -> Category:
         category = await self.category_repo.get_by_key(category_key)
@@ -107,31 +120,14 @@ class SpentService:
         inv_service: Optional[InvoiceService] = None,
         pm_repo: Optional[PaymentMethodRepository] = None,
     ) -> List[Tuple[str, date, date]]:
-        """Resolves invoice billing periods for all payment methods.
-
-        For credit cards, uses the calculated or configured invoice dates.
-        For non-credit cards (Pix, Dinheiro, Débito, etc.), uses the civil month period.
-        """
+        """Resolves invoice billing periods for all payment methods."""
         active_inv = inv_service or self.inv_service
         active_pm = pm_repo or self.pm_repo
         if not active_inv:
             raise ValidationError("InvoiceService não configurado para resolver faturas.")
 
-        payment_methods, _ = await active_pm.list(page=1, size=1000)
-        periods: List[Tuple[str, date, date]] = []
-
-        year, month = map(int, reference_month.split("-"))
-        _, last_day = calendar.monthrange(year, month)
-        civil_start = date(year, month, 1)
-        civil_end = date(year, month, last_day)
-
-        for pm in payment_methods:
-            if pm.is_credit_card:
-                start_d, end_d = await active_inv.get_invoice_dates(pm, reference_month)
-            else:
-                start_d, end_d = civil_start, civil_end
-            periods.append((pm.key, start_d, end_d))
-        return periods
+        strategy = InvoicesDashboardStrategy(self.repo, active_inv, active_pm)
+        return await strategy._resolve_invoice_periods(reference_month)
 
     @handle_service_errors
     async def create(self, spent: SpentCreate) -> "Spent":
@@ -143,45 +139,16 @@ class SpentService:
         matched_pm = await self._validate_payment_method(spent.payment_method)
         spent.payment_method = matched_pm.key
 
-        user_payment_type = (
-            spent.payment_type
-            if spent.payment_type in ("PIX", "DEBIT", "CASH", "TRANSFER", "OTHER")
-            else None
+        resolved = await self.payment_resolver.resolve(
+            matched_pm.key,
+            requested_payment_type=spent.payment_type,
+            is_credit_card_hint=getattr(matched_pm, "is_credit_card", False),
         )
-
-        card = None
-        try:
-            from finance_api.models.credit_cards import CreditCard
-
-            card_res = await self.repo.db.execute(
-                select(CreditCard).where(CreditCard.key == matched_pm.key)
-            )
-            card = card_res.scalar_one_or_none()
-            if card:
-                spent.credit_card_id = card.id
-                spent.account_id = card.account_id
-                spent.payment_type = "CREDIT"
-        except Exception:
-            pass
-
-        if not card:
-            try:
-                from finance_api.models.accounts import Account
-
-                acc_res = await self.repo.db.execute(
-                    select(Account).where(Account.key == matched_pm.key)
-                )
-                acc = acc_res.scalar_one_or_none()
-                if acc:
-                    spent.account_id = acc.id
-                    spent.payment_type = user_payment_type or "DEBIT"
-            except Exception:
-                pass
-
-        if not getattr(spent, "account_id", None) and not card:
-            spent.payment_type = user_payment_type or (
-                "CREDIT" if getattr(matched_pm, "is_credit_card", False) else "DEBIT"
-            )
+        if resolved.credit_card_id:
+            spent.credit_card_id = resolved.credit_card_id
+        if resolved.account_id:
+            spent.account_id = resolved.account_id
+        spent.payment_type = resolved.payment_type
 
         if spent.is_installment:
             spents_to_create = self._build_installments(spent)
@@ -216,24 +183,25 @@ class SpentService:
         logger.info(f"Dashboard mode {mode} for {reference_month}")
         skip = (page - 1) * size
 
-        if mode == "CIVIL_MONTH":
-            year, month = map(int, reference_month.split("-"))
-            _, last_day = calendar.monthrange(year, month)
-            start_date = date(year, month, 1)
-            end_date = date(year, month, last_day)
-            items, total = await self.repo.list(skip, size, start_date, end_date)
-            return PaginatedResponse.create(items, total, page, size)
+        active_inv = inv_service or self.inv_service
+        active_pm = pm_repo or self.pm_repo
 
-        elif mode == "INVOICES":
-            periods = await self._resolve_invoice_periods(
-                reference_month=reference_month,
-                inv_service=inv_service,
-                pm_repo=pm_repo,
-            )
-            items, total = await self.repo.list_by_multiple_periods(periods, skip, size)
-            return PaginatedResponse.create(items, total, page, size)
-        else:
+        if mode == "INVOICES" and not active_inv:
+            raise ValidationError("InvoiceService não configurado para resolver faturas.")
+
+        strategies: dict[str, DashboardPeriodStrategy] = {
+            "CIVIL_MONTH": CivilMonthDashboardStrategy(self.repo),
+            "INVOICES": (
+                InvoicesDashboardStrategy(self.repo, active_inv, active_pm) if active_inv else None
+            ),
+        }
+
+        strategy = strategies.get(mode)
+        if strategy is None:
             raise ValidationError(f"Modo inválido: {mode}")
+
+        items, total = await strategy.fetch_spents(reference_month, skip, size)
+        return PaginatedResponse.create(items, total, page, size)
 
     @handle_service_errors
     async def get_by_id(self, spent_id: UUID) -> "Spent":
@@ -254,41 +222,17 @@ class SpentService:
         if update_data.payment_method:
             matched_pm = await self._validate_payment_method(update_data.payment_method)
             update_data.payment_method = matched_pm.key
-            user_payment_type = update_data.payment_type
 
-            card = None
-            try:
-                from finance_api.models.credit_cards import CreditCard
-
-                card_res = await self.repo.db.execute(
-                    select(CreditCard).where(CreditCard.key == matched_pm.key)
-                )
-                card = card_res.scalar_one_or_none()
-                if card:
-                    update_data.credit_card_id = card.id
-                    update_data.account_id = card.account_id
-                    update_data.payment_type = "CREDIT"
-            except Exception:
-                pass
-
-            if not card:
-                try:
-                    from finance_api.models.accounts import Account
-
-                    acc_res = await self.repo.db.execute(
-                        select(Account).where(Account.key == matched_pm.key)
-                    )
-                    acc = acc_res.scalar_one_or_none()
-                    if acc:
-                        update_data.account_id = acc.id
-                        update_data.payment_type = user_payment_type or "DEBIT"
-                except Exception:
-                    pass
-
-            if not getattr(update_data, "account_id", None) and not card:
-                update_data.payment_type = user_payment_type or (
-                    "CREDIT" if getattr(matched_pm, "is_credit_card", False) else "DEBIT"
-                )
+            resolved = await self.payment_resolver.resolve(
+                matched_pm.key,
+                requested_payment_type=update_data.payment_type,
+                is_credit_card_hint=getattr(matched_pm, "is_credit_card", False),
+            )
+            if resolved.credit_card_id:
+                update_data.credit_card_id = resolved.credit_card_id
+            if resolved.account_id:
+                update_data.account_id = resolved.account_id
+            update_data.payment_type = resolved.payment_type
 
         current_spent = await self.repo.get_by_id(spent_id)
         if not current_spent:
