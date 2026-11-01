@@ -72,10 +72,14 @@ Para qualquer solicitação de nova feature:
 5. **Testar**: Executar a suíte de testes automatizados e linters do projeto.
 6. **Documentar**: Ao finalizar a tarefa, atualizar a documentação correspondente dentro de `.specs/`.
 
-## 7. Controle de Versão e Git (Git & Commits)
+## 7. Controle de Versão, Git & Auto-Trigger do `qa-gatekeeper` na PR
 - **Proibição Estrita de Commits/Push Não Autorizados:** A IA / assistente está estritamente **proibida** de executar comandos `git commit` ou `git push` sem a autorização prévia e expressa do usuário.
-- **Fluxo Obrigatório de Aprovação:**
+- **Fluxo Obrigatório de Aprovação e Governança de PR (`qa-gatekeeper`):**
   1. Realizar as modificações nos arquivos.
   2. Executar testes e linters (`make format`, `make lint`, `uv run pytest`).
   3. Apresentar o `git diff` e o resumo das alterações de forma clara ao usuário.
   4. **Aguardar a confirmação/autorização explícita do usuário** antes de executar qualquer `git commit` ou `git push`.
+  5. **Gatilho Automático Pós-Push (`qa-gatekeeper`)**: Assim que o usuário autorizar o `git push` em uma branch de trabalho (`feat/**`, `feature/**`, `fix/**`), a IA **DEVE automaticamente** na sequência imediata:
+     - Aguardar até ~15 segundos pela criação automática da PR pelo workflow `.github/workflows/auto_pr.yml` (`for i in 1 2 3 4 5; do gh pr view --json number,url >/dev/null 2>&1 && break || sleep 3; done`); caso ainda não exista, criá-la via `gh pr create`.
+     - Executar o pipeline completo de 6 fases da skill **`qa-gatekeeper`** (incluindo gates explícitos de **PEP 8**, **PEP 20**, cobertura de testes, `curl` real nos endpoints afetados, cliques em navegador headless no Frontend e cálculo de tokens via `token_usage.py`).
+     - Publicar o relatório completo como comentário oficial na PR (`gh pr comment <PR_NUMBER> --body-file ...`), aprovando ou bloqueando a PR sem fazer o merge automático (deixando o clique final de merge com o desenvolvedor).
