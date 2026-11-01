@@ -44,6 +44,7 @@ export const InvoicesPage = () => {
 
     useEffect(() => {
         fetchData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [referenceMonth]);
 
     const handleUpdateDates = async (e: React.FormEvent) => {

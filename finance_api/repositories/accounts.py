@@ -1,4 +1,5 @@
-from typing import Optional, Sequence
+from collections.abc import Sequence
+from typing import Protocol
 from uuid import UUID
 
 from sqlalchemy import select
@@ -7,16 +8,38 @@ from sqlalchemy.orm import selectinload
 
 from finance_api.core.logger import get_logger
 from finance_api.models.accounts import Account
+from finance_api.repositories.base import RepositoryProtocol, SQLAlchemyRepository
 from finance_api.schemas.accounts import AccountCreate, AccountUpdate
 
 logger = get_logger(__name__)
 
 
-class AccountRepository:
-    def __init__(self, db: AsyncSession):
-        self.db = db
+class AccountRepositoryProtocol(RepositoryProtocol[Account, UUID], Protocol):
+    """Domain repository contract for Account persistence."""
 
-    async def get_by_id(self, account_id: UUID) -> Optional[Account]:
+    async def get_by_key(self, key: str) -> Account | None: ...
+
+    async def list(
+        self,
+        page: int = 1,
+        size: int = 100,
+        owner: str | None = None,
+    ) -> tuple[Sequence[Account], int]: ...
+
+    async def create(self, account_data: AccountCreate) -> Account: ...
+
+    async def update(self, account_id: UUID, update_data: AccountUpdate) -> Account | None: ...
+
+    async def delete(self, account_id: UUID) -> bool: ...
+
+
+class AccountRepository(SQLAlchemyRepository[Account, UUID]):
+    model = Account
+
+    def __init__(self, db: AsyncSession) -> None:
+        super().__init__(db)
+
+    async def get_by_id(self, account_id: UUID) -> Account | None:
         logger.debug(f"Repository: Fetching account by ID: {account_id}")
         query = (
             select(Account)
@@ -26,7 +49,7 @@ class AccountRepository:
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
 
-    async def get_by_key(self, key: str) -> Optional[Account]:
+    async def get_by_key(self, key: str) -> Account | None:
         logger.debug(f"Repository: Fetching account by key: {key}")
         query = (
             select(Account)
@@ -37,7 +60,10 @@ class AccountRepository:
         return result.scalar_one_or_none()
 
     async def list(
-        self, page: int = 1, size: int = 100, owner: Optional[str] = None
+        self,
+        page: int = 1,
+        size: int = 100,
+        owner: str | None = None,
     ) -> tuple[Sequence[Account], int]:
         logger.debug(f"Repository: Listing accounts page={page} size={size} owner={owner}")
         offset = (page - 1) * size
@@ -66,12 +92,9 @@ class AccountRepository:
             owner=account_data.owner,
             type=account_data.type,
         )
-        self.db.add(account)
-        await self.db.commit()
-        await self.db.refresh(account)
-        return account
+        return await self.add(account)
 
-    async def update(self, account_id: UUID, update_data: AccountUpdate) -> Optional[Account]:
+    async def update(self, account_id: UUID, update_data: AccountUpdate) -> Account | None:
         logger.debug(f"Repository: Updating account: {account_id}")
         account = await self.get_by_id(account_id)
         if not account:
@@ -94,6 +117,5 @@ class AccountRepository:
         if not account:
             return False
 
-        await self.db.delete(account)
-        await self.db.commit()
+        await self.delete_entity(account)
         return True

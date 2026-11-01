@@ -12,6 +12,7 @@ export interface ToastMessage {
 let toastId = 0;
 let addToastCallback: ((msg: string, type: ToastType) => void) | null = null;
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const showToast = (message: string, type: ToastType = 'error') => {
     if (addToastCallback) {
         addToastCallback(message, type);

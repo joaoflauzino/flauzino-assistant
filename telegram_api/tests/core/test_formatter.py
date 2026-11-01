@@ -73,9 +73,7 @@ def test_markdown_to_telegram_html_preserves_code():
     assert "<code>cat file.txt</code>" in res
 
     # Code block with language and special characters
-    code_block = (
-        "Aqui está o código:\n" "```python\n" "if a < b and c > d:\n" "    return a & b\n" "```"
-    )
+    code_block = "Aqui está o código:\n```python\nif a < b and c > d:\n    return a & b\n```"
     res = markdown_to_telegram_html(code_block)
     assert '<pre><code class="language-python">' in res
     assert "if a &lt; b and c &gt; d:\n    return a &amp; b" in res

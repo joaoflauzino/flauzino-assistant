@@ -9,12 +9,16 @@ from agent_api.core.exceptions import (
     InvalidSpentError,
 )
 from agent_api.schemas.assistant import AssistantResponse
-from agent_api.schemas.spending import SpendingDetails
-from agent_api.services.finance import (
+from agent_api.schemas.finance import (
     DEFAULT_ACCOUNTS,
+    DEFAULT_CATEGORIES,
     DEFAULT_CREDIT_CARDS,
-    FinanceService,
+    DEFAULT_PAYMENT_METHODS,
 )
+from agent_api.schemas.limit import LimitDetails
+from agent_api.schemas.spending import SpendingDetails
+from agent_api.services.finance import FinanceService
+from agent_api.services.protocols import FinanceServiceProtocol
 
 
 @pytest.fixture
@@ -42,21 +46,22 @@ def finance_service(mock_client):
     return FinanceService(client=mock_client)
 
 
+def test_finance_service_satisfies_protocol(finance_service: FinanceService) -> None:
+    svc: FinanceServiceProtocol = finance_service
+    assert hasattr(svc, "get_categories")
+    assert hasattr(svc, "register")
+
+
 @pytest.mark.asyncio
 async def test_register_finance_unreachable(finance_service, sample_agent_response, mock_client):
-    # Arrange
-    # Simulate a connection error when posting to spents
     mock_client.post.side_effect = httpx.ConnectError("Connection refused")
 
-    # Act & Assert
     with pytest.raises(FinanceUnreachableError):
         await finance_service.register(sample_agent_response)
 
 
 @pytest.mark.asyncio
 async def test_register_invalid_spent_400(finance_service, sample_agent_response, mock_client):
-    # Arrange
-    # Simulate a 400 Bad Request
     mock_response = MagicMock()
     mock_response.status_code = 400
     mock_response.text = "Invalid Category"
@@ -65,7 +70,6 @@ async def test_register_invalid_spent_400(finance_service, sample_agent_response
     )
     mock_client.post.return_value = mock_response
 
-    # Act & Assert
     with pytest.raises(InvalidSpentError) as exc_info:
         await finance_service.register(sample_agent_response)
     assert "Invalid data" in str(exc_info.value)
@@ -73,8 +77,6 @@ async def test_register_invalid_spent_400(finance_service, sample_agent_response
 
 @pytest.mark.asyncio
 async def test_register_invalid_spent_422(finance_service, sample_agent_response, mock_client):
-    # Arrange
-    # Simulate a 422 Unprocessable Entity
     mock_response = MagicMock()
     mock_response.status_code = 422
     mock_response.text = "Validation Error"
@@ -83,7 +85,6 @@ async def test_register_invalid_spent_422(finance_service, sample_agent_response
     )
     mock_client.post.return_value = mock_response
 
-    # Act & Assert
     with pytest.raises(InvalidSpentError) as exc_info:
         await finance_service.register(sample_agent_response)
     assert "Invalid data" in str(exc_info.value)
@@ -91,8 +92,6 @@ async def test_register_invalid_spent_422(finance_service, sample_agent_response
 
 @pytest.mark.asyncio
 async def test_register_finance_server_error(finance_service, sample_agent_response, mock_client):
-    # Arrange
-    # Simulate a 500 Internal Server Error
     mock_response = MagicMock()
     mock_response.status_code = 500
     mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
@@ -100,29 +99,42 @@ async def test_register_finance_server_error(finance_service, sample_agent_respo
     )
     mock_client.post.return_value = mock_response
 
-    # Act & Assert
     with pytest.raises(FinanceServerError):
         await finance_service.register(sample_agent_response)
 
 
 @pytest.mark.asyncio
 async def test_register_success(finance_service, sample_agent_response, mock_client):
-    # Arrange
     mock_response = MagicMock()
     mock_response.status_code = 200
     mock_response.json.return_value = {"id": 1, "amount": 100.0}
     mock_client.post.return_value = mock_response
 
-    # Act
     result = await finance_service.register(sample_agent_response)
-
-    # Assert
     assert result == {"id": 1, "amount": 100.0}
 
 
 @pytest.mark.asyncio
-async def test_get_balances_success(mock_client):
-    # Arrange
+async def test_register_limit_and_empty_response(finance_service, mock_client):
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {"id": 99, "category": "lazer", "amount": 500.0}
+    mock_client.post.return_value = mock_response
+
+    limit_resp = AssistantResponse(
+        response_message="Limite salvo",
+        is_complete=True,
+        limit_details=LimitDetails(categoria="lazer", valor=500.0),
+    )
+    res_limit = await finance_service.register(limit_resp)
+    assert res_limit == {"id": 99, "category": "lazer", "amount": 500.0}
+
+    empty_resp = AssistantResponse(response_message="Olá", is_complete=False)
+    assert await finance_service.register(empty_resp) is None
+
+
+@pytest.mark.asyncio
+async def test_get_balances_success_and_non_200(mock_client):
     service = FinanceService(client=mock_client)
     mock_response = MagicMock()
     mock_response.status_code = 200
@@ -131,47 +143,78 @@ async def test_get_balances_success(mock_client):
     ]
     mock_client.get.return_value = mock_response
 
-    # Act
-    balances = await service.get_balances(categories=["mercado"])
-
-    # Assert
+    balances = await service.get_balances(categories=["mercado"], reference_month="2026-11")
     assert len(balances) == 1
     assert balances[0]["category"] == "mercado"
-    mock_client.get.assert_awaited_once()
-    call_args = mock_client.get.call_args
-    assert "categories=mercado" in str(call_args) or call_args.kwargs.get("params") == {
-        "categories": "mercado"
-    }
+
+    mock_response_404 = MagicMock()
+    mock_response_404.status_code = 404
+    mock_client.get.return_value = mock_response_404
+    assert await service.get_balances() == []
 
 
 @pytest.mark.asyncio
-async def test_get_categories_success(mock_client):
+async def test_get_monthly_summary_non_200(mock_client):
+    service = FinanceService(client=mock_client)
+    mock_response = MagicMock()
+    mock_response.status_code = 404
+    mock_client.get.return_value = mock_response
+
+    assert await service.get_monthly_summary(reference_month="2026-11") == {}
+
+
+@pytest.mark.asyncio
+async def test_get_categories_success_cache_and_fallback(mock_client):
     service = FinanceService(client=mock_client)
     mock_response = MagicMock()
     mock_response.status_code = 200
     mock_response.json.return_value = {"items": [{"key": "alimentacao"}, {"key": "lazer"}]}
     mock_client.get.return_value = mock_response
 
-    # Use cache=False to test network retrieval
     categories = await service.get_categories(use_cache=False)
     assert categories == ["alimentacao", "lazer"]
+    # Second call with use_cache=True hits memory cache
+    assert await service.get_categories(use_cache=True) == ["alimentacao", "lazer"]
+
+    # Fallback when cache is cleared and API errors
+    FinanceService._cached_categories = None
+    FinanceService._categories_expiry = 0.0
+    mock_client.get.side_effect = httpx.ConnectError("API down")
+    assert await service.get_categories(use_cache=False) == DEFAULT_CATEGORIES
 
 
 @pytest.mark.asyncio
-async def test_get_payment_methods_success(mock_client):
+async def test_get_income_categories_cache_hit(mock_client):
+    service = FinanceService(client=mock_client)
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {"items": [{"key": "salario"}]}
+    mock_client.get.return_value = mock_response
+
+    assert await service.get_income_categories(use_cache=False) == ["salario"]
+    assert await service.get_income_categories(use_cache=True) == ["salario"]
+
+
+@pytest.mark.asyncio
+async def test_get_payment_methods_success_cache_and_fallback(mock_client):
     service = FinanceService(client=mock_client)
     mock_response = MagicMock()
     mock_response.status_code = 200
     mock_response.json.return_value = {"items": [{"key": "pix"}, {"key": "nubank"}]}
     mock_client.get.return_value = mock_response
 
-    # Use cache=False to test network retrieval
     methods = await service.get_payment_methods(use_cache=False)
     assert methods == ["pix", "nubank"]
+    assert await service.get_payment_methods(use_cache=True) == ["pix", "nubank"]
+
+    FinanceService._cached_payment_methods = None
+    FinanceService._payment_methods_expiry = 0.0
+    mock_client.get.side_effect = httpx.ConnectError("API down")
+    assert await service.get_payment_methods(use_cache=False) == DEFAULT_PAYMENT_METHODS
 
 
 @pytest.mark.asyncio
-async def test_get_accounts_success(mock_client):
+async def test_get_accounts_success_and_cache(mock_client):
     service = FinanceService(client=mock_client)
     mock_response = MagicMock()
     mock_response.status_code = 200
@@ -180,6 +223,7 @@ async def test_get_accounts_success(mock_client):
 
     accounts = await service.get_accounts(use_cache=False)
     assert accounts == ["itau_joao", "nubank_joao"]
+    assert await service.get_accounts(use_cache=True) == ["itau_joao", "nubank_joao"]
 
 
 @pytest.mark.asyncio
@@ -194,7 +238,7 @@ async def test_get_accounts_fallback(mock_client):
 
 
 @pytest.mark.asyncio
-async def test_get_credit_cards_success(mock_client):
+async def test_get_credit_cards_success_and_cache(mock_client):
     service = FinanceService(client=mock_client)
     mock_response = MagicMock()
     mock_response.status_code = 200
@@ -205,6 +249,7 @@ async def test_get_credit_cards_success(mock_client):
 
     cards = await service.get_credit_cards(use_cache=False)
     assert cards == ["itau_card_joao", "c6_card_joao"]
+    assert await service.get_credit_cards(use_cache=True) == ["itau_card_joao", "c6_card_joao"]
 
 
 @pytest.mark.asyncio

@@ -121,12 +121,13 @@ export const SpentsPage = () => {
 
     useEffect(() => {
         fetchData(page);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [page]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const payload: any = {
+            const payload: Record<string, unknown> = {
                 ...formData,
                 amount: parseFloat(formData.amount),
                 created_at: new Date(formData.created_at + 'T12:00:00Z').toISOString()

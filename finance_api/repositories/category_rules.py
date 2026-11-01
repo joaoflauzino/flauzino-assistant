@@ -1,4 +1,5 @@
-from typing import Sequence
+from collections.abc import Sequence
+from typing import Protocol
 import unicodedata
 from uuid import UUID
 
@@ -14,8 +15,29 @@ def _normalize(text: str) -> str:
     return "".join(c for c in nfkd if not unicodedata.combining(c)).upper().strip()
 
 
+class CategoryRuleRepositoryProtocol(Protocol):
+    """Domain repository contract for CategoryRule persistence."""
+
+    async def list_all(self) -> Sequence[CategoryRule]: ...
+
+    async def find_matching_rule(self, merchant: str, direction: str) -> CategoryRule | None: ...
+
+    async def increment_hits(self, rule_id: UUID) -> None: ...
+
+    async def upsert_rule(
+        self,
+        pattern: str,
+        direction: str,
+        kind: str,
+        category: str | None,
+        source: str = "LEARNED",
+    ) -> CategoryRule: ...
+
+    async def delete_by_id(self, rule_id: UUID) -> bool: ...
+
+
 class CategoryRuleRepository:
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession) -> None:
         self.db = db
 
     async def list_all(self) -> Sequence[CategoryRule]:
@@ -34,9 +56,8 @@ class CategoryRuleRepository:
             if rule.match_type == "EXACT":
                 if norm_merchant == norm_pattern:
                     return rule
-            else:  # CONTAINS
-                if norm_pattern in norm_merchant:
-                    return rule
+            elif norm_pattern in norm_merchant:
+                return rule
         return None
 
     async def increment_hits(self, rule_id: UUID) -> None:

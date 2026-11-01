@@ -13,6 +13,7 @@ pytestmark = pytest.mark.asyncio
 @pytest.fixture
 def mock_db():
     db = AsyncMock()
+    db.add = MagicMock()
     return db
 
 
@@ -93,10 +94,15 @@ async def test_update_account(mock_db):
     mock_db.execute.return_value = mock_result
 
     repo = AccountRepository(mock_db)
-    updated = await repo.update(account_id, AccountUpdate(name="Itaú Super"))
+    updated = await repo.update(account_id, AccountUpdate(key="ITAU_SUPER", name="Itaú Super"))
 
     assert updated.name == "Itaú Super"
+    assert updated.key == "itau_super"
     mock_db.commit.assert_awaited_once()
+
+    # Not found branch
+    mock_result.scalar_one_or_none.return_value = None
+    assert await repo.update(uuid4(), AccountUpdate(name="Ghost")) is None
 
 
 async def test_delete_account(mock_db):
@@ -112,3 +118,7 @@ async def test_delete_account(mock_db):
 
     assert success is True
     mock_db.delete.assert_awaited_once_with(mock_account)
+
+    # Not found branch
+    mock_result.scalar_one_or_none.return_value = None
+    assert await repo.delete(uuid4()) is False

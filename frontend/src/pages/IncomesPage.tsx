@@ -114,12 +114,13 @@ export const IncomesPage = () => {
 
     useEffect(() => {
         fetchData(page);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [page]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const payload: any = {
+            const payload: Record<string, unknown> = {
                 description: formData.description,
                 amount: parseFloat(formData.amount),
                 category: formData.category,

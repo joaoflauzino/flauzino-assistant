@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, type TooltipItem } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import { CheckSquare, Square, TrendingUp, TrendingDown, Scale, Percent, Landmark, CreditCard as CreditCardIcon } from 'lucide-react';
 import api from '../services/api';
@@ -174,6 +174,7 @@ export const Dashboard = () => {
 
     useEffect(() => {
         fetchData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [referenceMonth, mode]);
 
     const handleFilter = (e: React.FormEvent) => {
@@ -404,8 +405,8 @@ export const Dashboard = () => {
                 borderWidth: 1,
                 padding: 12,
                 callbacks: {
-                    label: function (context: any) {
-                        return `${context.dataset.label}: R$ ${context.raw.toFixed(2)}`;
+                    label: function (context: TooltipItem<'bar'>) {
+                        return `${context.dataset.label}: R$ ${Number(context.raw).toFixed(2)}`;
                     }
                 }
             }
@@ -421,7 +422,7 @@ export const Dashboard = () => {
                 grid: { color: 'rgba(75, 85, 99, 0.2)' },
                 ticks: {
                     color: '#9ca3af',
-                    callback: function (value: any) {
+                    callback: function (value: string | number) {
                         return 'R$ ' + value.toLocaleString();
                     }
                 }
@@ -479,8 +480,8 @@ export const Dashboard = () => {
                 borderWidth: 1,
                 padding: 12,
                 callbacks: {
-                    label: function (context: any) {
-                        return `Total: R$ ${context.raw.toFixed(2)}`;
+                    label: function (context: TooltipItem<'bar'>) {
+                        return `Total: R$ ${Number(context.raw).toFixed(2)}`;
                     }
                 }
             }
@@ -494,7 +495,7 @@ export const Dashboard = () => {
                 grid: { color: 'rgba(75, 85, 99, 0.2)' },
                 ticks: {
                     color: '#9ca3af',
-                    callback: function (value: any) {
+                    callback: function (value: string | number) {
                         return 'R$ ' + value.toLocaleString();
                     }
                 }
@@ -516,8 +517,8 @@ export const Dashboard = () => {
                 borderWidth: 1,
                 padding: 12,
                 callbacks: {
-                    label: function (context: any) {
-                        return `Gasto: R$ ${context.raw.toFixed(2)}`;
+                    label: function (context: TooltipItem<'bar'>) {
+                        return `Gasto: R$ ${Number(context.raw).toFixed(2)}`;
                     }
                 }
             }
@@ -527,7 +528,7 @@ export const Dashboard = () => {
                 grid: { color: 'rgba(75, 85, 99, 0.2)' },
                 ticks: {
                     color: '#9ca3af',
-                    callback: function (value: any) {
+                    callback: function (value: string | number) {
                         return 'R$ ' + value.toLocaleString();
                     }
                 }

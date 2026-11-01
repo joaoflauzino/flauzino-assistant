@@ -3,7 +3,7 @@
 import datetime
 import signal
 import sys
-from sqlalchemy import text
+
 from telegram import Update
 from telegram.ext import (
     Application,
@@ -14,7 +14,7 @@ from telegram.ext import (
     filters,
 )
 
-from telegram_api.core.database import close_db, get_db, init_db
+from telegram_api.core.database import close_db, init_db
 from telegram_api.core.http_client import close_http_client, get_balance_graph
 from telegram_api.core.logger import get_logger
 from telegram_api.core.metrics import (
@@ -29,6 +29,7 @@ from telegram_api.handlers.income_handler import income_conv_handler
 from telegram_api.handlers.message_handler import agent_callback_handler, handle_text_message
 from telegram_api.handlers.photo_handler import handle_photo_message
 from telegram_api.handlers.voice_handler import handle_voice_message
+from telegram_api.services.session_service import SessionService
 from telegram_api.settings import settings
 
 logger = get_logger(__name__)
@@ -105,7 +106,7 @@ def main() -> None:
     logger.info("Handlers registered successfully")
 
     # Handle graceful shutdown and startup
-    async def post_init(application):
+    async def post_init(application) -> None:
         """Initialize resources on startup."""
         logger.info("Initializing resources...")
         await init_db()
@@ -121,13 +122,13 @@ def main() -> None:
         )
         logger.info("Scheduled weekly balance summary for Friday 10:00 AM (BRT)")
 
-    async def shutdown(application):
+    async def shutdown(application) -> None:
         """Cleanup on shutdown."""
         logger.info("Shutting down, cleaning up resources...")
         await close_http_client()
         await close_db()
 
-    def signal_handler(signum, frame):
+    def signal_handler(signum, frame) -> None:
         logger.info(f"Received signal {signum}, shutting down...")
         sys.exit(0)
 
@@ -168,20 +169,17 @@ async def send_weekly_balance_summary(context) -> None:
             return
 
         caption = "Aqui está seu *Resumo Semanal de Saldos e Limites*!"
+        session_service = SessionService()
+        chat_ids = await session_service.list_known_chat_ids()
 
-        async with get_db() as session:
-            # Select distinct chat_ids from sessions table (if they ever interacted)
-            result = await session.execute(text("SELECT DISTINCT chat_id FROM chat_sessions"))
-            chat_ids = [row[0] for row in result.fetchall()]
-
-            for chat_id in chat_ids:
-                try:
-                    await context.bot.send_photo(
-                        chat_id=chat_id, photo=img_data, caption=caption, parse_mode="Markdown"
-                    )
-                    logger.info(f"Sent weekly summary graph to chat {chat_id}")
-                except Exception as e:
-                    logger.error(f"Failed to send weekly summary graph to {chat_id}: {e}")
+        for chat_id in chat_ids:
+            try:
+                await context.bot.send_photo(
+                    chat_id=chat_id, photo=img_data, caption=caption, parse_mode="Markdown"
+                )
+                logger.info(f"Sent weekly summary graph to chat {chat_id}")
+            except Exception as e:
+                logger.error(f"Failed to send weekly summary graph to {chat_id}: {e}")
 
     except Exception as e:
         logger.error(f"Error generating weekly balance summary graph: {e}")

@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock
 import uuid
+
 import pytest
 
 from telegram_api.models.session import TelegramSession
@@ -81,3 +82,25 @@ async def test_save_and_delete_session():
     # Delete session
     await repo.delete_session(chat_id=123)
     assert mock_db.execute.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_list_distinct_chat_ids_and_error_handling():
+    mock_db = AsyncMock()
+    scalars_mock = MagicMock()
+    scalars_mock.all.return_value = [111, 222]
+    mock_res = MagicMock()
+    mock_res.scalars.return_value = scalars_mock
+    mock_db.execute.return_value = mock_res
+
+    repo = SessionRepository(mock_db)
+    chat_ids = await repo.list_distinct_chat_ids()
+    assert chat_ids == [111, 222]
+
+    # DB failure fallback
+    mock_db.execute.side_effect = RuntimeError("DB failure")
+    assert await repo.list_distinct_chat_ids() == []
+    assert await repo.get_session(chat_id=111) is None
+    await repo.save_session(chat_id=111, session_id=str(uuid.uuid4()))
+    await repo.delete_session(chat_id=111)
+    assert mock_db.rollback.await_count >= 2

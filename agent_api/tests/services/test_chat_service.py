@@ -1,17 +1,25 @@
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 import uuid
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from agent_api.dependencies import (
+    get_agent_service,
+    get_chat_repository,
+    get_chat_service,
+    get_classify_service,
+)
 from agent_api.models.chat import ChatMessage, ChatSession
+from agent_api.repositories.chat_repository import ChatRepositoryProtocol
 from agent_api.schemas.assistant import AssistantResponse
 from agent_api.services.agent import AgentService
 from agent_api.services.chat import ChatService
 
 
 @pytest.fixture
-def mock_db_session():
-    return AsyncMock()
+def mock_repo():
+    return AsyncMock(spec=ChatRepositoryProtocol)
 
 
 @pytest.fixture
@@ -20,11 +28,30 @@ def mock_agent_service():
 
 
 @pytest.fixture
-def chat_service(mock_db_session, mock_agent_service):
-    service = ChatService(mock_db_session, mock_agent_service)
-    # Mock Repository inside service
-    service.repository = AsyncMock()
-    return service
+def chat_service(mock_repo, mock_agent_service):
+    return ChatService(mock_repo, mock_agent_service)
+
+
+@pytest.mark.asyncio
+async def test_chat_service_accepts_legacy_async_session(mock_agent_service):
+    mock_session = AsyncMock(spec=AsyncSession)
+    service = ChatService(mock_session, mock_agent_service)
+    assert hasattr(service.repository, "create_session")
+
+
+def test_agent_dependencies_wiring():
+    mock_db = MagicMock(spec=AsyncSession)
+    mock_http = MagicMock()
+    mock_llm = MagicMock()
+
+    repo = get_chat_repository(mock_db)
+    agent_svc = get_agent_service(mock_http, mock_llm)
+    chat_svc = get_chat_service(repo, agent_svc)
+    clf_svc = get_classify_service(mock_llm)
+
+    assert chat_svc.repository is repo
+    assert chat_svc.agent_service is agent_svc
+    assert clf_svc is not None
 
 
 @pytest.mark.asyncio
@@ -52,6 +79,25 @@ async def test_process_message_new_session(chat_service):
     chat_service.repository.add_message.assert_any_await(fake_session_id, "user", "Hello")
     chat_service.repository.add_message.assert_any_await(fake_session_id, "assistant", "Hi there")
     chat_service.agent_service.get_response.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_process_message_existing_session_found_and_invalid_uuid(chat_service):
+    valid_id = uuid.uuid4()
+    chat_service.repository.get_session.return_value = ChatSession(id=valid_id)
+    chat_service.repository.get_messages.return_value = [ChatMessage(role="user", content="Oi")]
+    chat_service.agent_service.get_response.return_value = AssistantResponse(
+        response_message="Olá", is_complete=False
+    )
+
+    res_existing = await chat_service.process_message("Oi", str(valid_id))
+    assert res_existing.session_id == str(valid_id)
+
+    # Invalid UUID string falls back to create_session
+    new_id = uuid.uuid4()
+    chat_service.repository.create_session.return_value = ChatSession(id=new_id)
+    res_invalid = await chat_service.process_message("Oi", "not-a-valid-uuid")
+    assert res_invalid.session_id == str(new_id)
 
 
 @pytest.mark.asyncio

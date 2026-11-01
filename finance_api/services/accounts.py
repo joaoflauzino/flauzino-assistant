@@ -1,23 +1,26 @@
-from typing import Optional, Sequence
+from collections.abc import Sequence
 from uuid import UUID
 
 from finance_api.core.decorators import handle_service_errors
 from finance_api.core.exceptions import EntityConflictError, EntityNotFoundError
 from finance_api.core.logger import get_logger
 from finance_api.models.accounts import Account
-from finance_api.repositories.accounts import AccountRepository
+from finance_api.repositories.accounts import AccountRepositoryProtocol
 from finance_api.schemas.accounts import AccountCreate, AccountUpdate
 
 logger = get_logger(__name__)
 
 
 class AccountService:
-    def __init__(self, repository: AccountRepository):
+    def __init__(self, repository: AccountRepositoryProtocol) -> None:
         self.repository = repository
 
     @handle_service_errors
     async def list(
-        self, page: int = 1, size: int = 100, owner: Optional[str] = None
+        self,
+        page: int = 1,
+        size: int = 100,
+        owner: str | None = None,
     ) -> tuple[Sequence[Account], int]:
         logger.info(f"Listing accounts page={page} size={size} owner={owner}")
         return await self.repository.list(page, size, owner)

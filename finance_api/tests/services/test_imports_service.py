@@ -3,6 +3,7 @@ from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 from zoneinfo import ZoneInfo
+
 import pytest
 
 from finance_api.core.exceptions import EntityConflictError
@@ -13,12 +14,10 @@ from finance_api.repositories.accounts import AccountRepository
 from finance_api.repositories.categories import CategoryRepository
 from finance_api.repositories.category_rules import CategoryRuleRepository
 from finance_api.repositories.credit_cards import CreditCardRepository
-from finance_api.repositories.income_categories import IncomeCategoryRepository
 from finance_api.repositories.imports import ImportBatchRepository
+from finance_api.repositories.income_categories import IncomeCategoryRepository
 from finance_api.repositories.staged_transactions import StagedTransactionRepository
-from finance_api.schemas.imports import (
-    CommitRequest,
-)
+from finance_api.schemas.imports import CommitRequest
 from finance_api.services.ai_classifier import AIClassifierClient
 from finance_api.services.classification import ClassificationService
 from finance_api.services.imports import ImportService
@@ -46,9 +45,6 @@ def mock_dependencies():
     mock_acc = Account(id=acc_id, key="c6_joao", name="C6 (João Lucas)")
 
     batch_repo = MagicMock(spec=ImportBatchRepository)
-    batch_repo.db = MagicMock()
-    batch_repo.db.commit = AsyncMock()
-    batch_repo.db.refresh = AsyncMock()
     batch_repo.get_by_sha256 = AsyncMock(return_value=None)
 
     def _mock_batch_create(b):
@@ -56,7 +52,13 @@ def mock_dependencies():
         b.created_at = datetime.now(ZoneInfo("America/Sao_Paulo"))
         return b
 
+    def _mock_update_batch_stats(batch, possible_duplicates, ai_used):
+        batch.possible_duplicates = possible_duplicates
+        batch.ai_used = ai_used
+        return batch
+
     batch_repo.create = AsyncMock(side_effect=_mock_batch_create)
+    batch_repo.update_batch_stats = AsyncMock(side_effect=_mock_update_batch_stats)
     batch_repo.get_counts_by_status = AsyncMock(return_value={"pending": 3, "approved": 0})
     batch_repo.list_all = AsyncMock(return_value=[])
     batch_repo.get_global_summary = AsyncMock(return_value={"pending": 3, "approved": 0})
@@ -134,6 +136,7 @@ async def test_upload_batch_success(mock_dependencies):
     assert res.new_rows == 3
     assert res.duplicate_rows == 0
     batch_repo.create.assert_called_once()
+    batch_repo.update_batch_stats.assert_called_once()
     tx_repo.create_many.assert_called_once()
 
 
