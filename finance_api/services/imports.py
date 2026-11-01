@@ -20,10 +20,12 @@ from finance_api.repositories.credit_cards import CreditCardRepository
 from finance_api.repositories.imports import ImportBatchRepositoryProtocol
 from finance_api.repositories.income_categories import IncomeCategoryRepository
 from finance_api.repositories.staged_transactions import StagedTransactionRepository
+from finance_api.schemas.enums import CommitOutcomeStatus, StepOutcomeStatus
 from finance_api.schemas.imports import (
     BulkActionError,
     BulkActionRequest,
     BulkActionResult,
+    CommitContext,
     CommitFailure,
     CommitRequest,
     CommitResult,
@@ -34,12 +36,15 @@ from finance_api.schemas.imports import (
     StagedTransactionUpdate,
     SummaryResponse,
 )
-from finance_api.schemas.incomes import IncomeCreate
 from finance_api.schemas.pagination import PaginatedResponse
-from finance_api.schemas.spents import SpentCreate
 from finance_api.services.ai_classifier import AIClassifierClient
 from finance_api.services.classification import ClassificationResult, ClassificationService
+from finance_api.services.import_strategies import (
+    build_default_bulk_strategies,
+    build_default_commit_strategies,
+)
 from finance_api.services.incomes import IncomeService
+from finance_api.services.protocols import BulkActionStrategy, TransactionCommitStrategy
 from finance_api.services.spents import SpentService
 
 logger = get_logger(__name__)
@@ -60,6 +65,8 @@ class ImportService:
         category_repo: CategoryRepository,
         income_category_repo: IncomeCategoryRepository,
         ai_client: AIClassifierClient | None = None,
+        bulk_strategies: dict[str, BulkActionStrategy] | None = None,
+        commit_strategies: dict[str, TransactionCommitStrategy] | None = None,
     ) -> None:
         self.batch_repo = batch_repo
         self.tx_repo = tx_repo
@@ -72,6 +79,15 @@ class ImportService:
         self.category_repo = category_repo
         self.income_category_repo = income_category_repo
         self.ai_client = ai_client or AIClassifierClient()
+        self._bulk_strategies = bulk_strategies or build_default_bulk_strategies(
+            rule_repo=self.rule_repo,
+            category_repo=self.category_repo,
+            income_category_repo=self.income_category_repo,
+        )
+        self._commit_strategies = commit_strategies or build_default_commit_strategies(
+            spent_service=self.spent_service,
+            income_service=self.income_service,
+        )
 
     def _calc_sha256(self, content: bytes) -> str:
         return hashlib.sha256(content).hexdigest()
@@ -499,6 +515,8 @@ class ImportService:
         skipped = 0
         errors: list[BulkActionError] = []
 
+        strategy = self._bulk_strategies.get(str(req.action))
+
         for tx_id in req.ids:
             tx = await self.tx_repo.get_by_id(tx_id)
             if not tx:
@@ -507,69 +525,24 @@ class ImportService:
             if tx.status == "COMMITTED":
                 skipped += 1
                 continue
+            if strategy is None:
+                errors.append(BulkActionError(id=tx_id, error=f"Ação desconhecida: {req.action}"))
+                continue
 
             try:
-                if req.action == "approve":
-                    # Pula se for duplicata suspeita (o usuário deve revisar individualmente)
-                    if tx.possible_duplicate_of_spent_id or tx.possible_duplicate_of_income_id:
-                        skipped += 1
-                        continue
-                    if tx.kind in ("EXPENSE", "INCOME") and not tx.category:
-                        skipped += 1
-                        continue
-                    tx.status = "APPROVED"
-                    if req.remember and tx.category and tx.merchant:
-                        await self.rule_repo.upsert_rule(
-                            pattern=tx.merchant,
-                            direction=tx.direction,
-                            kind=tx.kind,
-                            category=tx.category,
-                            source="LEARNED",
-                        )
-                elif req.action == "ignore":
-                    tx.status = "IGNORED"
-                elif req.action == "reopen":
-                    tx.status = "PENDING"
-                elif req.action == "set_category":
-                    if not req.category:
-                        skipped += 1
-                        continue
-                    clean_cat = req.category.strip().lower()
-                    if tx.kind == "EXPENSE":
-                        c = await self.category_repo.get_by_key(clean_cat)
-                        if not c:
-                            errors.append(
-                                BulkActionError(
-                                    id=tx_id, error=f"Categoria '{clean_cat}' não existe"
-                                )
-                            )
-                            continue
-                    elif tx.kind == "INCOME":
-                        ic = await self.income_category_repo.get_by_key(clean_cat)
-                        if not ic:
-                            errors.append(
-                                BulkActionError(
-                                    id=tx_id, error=f"Categoria '{clean_cat}' não existe"
-                                )
-                            )
-                            continue
-                    tx.category = clean_cat
-                    if req.remember and tx.merchant:
-                        await self.rule_repo.upsert_rule(
-                            pattern=tx.merchant,
-                            direction=tx.direction,
-                            kind=tx.kind,
-                            category=clean_cat,
-                            source="LEARNED",
-                        )
-                else:
+                outcome = await strategy.execute(tx, req)
+                if outcome.status == StepOutcomeStatus.SKIPPED:
+                    skipped += 1
+                elif outcome.status == StepOutcomeStatus.ERROR:
                     errors.append(
-                        BulkActionError(id=tx_id, error=f"Ação desconhecida: {req.action}")
+                        BulkActionError(
+                            id=tx_id,
+                            error=outcome.error_message or "Erro na validação da ação",
+                        )
                     )
-                    continue
-
-                await self.tx_repo.save(tx)
-                updated += 1
+                else:
+                    await self.tx_repo.save(tx)
+                    updated += 1
             except Exception as e:
                 errors.append(BulkActionError(id=tx_id, error=str(e)))
 
@@ -593,6 +566,43 @@ class ImportService:
         saved = await self.tx_repo.save(tx)
         return await self._to_tx_response(saved)
 
+    async def _resolve_commit_context(
+        self,
+        tx: StagedTransaction,
+        account_cache: dict[UUID, Account],
+        card_cache: dict[UUID, Any],
+    ) -> CommitContext:
+        acc: Account | None = None
+        if tx.account_id:
+            if tx.account_id not in account_cache:
+                fetched_acc = await self.account_repo.get_by_id(tx.account_id)
+                if fetched_acc:
+                    account_cache[tx.account_id] = fetched_acc
+            acc = account_cache.get(tx.account_id)
+
+        card: Any = None
+        if tx.credit_card_id:
+            if tx.credit_card_id not in card_cache:
+                fetched_card = await self.credit_card_repo.get_by_id(tx.credit_card_id)
+                if fetched_card:
+                    card_cache[tx.credit_card_id] = fetched_card
+            card = card_cache.get(tx.credit_card_id)
+
+        if card:
+            return CommitContext(
+                payment_method_key=card.key,
+                payment_type_value="CREDIT",
+                account_id=tx.account_id or card.account_id,
+            )
+
+        valid_payment_types = ("PIX", "DEBIT", "CASH", "TRANSFER", "OTHER")
+        pt_val = tx.payment_type if tx.payment_type in valid_payment_types else "DEBIT"
+        return CommitContext(
+            payment_method_key=acc.key if acc else "outros",
+            payment_type_value=pt_val,
+            account_id=tx.account_id,
+        )
+
     @handle_service_errors
     async def commit_approved(self, req: CommitRequest) -> CommitResult:
         approved_items = await self.tx_repo.get_approved_for_commit(req.batch_id)
@@ -607,84 +617,28 @@ class ImportService:
 
         for tx in approved_items:
             try:
-                acc = None
-                if tx.account_id:
-                    if tx.account_id not in account_cache:
-                        a = await self.account_repo.get_by_id(tx.account_id)
-                        if a:
-                            account_cache[tx.account_id] = a
-                    acc = account_cache.get(tx.account_id)
+                strategy = self._commit_strategies.get(str(tx.kind))
+                if strategy is None:
+                    continue
 
-                card = None
-                if tx.credit_card_id:
-                    if tx.credit_card_id not in card_cache:
-                        c = await self.credit_card_repo.get_by_id(tx.credit_card_id)
-                        if c:
-                            card_cache[tx.credit_card_id] = c
-                    card = card_cache.get(tx.credit_card_id)
+                ctx = await self._resolve_commit_context(tx, account_cache, card_cache)
+                outcome = await strategy.commit(tx, ctx)
 
-                if card:
-                    pm_key = card.key
-                    pt_val = "CREDIT"
-                    acc_id = tx.account_id or card.account_id
-                else:
-                    pm_key = acc.key if acc else "outros"
-                    pt_val = (
-                        tx.payment_type
-                        if tx.payment_type in ("PIX", "DEBIT", "CASH", "TRANSFER", "OTHER")
-                        else "DEBIT"
+                if outcome.status == CommitOutcomeStatus.FAILED:
+                    failed.append(
+                        CommitFailure(
+                            id=tx.id,
+                            error=outcome.error_message or "Falha ao efetivar transação",
+                        )
                     )
-                    acc_id = tx.account_id
+                    continue
 
-                if tx.kind == "EXPENSE":
-                    if not tx.category:
-                        failed.append(CommitFailure(id=tx.id, error="Despesa sem categoria"))
-                        continue
-
-                    spent_data = SpentCreate(
-                        category=tx.category,
-                        amount=float(tx.amount),
-                        item_bought=tx.description[:50],
-                        payment_method=pm_key,
-                        payment_type=pt_val,
-                        account_id=acc_id,
-                        credit_card_id=tx.credit_card_id,
-                        location=tx.location,
-                        created_at=tx.occurred_at,
-                        is_installment=False,
-                        current_installment=tx.current_installment,
-                        total_installments=tx.total_installments,
-                    )
-                    created_spent = await self.spent_service.create(spent_data)
-                    tx.committed_spent_id = created_spent.id
-                    tx.status = "COMMITTED"
-                    await self.tx_repo.save(tx)
+                await self.tx_repo.save(tx)
+                if outcome.status == CommitOutcomeStatus.COMMITTED_SPENT:
                     committed_spents += 1
-
-                elif tx.kind == "INCOME":
-                    if not tx.category:
-                        failed.append(CommitFailure(id=tx.id, error="Receita sem categoria"))
-                        continue
-
-                    income_data = IncomeCreate(
-                        description=tx.description[:100],
-                        amount=float(tx.amount),
-                        category=tx.category,
-                        payment_method=pm_key,
-                        account_id=acc_id,
-                        received_at=tx.occurred_at,
-                        competence_date=tx.competence_date or tx.occurred_at.date(),
-                    )
-                    created_income = await self.income_service.create(income_data)
-                    tx.committed_income_id = created_income.id
-                    tx.status = "COMMITTED"
-                    await self.tx_repo.save(tx)
+                elif outcome.status == CommitOutcomeStatus.COMMITTED_INCOME:
                     committed_incomes += 1
-
-                elif tx.kind in ("TRANSFER", "INVOICE_PAYMENT", "REFUND"):
-                    # Não gera lançamento financeiro duplicado
-                    tx.status = "COMMITTED"
-                    await self.tx_repo.save(tx)
+                elif outcome.status == CommitOutcomeStatus.PROCESSED_WITHOUT_RECORD:
                     processed_without_record += 1
 
             except Exception as e:

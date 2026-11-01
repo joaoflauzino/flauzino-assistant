@@ -8,18 +8,6 @@ from finance_api.schemas.enums import (
     TransactionKind,
 )
 
-__all__ = [
-    "BANK_CATEGORY_MAP",
-    "ClassificationContext",
-    "ClassificationResult",
-    "ExtractedMerchantInfo",
-    "PaymentType",
-    "RawTransactionText",
-    "SuggestionSource",
-    "TransactionDirection",
-    "TransactionKind",
-]
-
 
 @dataclass(frozen=True)
 class RawTransactionText:
@@ -28,7 +16,7 @@ class RawTransactionText:
     title: str
     description: str
     norm_title: str
-    direction: str
+    direction: TransactionDirection | str
 
 
 @dataclass(frozen=True)

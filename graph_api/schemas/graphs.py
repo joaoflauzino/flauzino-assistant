@@ -1,5 +1,12 @@
-from typing import Optional
+from enum import StrEnum
+
 from pydantic import BaseModel, Field
+
+
+class ChartMode(StrEnum):
+    SALDO = "saldo"
+    LIMITES = "limites"
+    PIE = "pie"
 
 
 class CategoryBalanceItem(BaseModel):
@@ -13,15 +20,15 @@ class BalanceBarChartRequest(BaseModel):
     balances: list[CategoryBalanceItem] = Field(
         ..., description="Lista de dados de saldos e limites por categoria"
     )
-    title: Optional[str] = Field(None, description="Título customizado do gráfico")
-    mode: str = Field("saldo", description="'saldo' ou 'limites'")
+    title: str | None = Field(None, description="Título customizado do gráfico")
+    mode: str = Field(ChartMode.SALDO, description="'saldo' ou 'limites'")
 
 
 class ExpensePieChartRequest(BaseModel):
     balances: list[CategoryBalanceItem] = Field(
         ..., description="Lista de dados de gastos por categoria"
     )
-    title: Optional[str] = Field(None, description="Título customizado do gráfico")
+    title: str | None = Field(None, description="Título customizado do gráfico")
 
 
 class GraphImageResponse(BaseModel):
