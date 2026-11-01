@@ -1,44 +1,21 @@
 from collections.abc import Callable
-from dataclasses import dataclass
-from enum import StrEnum
-from typing import Protocol
 from uuid import UUID
 
 from finance_api.core.exceptions import EntityNotFoundError, ValidationError
-from finance_api.importers.base import StatementParser, StatementType
 from finance_api.importers.c6_checking_csv import C6CheckingCsvParser
 from finance_api.importers.c6_credit_card_csv import C6CreditCardInvoiceCsvParser
+from finance_api.importers.protocols import ImportTargetResolver, StatementParser
+from finance_api.importers.schemas import (
+    ParserKey,
+    ResolvedImportTarget,
+    StatementType,
+)
 from finance_api.repositories.accounts import AccountRepositoryProtocol
 from finance_api.repositories.credit_cards import CreditCardRepositoryProtocol
 
 
-class ParserKey(StrEnum):
-    C6_CHECKING_CSV = "c6_checking_csv"
-    C6_CREDIT_CARD_CSV = "c6_credit_card_csv"
-
-
-@dataclass(frozen=True)
-class ResolvedImportTarget:
-    account_id: UUID | None
-    credit_card_id: UUID | None
-    target_key: str
-    target_name: str | None
-
-
 # ---------------------------------------------------------------------------
-# 1. Product Interface para Resolução de Destino (Protocol)
-# ---------------------------------------------------------------------------
-class ImportTargetResolver(Protocol):
-    async def resolve(
-        self,
-        account_id: UUID | None,
-        credit_card_id: UUID | None,
-        bank_hint: str | None = None,
-    ) -> ResolvedImportTarget: ...
-
-
-# ---------------------------------------------------------------------------
-# 2. Concrete Products (CreditCardTargetResolver & CheckingAccountTargetResolver)
+# 1. Concrete Products (CreditCardTargetResolver & CheckingAccountTargetResolver)
 # ---------------------------------------------------------------------------
 class CreditCardTargetResolver:
     def __init__(
@@ -123,7 +100,7 @@ class CheckingAccountTargetResolver:
 
 
 # ---------------------------------------------------------------------------
-# 3. Factory com Registry para Parsers de Extrato
+# 2. Factory com Registry para Parsers de Extrato
 # ---------------------------------------------------------------------------
 type ParserCreator = Callable[[], StatementParser]
 

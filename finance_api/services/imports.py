@@ -8,13 +8,13 @@ from zoneinfo import ZoneInfo
 from finance_api.core.decorators import handle_service_errors
 from finance_api.core.exceptions import EntityConflictError, EntityNotFoundError, ValidationError
 from finance_api.core.logger import get_logger
-from finance_api.importers.base import ParsedTransaction, StatementType
+from finance_api.importers.protocols import ImportTargetResolver
 from finance_api.importers.registry import (
-    ImportTargetResolver,
     StatementParserFactory,
     build_default_parser_factory,
     build_default_target_resolvers,
 )
+from finance_api.importers.schemas import ParsedTransaction, StatementType
 from finance_api.models.accounts import Account
 from finance_api.models.import_batches import ImportBatch
 from finance_api.models.staged_transactions import StagedTransaction

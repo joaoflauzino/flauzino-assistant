@@ -4,16 +4,16 @@ from uuid import uuid4
 import pytest
 
 from finance_api.core.exceptions import EntityNotFoundError, ValidationError
-from finance_api.importers.base import StatementParser, StatementType
+from finance_api.importers.protocols import StatementParser
 from finance_api.importers.registry import (
     CheckingAccountTargetResolver,
     CreditCardTargetResolver,
-    ParserKey,
     StatementParserFactory,
     build_default_parser_factory,
     build_default_target_resolvers,
     detect_parser,
 )
+from finance_api.importers.schemas import ParserKey, StatementType
 from finance_api.models.accounts import Account
 from finance_api.models.credit_cards import CreditCard
 from finance_api.repositories.accounts import AccountRepositoryProtocol

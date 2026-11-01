@@ -2,12 +2,26 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import Decimal
 from enum import StrEnum
-from typing import Any, Protocol
+from typing import Any
+from uuid import UUID
 
 
 class StatementType(StrEnum):
     ACCOUNT = "ACCOUNT"
     CREDIT_CARD = "CREDIT_CARD"
+
+
+class ParserKey(StrEnum):
+    C6_CHECKING_CSV = "c6_checking_csv"
+    C6_CREDIT_CARD_CSV = "c6_credit_card_csv"
+
+
+@dataclass(frozen=True)
+class ResolvedImportTarget:
+    account_id: UUID | None
+    credit_card_id: UUID | None
+    target_key: str
+    target_name: str | None
 
 
 @dataclass
@@ -48,12 +62,3 @@ class StatementMetadata:
 class ParsedStatement:
     metadata: StatementMetadata
     transactions: list[ParsedTransaction]
-
-
-class StatementParser(Protocol):
-    name: str
-    statement_type: StatementType
-
-    def can_parse(self, content: bytes, filename: str) -> bool: ...
-
-    def parse(self, content: bytes, filename: str) -> ParsedStatement: ...

@@ -4,13 +4,13 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from finance_api.core.database import get_db
-from finance_api.importers.base import StatementType
+from finance_api.importers.protocols import ImportTargetResolver
 from finance_api.importers.registry import (
-    ImportTargetResolver,
     StatementParserFactory,
     build_default_parser_factory,
     build_default_target_resolvers,
 )
+from finance_api.importers.schemas import StatementType
 from finance_api.repositories.accounts import AccountRepository, AccountRepositoryProtocol
 from finance_api.repositories.categories import CategoryRepository
 from finance_api.repositories.category_rules import (

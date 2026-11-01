@@ -8,6 +8,8 @@ from agent_api.core.llm import (
     LLMFactory,
     LLMProfile,
     build_default_llm_factory,
+    build_openai_batch_classifier,
+    build_openai_chat_agent,
     get_llm,
 )
 
@@ -41,14 +43,13 @@ def test_build_default_llm_factory_contains_profiles():
 def test_default_creators_raise_when_missing_api_key(mock_settings):
     mock_settings.OPENAI_API_KEY = ""
     mock_settings.MODEL_NAME = "gpt-4o-mini"
-    factory = build_default_llm_factory()
 
     with pytest.raises(LLMProviderError) as exc:
-        factory.create(LLMProfile.CHAT_AGENT)
+        build_openai_chat_agent()
     assert "OPENAI_API_KEY não foi configurada" in str(exc.value)
 
     with pytest.raises(LLMProviderError) as exc:
-        factory.create(LLMProfile.BATCH_CLASSIFIER)
+        build_openai_batch_classifier()
     assert "OPENAI_API_KEY não foi configurada" in str(exc.value)
 
 

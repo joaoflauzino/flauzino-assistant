@@ -34,7 +34,7 @@ class LLMFactory:
         return creator()
 
 
-def _build_openai_chat_agent() -> BaseChatModel:
+def build_openai_chat_agent() -> BaseChatModel:
     api_key = settings.OPENAI_API_KEY
     if not api_key or not api_key.strip():
         raise LLMProviderError(
@@ -49,7 +49,7 @@ def _build_openai_chat_agent() -> BaseChatModel:
     )
 
 
-def _build_openai_batch_classifier() -> BaseChatModel:
+def build_openai_batch_classifier() -> BaseChatModel:
     api_key = settings.OPENAI_API_KEY
     if not api_key or not api_key.strip():
         raise LLMProviderError(
@@ -66,8 +66,8 @@ def _build_openai_batch_classifier() -> BaseChatModel:
 
 def build_default_llm_factory() -> LLMFactory:
     factory = LLMFactory()
-    factory.register(LLMProfile.CHAT_AGENT, _build_openai_chat_agent)
-    factory.register(LLMProfile.BATCH_CLASSIFIER, _build_openai_batch_classifier)
+    factory.register(LLMProfile.CHAT_AGENT, build_openai_chat_agent)
+    factory.register(LLMProfile.BATCH_CLASSIFIER, build_openai_batch_classifier)
     return factory
 
 
