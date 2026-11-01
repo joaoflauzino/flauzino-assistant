@@ -4,13 +4,23 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from finance_api.core.database import get_db
+from finance_api.importers.base import StatementType
+from finance_api.importers.registry import (
+    ImportTargetResolver,
+    StatementParserFactory,
+    build_default_parser_factory,
+    build_default_target_resolvers,
+)
 from finance_api.repositories.accounts import AccountRepository, AccountRepositoryProtocol
 from finance_api.repositories.categories import CategoryRepository
 from finance_api.repositories.category_rules import (
     CategoryRuleRepository,
     CategoryRuleRepositoryProtocol,
 )
-from finance_api.repositories.credit_cards import CreditCardRepository
+from finance_api.repositories.credit_cards import (
+    CreditCardRepository,
+    CreditCardRepositoryProtocol,
+)
 from finance_api.repositories.imports import (
     ImportBatchRepository,
     ImportBatchRepositoryProtocol,
@@ -49,11 +59,11 @@ def get_account_repository(db: DBSessionDep) -> AccountRepositoryProtocol:
 AccountRepoDep = Annotated[AccountRepositoryProtocol, Depends(get_account_repository)]
 
 
-def get_credit_card_repository(db: DBSessionDep) -> CreditCardRepository:
+def get_credit_card_repository(db: DBSessionDep) -> CreditCardRepositoryProtocol:
     return CreditCardRepository(db)
 
 
-CreditCardRepoDep = Annotated[CreditCardRepository, Depends(get_credit_card_repository)]
+CreditCardRepoDep = Annotated[CreditCardRepositoryProtocol, Depends(get_credit_card_repository)]
 
 
 def get_category_repository(db: DBSessionDep) -> CategoryRepository:
@@ -130,7 +140,27 @@ StagedTransactionRepoDep = Annotated[
 ]
 
 
-# 3. Service Providers
+# 3. Factory & Resolver Providers
+def get_parser_factory() -> StatementParserFactory:
+    return build_default_parser_factory()
+
+
+ParserFactoryDep = Annotated[StatementParserFactory, Depends(get_parser_factory)]
+
+
+def get_target_resolvers(
+    acc_repo: AccountRepoDep,
+    cc_repo: CreditCardRepoDep,
+) -> dict[StatementType, ImportTargetResolver]:
+    return build_default_target_resolvers(account_repo=acc_repo, credit_card_repo=cc_repo)
+
+
+TargetResolversDep = Annotated[
+    dict[StatementType, ImportTargetResolver], Depends(get_target_resolvers)
+]
+
+
+# 4. Service Providers
 def get_invoice_service(
     inv_repo: InvoiceRepoDep,
     pm_repo: PaymentMethodRepoDep,
@@ -242,6 +272,8 @@ def get_import_service(
     inc_cat_repo: IncomeCategoryRepoDep,
     spent_svc: SpentServiceDep,
     inc_svc: IncomeServiceDep,
+    parser_factory: ParserFactoryDep,
+    target_resolvers: TargetResolversDep,
 ) -> ImportService:
     bulk_strategies = build_default_bulk_strategies(
         rule_repo=rule_repo,
@@ -265,6 +297,8 @@ def get_import_service(
         income_category_repo=inc_cat_repo,
         bulk_strategies=bulk_strategies,
         commit_strategies=commit_strategies,
+        parser_factory=parser_factory,
+        target_resolvers=target_resolvers,
     )
 
 

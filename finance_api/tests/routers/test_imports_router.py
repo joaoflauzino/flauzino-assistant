@@ -20,11 +20,13 @@ from finance_api.core.dependencies import (
     get_income_repository,
     get_invoice_repository,
     get_invoice_service,
+    get_parser_factory,
     get_payment_method_repository,
     get_spending_limit_repository,
     get_spending_limit_service,
     get_spent_repository,
     get_staged_transaction_repository,
+    get_target_resolvers,
 )
 from finance_api.core.exceptions import EntityNotFoundError
 from finance_api.main import app
@@ -226,11 +228,15 @@ def test_dependency_providers_wiring():
     rule_repo = get_category_rule_repository(mock_db)
     batch_repo = get_import_batch_repository(mock_db)
     tx_repo = get_staged_transaction_repository(mock_db)
+    parser_factory = get_parser_factory()
+    target_resolvers = get_target_resolvers(acc_repo, cc_repo)
 
     assert acc_repo is not None
     assert spent_repo is not None
     assert inc_repo is not None
     assert limit_repo is not None
+    assert parser_factory is not None
+    assert target_resolvers is not None
 
     inv_svc = get_invoice_service(inv_repo, pm_repo)
     limit_svc = get_spending_limit_service(mock_db)
@@ -248,6 +254,8 @@ def test_dependency_providers_wiring():
         inc_cat_repo=inc_cat_repo,
         spent_svc=MagicMock(),
         inc_svc=MagicMock(),
+        parser_factory=parser_factory,
+        target_resolvers=target_resolvers,
     )
 
     assert inv_svc is not None

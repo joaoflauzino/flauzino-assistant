@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from agent_api.core.database import get_db
 from agent_api.core.http_client import get_http_client
-from agent_api.core.llm import get_llm
+from agent_api.core.llm import LLMProfile, get_llm
 from agent_api.repositories.chat_repository import ChatRepository, ChatRepositoryProtocol
 from agent_api.services.agent import AgentService
 from agent_api.services.chat import ChatService
@@ -17,7 +17,18 @@ from agent_api.services.graph import GraphService
 
 DBSessionDep = Annotated[AsyncSession, Depends(get_db)]
 HttpClientDep = Annotated[httpx.AsyncClient, Depends(get_http_client)]
-LLMDep = Annotated[BaseChatModel, Depends(get_llm)]
+
+
+def get_chat_llm() -> BaseChatModel:
+    return get_llm(LLMProfile.CHAT_AGENT)
+
+
+def get_classifier_llm() -> BaseChatModel:
+    return get_llm(LLMProfile.BATCH_CLASSIFIER)
+
+
+LLMDep = Annotated[BaseChatModel, Depends(get_chat_llm)]
+ClassifierLLMDep = Annotated[BaseChatModel, Depends(get_classifier_llm)]
 
 
 def get_chat_repository(db: DBSessionDep) -> ChatRepositoryProtocol:
@@ -50,7 +61,7 @@ ChatServiceDep = Annotated[ChatService, Depends(get_chat_service)]
 
 
 def get_classify_service(
-    llm: LLMDep,
+    llm: ClassifierLLMDep,
 ) -> ClassifyService:
     return ClassifyService(llm=llm)
 

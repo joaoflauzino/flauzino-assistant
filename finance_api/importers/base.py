@@ -1,11 +1,11 @@
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import Decimal
-from enum import Enum
+from enum import StrEnum
 from typing import Any, Protocol
 
 
-class StatementType(str, Enum):
+class StatementType(StrEnum):
     ACCOUNT = "ACCOUNT"
     CREDIT_CARD = "CREDIT_CARD"
 

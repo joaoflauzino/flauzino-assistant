@@ -1,4 +1,5 @@
-from typing import Optional, Sequence
+from collections.abc import Sequence
+from typing import Protocol
 from uuid import UUID
 
 from sqlalchemy import select
@@ -7,16 +8,38 @@ from sqlalchemy.orm import selectinload
 
 from finance_api.core.logger import get_logger
 from finance_api.models.credit_cards import CreditCard
+from finance_api.repositories.base import RepositoryProtocol, SQLAlchemyRepository
 from finance_api.schemas.credit_cards import CreditCardCreate, CreditCardUpdate
 
 logger = get_logger(__name__)
 
 
-class CreditCardRepository:
-    def __init__(self, db: AsyncSession):
-        self.db = db
+class CreditCardRepositoryProtocol(RepositoryProtocol[CreditCard, UUID], Protocol):
+    """Domain repository contract for CreditCard persistence."""
 
-    async def get_by_id(self, card_id: UUID) -> Optional[CreditCard]:
+    async def get_by_key(self, key: str) -> CreditCard | None: ...
+
+    async def list(
+        self,
+        page: int = 1,
+        size: int = 100,
+        account_id: UUID | None = None,
+    ) -> tuple[Sequence[CreditCard], int]: ...
+
+    async def create(self, card_data: CreditCardCreate) -> CreditCard: ...
+
+    async def update(self, card_id: UUID, update_data: CreditCardUpdate) -> CreditCard | None: ...
+
+    async def delete(self, card_id: UUID) -> bool: ...
+
+
+class CreditCardRepository(SQLAlchemyRepository[CreditCard, UUID]):
+    model = CreditCard
+
+    def __init__(self, db: AsyncSession) -> None:
+        super().__init__(db)
+
+    async def get_by_id(self, card_id: UUID) -> CreditCard | None:
         logger.debug(f"Repository: Fetching credit card by ID: {card_id}")
         query = (
             select(CreditCard)
@@ -26,7 +49,7 @@ class CreditCardRepository:
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
 
-    async def get_by_key(self, key: str) -> Optional[CreditCard]:
+    async def get_by_key(self, key: str) -> CreditCard | None:
         logger.debug(f"Repository: Fetching credit card by key: {key}")
         query = (
             select(CreditCard)
@@ -37,7 +60,7 @@ class CreditCardRepository:
         return result.scalar_one_or_none()
 
     async def list(
-        self, page: int = 1, size: int = 100, account_id: Optional[UUID] = None
+        self, page: int = 1, size: int = 100, account_id: UUID | None = None
     ) -> tuple[Sequence[CreditCard], int]:
         logger.debug(
             f"Repository: Listing credit cards page={page} size={size} account_id={account_id}"
@@ -74,7 +97,7 @@ class CreditCardRepository:
         await self.db.refresh(card)
         return card
 
-    async def update(self, card_id: UUID, update_data: CreditCardUpdate) -> Optional[CreditCard]:
+    async def update(self, card_id: UUID, update_data: CreditCardUpdate) -> CreditCard | None:
         logger.debug(f"Repository: Updating credit card: {card_id}")
         card = await self.get_by_id(card_id)
         if not card:
