@@ -54,6 +54,28 @@ Regras do pacote: flat por dentro (sem `strategies/`, `impl/`), nomes sem repeti
 
 ---
 
+### 1.4 Contratos no layout flat (Regra F)
+
+Quando o domínio não tem pacote próprio, o equivalente flat a `<domínio>/protocols.py` é
+`<domínio>_protocols.py` no mesmo diretório:
+
+| Situação | Onde declarar | Exemplo |
+|---|---|---|
+| Contrato usado por uma feature/pacote existente | dentro do pacote | `services/imports/protocols.py` |
+| Contrato de um domínio flat específico | `<domínio>_protocols.py` | `services/classification_protocols.py` |
+| Contrato compartilhado por 2+ features | módulo nomeado pela capacidade | `services/lookup_protocols.py` |
+| Contrato genuinamente transversal | `services/protocols.py` | `CategorizedAmountProtocol` |
+
+**Regra F** (gate [`tests/architecture/test_module_organization.py`](../../tests/architecture/test_module_organization.py)):
+`services/protocols.py` e `services/utils.py` não podem importar `httpx`, `*.models.*` nem
+`*.repositories.*`. Contratos e helpers transversais precisam continuar leves: se o contrato depende do
+modelo de um domínio, ele pertence ao domínio (ou ao pacote da feature), não ao módulo transversal.
+
+`ABC` com comportamento implementado (ex.: fallback de cadeia) **não é contrato**: vive junto das
+subclasses (`classification_chain.py`) e importa apenas o `Protocol` do módulo de contratos.
+
+---
+
 ## 2. Regra de decisão (5 linhas)
 
 1. **Contrato de dados** (`BaseModel`, `Enum`, `@dataclass`, `TypedDict`) → `schemas/` (ou `<feature>_schemas.py` no domínio).

@@ -16,6 +16,7 @@ from finance_api.services.imports.enrichment import BatchEnrichmentService
 from finance_api.services.imports.facade import ImportService
 from finance_api.services.imports.fingerprint import ImportFingerprintService
 from finance_api.services.imports.presenter import ImportBatchPresenter
+from finance_api.services.imports.protocols import TransactionCommitStrategy
 from finance_api.services.imports.reclassify import ImportReclassifyService
 from finance_api.services.imports.staging import StagingBuilder
 from finance_api.services.imports.transaction_editor import StagedTransactionEditor
@@ -25,7 +26,6 @@ from finance_api.services.imports.wiring import (
     ImportOverrides,
     ImportServiceDeps,
 )
-from finance_api.services.protocols import TransactionCommitStrategy
 
 
 def build_default_import_service(

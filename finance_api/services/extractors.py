@@ -3,7 +3,10 @@
 import re
 
 from finance_api.schemas.classification import ExtractedMerchantInfo, RawTransactionText
-from finance_api.services.protocols import MerchantExtractorPipeline, MerchantExtractorStep
+from finance_api.services.classification_protocols import (
+    MerchantExtractorPipeline,
+    MerchantExtractorStep,
+)
 
 
 def extract_card_fees_and_invoice(raw: RawTransactionText) -> ExtractedMerchantInfo | None:

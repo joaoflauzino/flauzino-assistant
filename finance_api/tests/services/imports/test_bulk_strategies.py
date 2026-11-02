@@ -19,7 +19,7 @@ from finance_api.services.imports.bulk_strategies import (
     SetCategoryBulkStrategy,
     build_default_bulk_strategies,
 )
-from finance_api.services.protocols import (
+from finance_api.services.lookup_protocols import (
     CategoryLookupProtocol,
     IncomeCategoryLookupProtocol,
 )

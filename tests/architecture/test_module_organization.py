@@ -1,6 +1,6 @@
 """Architecture gate for ``python-modular-code-organization`` (policy as code).
 
-Checks the production packages of every API against five measurable rules:
+Checks the production packages of every API against six measurable rules:
 
 * **A** — a flat directory whose modules share a domain prefix (≥ 5 files or ≥ 800 LOC)
   must be promoted to a flat domain package (skill rule 8).
@@ -8,12 +8,15 @@ Checks the production packages of every API against five measurable rules:
 * **C** — no package may be named after a Python keyword (skill rule 8.3).
 * **D** — no module may repeat the name of the package it lives in (skill rule 8.2).
 * **E** — internal ``__init__.py`` files must not declare ``__all__`` (skill rule 5).
+* **F** — cross-cutting contracts (``services/protocols.py``) and pure helpers
+  (``services/utils.py``) must not import ``httpx``, ``models`` or ``repositories``.
 
 Debt was frozen in ``BASELINE`` between phases 6.1 and 6.5 and burned down in phase 6.6:
 the gate is now strict, so any violation fails the suite. The expected layout is documented in
 ``.specs/services-modules-quality-refactoring/08-estrutura-padrao-apis.md``.
 """
 
+import ast
 import keyword
 import pathlib
 from collections import defaultdict
@@ -24,10 +27,14 @@ SKIPPED_DIRECTORIES = {"tests", "__pycache__", ".pytest_cache"}
 MAX_FILE_LOC = 300
 MAX_CLUSTER_FILES = 5
 MAX_CLUSTER_LOC = 800
+DEFINITION_MODULE_STEMS = frozenset({"protocols", "utils"})
+INFRASTRUCTURE_MODULE_PARTS = frozenset({"models", "repositories"})
+INFRASTRUCTURE_ROOTS = frozenset({"httpx"})
 RULE_LEGEND = (
     "A=cluster de prefixo (>=5 arqs ou >=800 LOC) vira pacote plano; "
     "B=arquivo acima de 300 LOC; C=pacote com nome de keyword; "
-    "D=modulo repetindo o nome do pacote; E=__all__ em __init__ interno."
+    "D=modulo repetindo o nome do pacote; E=__all__ em __init__ interno; "
+    "F=contrato/helper transversal importa models/repositories/httpx."
 )
 
 
@@ -113,6 +120,37 @@ def collect_package_surface_violations(paths: Sequence[pathlib.Path]) -> dict[st
     return violations
 
 
+def iter_imported_modules(source: str) -> Iterable[str]:
+    """Yields every module path imported by a source file."""
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            yield from (alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            yield node.module
+
+
+def imports_infrastructure(module: str) -> bool:
+    """Checks whether a module path points to infrastructure layers."""
+    parts = module.split(".")
+    return parts[0] in INFRASTRUCTURE_ROOTS or bool(INFRASTRUCTURE_MODULE_PARTS & set(parts))
+
+
+def collect_definition_purity_violations(paths: Sequence[pathlib.Path]) -> dict[str, str]:
+    """Rule F: cross-cutting contracts and pure helpers must not import infrastructure."""
+    violations: dict[str, str] = {}
+    for path in paths:
+        is_transversal = path.parent.name == "services" and path.stem in DEFINITION_MODULE_STEMS
+        if not is_transversal:
+            continue
+        for module in iter_imported_modules(path.read_text(encoding="utf-8")):
+            if imports_infrastructure(module):
+                violations[f"F|{path.as_posix()}|{module}"] = (
+                    f"contrato/helper transversal importa infraestrutura '{module}'"
+                )
+    return violations
+
+
 def collect_violations(roots: Sequence[pathlib.Path] | None = None) -> dict[str, str]:
     """Collects every rule violation for the given roots (defaults to all APIs)."""
     resolved_roots = tuple(pathlib.Path(root) for root in (roots or API_ROOTS))
@@ -124,6 +162,7 @@ def collect_violations(roots: Sequence[pathlib.Path] | None = None) -> dict[str,
     violations |= collect_keyword_package_violations(resolved_roots)
     violations |= collect_package_repetition_violations(paths)
     violations |= collect_package_surface_violations(paths)
+    violations |= collect_definition_purity_violations(paths)
     return violations
 
 
@@ -193,3 +232,23 @@ def test_package_surface_rule_flags_all_in_an_internal_init(tmp_path: pathlib.Pa
     init = write_module(tmp_path / "services" / "__init__.py", '__all__ = ["Service"]\n')
 
     assert f"E|{init.as_posix()}" in collect_violations([tmp_path])
+
+
+def test_definition_purity_rule_flags_infrastructure_import(tmp_path: pathlib.Path) -> None:
+    module = write_module(
+        tmp_path / "services" / "protocols.py",
+        "from finance_api.models.spents import Spent\n",
+    )
+
+    keys = collect_violations([tmp_path])
+
+    assert f"F|{module.as_posix()}|finance_api.models.spents" in keys
+
+
+def test_definition_purity_rule_allows_schema_imports(tmp_path: pathlib.Path) -> None:
+    write_module(
+        tmp_path / "services" / "protocols.py",
+        "from finance_api.schemas.spents import SpentCreate\n",
+    )
+
+    assert not [key for key in collect_violations([tmp_path]) if key.startswith("F|")]

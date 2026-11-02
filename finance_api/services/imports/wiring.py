@@ -17,15 +17,15 @@ from finance_api.services.classification import ClassificationService
 from finance_api.services.imports.bulk import ImportBulkService
 from finance_api.services.imports.commit import ImportCommitService
 from finance_api.services.imports.presenter import ImportBatchPresenter
-from finance_api.services.imports.reclassify import ImportReclassifyService
-from finance_api.services.imports.transaction_editor import StagedTransactionEditor
-from finance_api.services.imports.upload import ImportUploadService
-from finance_api.services.incomes import IncomeService
-from finance_api.services.protocols import (
+from finance_api.services.imports.protocols import (
     BulkActionStrategy,
     DuplicateDetectorStrategy,
     TransactionCommitStrategy,
 )
+from finance_api.services.imports.reclassify import ImportReclassifyService
+from finance_api.services.imports.transaction_editor import StagedTransactionEditor
+from finance_api.services.imports.upload import ImportUploadService
+from finance_api.services.incomes import IncomeService
 from finance_api.services.spents import SpentService
 
 

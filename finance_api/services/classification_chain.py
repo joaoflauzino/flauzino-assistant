@@ -1,5 +1,6 @@
 """Concrete handlers and builder for the transaction classification Chain of Responsibility."""
 
+from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from decimal import Decimal
 
@@ -13,10 +14,37 @@ from finance_api.schemas.classification import (
     SuggestionSource,
     TransactionKind,
 )
-from finance_api.services.protocols import (
-    BaseClassificationHandler,
-    ClassificationHandlerProtocol,
-)
+from finance_api.services.classification_protocols import ClassificationHandlerProtocol
+
+
+class BaseClassificationHandler(ABC):
+    """Abstract base class providing fluent chaining and default fallback."""
+
+    def __init__(self) -> None:
+        self._next_handler: ClassificationHandlerProtocol | None = None
+
+    def set_next(
+        self,
+        handler: ClassificationHandlerProtocol,
+    ) -> ClassificationHandlerProtocol:
+        self._next_handler = handler
+        return handler
+
+    @abstractmethod
+    async def handle(self, ctx: ClassificationContext) -> ClassificationResult:
+        if self._next_handler is not None:
+            return await self._next_handler.handle(ctx)
+        # Fallback final se nenhum handler classificar a categoria (aguarda IA em lote)
+        return ClassificationResult(
+            merchant=ctx.merchant,
+            kind=ctx.default_kind,
+            payment_type=ctx.default_payment_type,
+            suggested_category=None,
+            suggestion_source=None,
+            confidence=None,
+            description=ctx.description,
+            location=ctx.location,
+        )
 
 
 class OwnTransferHandler(BaseClassificationHandler):

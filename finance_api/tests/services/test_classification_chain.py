@@ -13,6 +13,7 @@ from finance_api.schemas.classification import (
 )
 from finance_api.services.classification_chain import (
     BankCategoryHandler,
+    BaseClassificationHandler,
     BonusIncomeHandler,
     CardFeeHandler,
     InboundPixHandler,
@@ -23,7 +24,6 @@ from finance_api.services.classification_chain import (
     SalaryIncomeHandler,
     build_default_classification_chain,
 )
-from finance_api.services.protocols import BaseClassificationHandler
 
 
 def _make_context(

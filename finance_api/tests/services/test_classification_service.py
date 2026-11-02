@@ -14,7 +14,7 @@ from finance_api.schemas.classification import (
     RawTransactionText,
 )
 from finance_api.services.classification import ClassificationService
-from finance_api.services.protocols import BaseClassificationHandler
+from finance_api.services.classification_chain import BaseClassificationHandler
 
 
 @pytest.fixture

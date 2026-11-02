@@ -11,7 +11,7 @@ from finance_api.schemas.imports import (
     BulkActionResult,
     StepOutcome,
 )
-from finance_api.services.protocols import BulkActionStrategy
+from finance_api.services.imports.protocols import BulkActionStrategy
 
 type BulkStepResult = tuple[StepOutcomeStatus, BulkActionError | None]
 
