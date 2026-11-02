@@ -1,7 +1,7 @@
 # Fase 6 — Padronização de Módulos em Todo o Repo + Gate de Arquitetura
 
 > **Spec:** [00-master-plan.md](./00-master-plan.md)
-> **Status:** ⬜ Não iniciada · (`⬜ Não iniciada` → `🟨 Em andamento` → `✅ Concluída`)
+> **Status:** 🟨 Em andamento (2026-11-02 — 6.1 concluída) · (`⬜ Não iniciada` → `🟨 Em andamento` → `✅ Concluída`)
 > **Depende de:** Fase 0 concluída · **6.1 entra entre 3.4 e 3.5** (antes de 3.5/3.7 e das Fases 4–5) · 6.4 depende de 3.3 · 6.5 depende da Fase 4 concluída
 > **Commits previstos:** 5
 > **Meta:** o repositório inteiro segue o mesmo critério de organização de módulos, e esse critério é verificado automaticamente (política como código), não por review.
@@ -41,9 +41,9 @@ Fora do escopo deste gate: as 56 funções top-level com `_` (Regra 4) já estã
 ### 6.1 Gate de arquitetura (política como código) — **checkpoint entre 3.4 e 3.5**
 Objetivo: impedir que as fases seguintes (3.5, 3.7, 4.x e 5.x) ou qualquer feature futura reintroduzam o problema. Posicionado **depois** das tarefas que só reduzem dívida (3.1–3.4) e **antes** das mudanças estruturais (3.5 e 3.7) — assim o baseline já nasce menor e cada mudança estrutural seguinte tem prova automática ("antes/depois"), sem editar a allowlist em commits de dívida.
 
-- [ ] Criar `tests/architecture/test_module_organization.py` (+ `tests/architecture/__init__.py`)
-- [ ] Adicionar `"tests"` a `testpaths` no `pyproject.toml` (hoje só as 4 APIs são coletadas) e corrigir `make test-mcp`, que aponta para `tests/finance_api/test_mcp_tools.py` (inexistente — o real é `finance_api/tests/test_mcp_tools.py`)
-- [ ] Implementar as 5 checagens (somente código de produção; `tests/` e `__pycache__` ignorados):
+- [x] Criar `tests/architecture/test_module_organization.py` (+ `tests/architecture/__init__.py`)
+- [x] Adicionar `"tests"` a `testpaths` no `pyproject.toml` (hoje só as 4 APIs são coletadas) e corrigir `make test-mcp`, que aponta para `tests/finance_api/test_mcp_tools.py` (inexistente — o real é `finance_api/tests/test_mcp_tools.py`)
+- [x] Implementar as 5 checagens (somente código de produção; `tests/` e `__pycache__` ignorados):
 
 | Regra | Checagem | Falha quando | Baseline hoje |
 |---|---|---|---|
@@ -53,10 +53,10 @@ Objetivo: impedir que as fases seguintes (3.5, 3.7, 4.x e 5.x) ou qualquer featu
 | **D** | Módulo repete o pacote | `stem == pkg`, `stem.startswith(pkg + "_")` ou `stem.endswith("_" + singular(pkg))` | 10 módulos → 3.7 (some) + 6.5 |
 | **E** | Superfície de pacote | `__all__` em `__init__.py` que não é da raiz da API | 3 arquivos → 3.6 / 5.3 |
 
-- [ ] Baseline como **allowlist explícita** (dict `caminho → fase que quita`), seguindo o padrão do `per-file-ignores` da Fase 0 — nunca `pytest.skip` genérico
-- [ ] Mensagem de falha acionável: caminho, regra violada, limiar e a Regra 8 da skill
-- [ ] Testes do próprio gate (casos sintéticos: cluster que estoura, módulo repetindo pacote, pacote keyword)
-- [ ] Commit: `test(architecture): enforce module organization rules`
+- [x] Baseline como **allowlist explícita** (dict `caminho → fase que quita`), seguindo o padrão do `per-file-ignores` da Fase 0 — nunca `pytest.skip` genérico
+- [x] Mensagem de falha acionável: caminho, regra violada, limiar e a Regra 8 da skill
+- [x] Testes do próprio gate (casos sintéticos: cluster que estoura, módulo repetindo pacote, pacote keyword)
+- [x] Commit: `test(architecture): enforce module organization rules`
 
 ### 6.2 Decisões do inventário (watchlist)
 - [ ] Registrar no master plan §2.4 a decisão por cluster: **empacotar** / **manter plano** / **observar**
@@ -108,7 +108,7 @@ Objetivo: impedir que as fases seguintes (3.5, 3.7, 4.x e 5.x) ou qualquer featu
 - [ ] `services/imports/` é o único pacote de feature criado neste ciclo (3.7) e está plano
 - [ ] `08-estrutura-padrao-apis.md` publicado e referenciado pelo master plan
 - [ ] Watchlist registrada com gatilho mensurável e data
-- [ ] `make format` && `make lint` && `uv run pytest` verdes (incluindo o novo `tests/`)
+- [x] `make format` && `make lint` && `uv run pytest` verdes (incluindo o novo `tests/`)
 
 ---
 
@@ -129,4 +129,11 @@ Objetivo: impedir que as fases seguintes (3.5, 3.7, 4.x e 5.x) ou qualquer featu
 
 | Data | Commit | Descrição | Testes |
 |---|---|---|---|
-| — | — | — | — |
+| 2026-11-02 | — (aguardando autorização) | 6.1 `tests/architecture/test_module_organization.py` com as 5 regras (A–E), baseline de **17 itens** (cada um apontando a fase que quita), 7 testes do próprio gate; `tests` entrou no `testpaths` e `make test-mcp` foi corrigido | 614 passed (+7 do gate) |
+
+### Notas de execução
+
+- **6.1** — o baseline foi validado como **exato** na data: 17 violações encontradas = 17 congeladas, 0 entradas obsoletas. A regra A já enxerga o cluster `import_*` (12/1.606) que a 3.7 vai empacotar; a regra B cobre os 3 arquivos grandes que 3.5/4.2/4.3 vão dividir.
+- **Comportamento do allowlist** — o gate **só falha em violação nova**; entradas obsoletas não quebram a suíte, de propósito, para não gerar churn de allowlist a cada fase. A 6.6 apaga o allowlist inteiro e o gate passa a ser estrito.
+- **Prova de que o gate morde** — criado manualmente um arquivo de 301 LOC em `finance_api/services/`; a suíte falhou com `[B|...__gate_probe.py] 301 LOC (> 300)`; arquivo removido em seguida. As 5 regras também têm testes sintéticos com `tmp_path`.
+- **CI** — `tests/` agora é coletado no `uv run pytest`, que é exatamente o que o workflow `.github/workflows/feature.yml` executa.

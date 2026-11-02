@@ -27,7 +27,7 @@
 | 3 | [04-fase-3-finance-api-repositorios-e-modulos.md](./04-fase-3-finance-api-repositorios-e-modulos.md) | Eixo C — `finance_api`: repositories, imports tardios, utils, pacote `imports/` | 🟨 Em andamento | 4/7 tarefas |
 | 4 | [05-fase-4-telegram-api-modulos-e-handlers.md](./05-fase-4-telegram-api-modulos-e-handlers.md) | Eixo C — `telegram_api`: Regra 4, splits, handlers finos | ⬜ Não iniciada | 0/5 tarefas |
 | 5 | [06-fase-5-agent-api-e-verificacao-final.md](./06-fase-5-agent-api-e-verificacao-final.md) | Eixo C — `agent_api`, `__all__`, verificação final | ⬜ Não iniciada | 0/4 tarefas |
-| 6 | [07-fase-6-padronizacao-de-modulos.md](./07-fase-6-padronizacao-de-modulos.md) | Eixo C — padrão de módulos no repo inteiro + gate de arquitetura (política como código) | ⬜ Não iniciada (6.1 entre 3.4 e 3.5) | 0/6 tarefas |
+| 6 | [07-fase-6-padronizacao-de-modulos.md](./07-fase-6-padronizacao-de-modulos.md) | Eixo C — padrão de módulos no repo inteiro + gate de arquitetura (política como código) | 🟨 Em andamento | 1/6 tarefas |
 
 ### Definição de pronto global
 
@@ -156,7 +156,7 @@ Inventário medido (detalhe e baselines em [07-fase-6](./07-fase-6-padronizacao-
 | `services/payment_*` | 3 arquivos / 211 LOC | **manter plano** |
 | `finance_api/mcp/`, `telegram_api/handlers/` | bounded contexts | **manter** |
 
-**Enforcement:** a Regra 8 é verificada por `tests/architecture/test_module_organization.py` (5 checagens medíveis, baseline com allowlist explícita e burn-down obrigatório em 6.6). Review humano deixa de ser o único gate.
+**Enforcement:** a Regra 8 é verificada por `tests/architecture/test_module_organization.py` (5 checagens medíveis, baseline com allowlist explícita e burn-down obrigatório em 6.6). Review humano deixa de ser o único gate. **Ativo desde 2026-11-02** (6.1 concluída; baseline de 17 itens, 0 obsoletos).
 
 ---
 
