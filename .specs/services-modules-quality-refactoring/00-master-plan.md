@@ -4,7 +4,7 @@
 >
 > **Branch de trabalho:** `feat/refactor` (3º ciclo — os planos anteriores `.specs/code-quality-refactoring/`, `.specs/quality-refactoring/` e `.specs/python-patterns-refactoring/` já foram em grande parte executados; este plano é **incremental** e parte do estado atual medido).
 >
-> **Status geral:** 🟨 Em execução — Fases 0, 1, 2, 3, 4 e 5 concluídas em 2026-11-02; Fase 6 em andamento (6.1 concluída, 6.2–6.6 pendentes; baseline do gate 17 → 10).
+> **Status geral:** ✅ Concluído em 2026-11-02 — Fases 0 a 6 executadas; gate de arquitetura estrito com **0 violações** (allowlist apagada) e suíte com **670 passed**.
 
 ---
 
@@ -27,7 +27,7 @@
 | 3 | [04-fase-3-finance-api-repositorios-e-modulos.md](./04-fase-3-finance-api-repositorios-e-modulos.md) | Eixo C — `finance_api`: repositories, imports tardios, utils, pacote `imports/` | ✅ Concluída | 7/7 tarefas |
 | 4 | [05-fase-4-telegram-api-modulos-e-handlers.md](./05-fase-4-telegram-api-modulos-e-handlers.md) | Eixo C — `telegram_api`: Regra 4, splits, handlers finos | ✅ Concluída | 5/5 tarefas |
 | 5 | [06-fase-5-agent-api-e-verificacao-final.md](./06-fase-5-agent-api-e-verificacao-final.md) | Eixo C — `agent_api`, `__all__`, verificação final | ✅ Concluída | 4/4 tarefas |
-| 6 | [07-fase-6-padronizacao-de-modulos.md](./07-fase-6-padronizacao-de-modulos.md) | Eixo C — padrão de módulos no repo inteiro + gate de arquitetura (política como código) | 🟨 Em andamento | 1/6 tarefas |
+| 6 | [07-fase-6-padronizacao-de-modulos.md](./07-fase-6-padronizacao-de-modulos.md) | Eixo C — padrão de módulos no repo inteiro + gate de arquitetura (política como código) | ✅ Concluída | 6/6 tarefas |
 
 ### Definição de pronto global
 
@@ -37,7 +37,7 @@
 - [x] Fase 3 — `finance_api` modular
 - [x] Fase 4 — `telegram_api` modular
 - [x] Fase 5 — `agent_api` modular + verificação final
-- [ ] Fase 6 — padronização de módulos no repo + gate automático
+- [x] Fase 6 — padronização de módulos no repo + gate automático
 
 ---
 
@@ -77,6 +77,8 @@
 > **Atualização da Fase 4 (2026-11-02):** `telegram_api` sem nenhuma função top-level com `_`; retry centralizado em `post_with_retry`; `http_client.py` 422 → 71 LOC; `expense_handler.py` 409 → 243 com savers em `services/expense.py`; os 3 handlers de mídia passaram a compartilhar `services/agent_interaction.py`. Baseline do gate: 14 → **12** (regra B zerada no telegram_api).
 
 > **Atualização da Fase 3.5 (2026-11-02):** `import_strategies.py` (351 LOC, acima do teto da Regra 6) foi dividido em `import_bulk_strategies.py` + `import_commit_strategies.py`. `DuplicateDetectorStrategy` subiu para `services/protocols.py` (Regra 2) e `resolve_salary_competence_date` foi para o seu único consumidor (`import_staging.py`). No gate de arquitetura, a regra B caiu de 3 → 2 violações e o baseline de 17 → 16, sem entradas obsoletas — primeira prova real do burn-down.
+
+> **Atualização da Fase 6 (2026-11-02):** `finance_api/utils/` achatado em `core/text.py`; os 8 handlers, `session_service.py` e `graph_service.py` renomeados sem repetir o pacote; `08-estrutura-padrao-apis.md` publicado como norma; `BASELINE` do gate **apagado** — as 5 regras rodam estritas com **0 violações**. DoD global fechado, exceto a pendência registrada dos `except Exception` de fronteira do cache de sessão.
 
 > **Atualização da Fase 5 (2026-11-02):** `agent_api` sem nenhuma função top-level com `_` (`core/utils.py` + `services/utils.py` concentram os helpers puros; `TokenUsage` foi para `core/schemas.py` pela Regra 1); `__all__` zerado nos dois `__init__.py` restantes; helpers de `classify`/`system_prompt` compartilhados. Verificação final: **0** funções com `ifs > 3`, **0** com profundidade ≥ 4, **0** imports tardios, **0** `__all__`, **0** top-level `_`, restando só as 3 funções de LOC documentadas em §2.2-B. Os gates do ruff foram endurecidos para `max-branches=6`/`max-statements=40` e ficaram verdes. Baseline do gate: 12 → **10** (regra E zerada).
 
@@ -139,9 +141,9 @@ Nenhuma delas viola `C90`/`PLR0912`/`PLR0915`; por isso não houve `# noqa`.
 | **Instanciação de dependência dentro de método** | DI (`AGENTS.md` §3.4) | `finance_api/services/subscriptions.py:84` | 1.3 |
 | **`getattr` defensivo contra mocks em produção** | `python-anti-patterns` | `payment_methods.py:48,68`, `spents.py:230` | 1.3, 3.1 |
 | **Cluster de feature espalhado por prefixo (pasta escrita por extenso)** | Regra 6 | `finance_api/services/import_*.py` + `imports.py`: **14 arquivos / 1.718 LOC = 40% de `services/`** (35 arquivos / 4.290 LOC); grafo é DAG, mas o prefixo `import_` faz o papel de diretório | 3.7 ✅ |
-| **Módulo repetindo o nome do pacote** | Regra 8.2 | `telegram_api/handlers/*_handler.py` (8 arquivos), `telegram_api/services/session_service.py`, `graph_api/services/graph_service.py` | 6.5 |
-| **Pacote com um único módulo (junk drawer `utils/`)** | Regra 6 | `finance_api/utils/` — pacote inteiro para `text.py` (13 LOC) | 6.4 |
-| **Regra de organização sem verificação automática** | Regra 8 / governança | nenhum teste valida cluster, tamanho, nome de pacote ou `__init__` — só review humano | 6.1 |
+| **Módulo repetindo o nome do pacote** | Regra 8.2 | ✅ `telegram_api/handlers/*` (8), `services/session.py`, `graph_api/services/graph.py` | 6.5 ✅ |
+| **Pacote com um único módulo (junk drawer `utils/`)** | Regra 6 | ✅ `finance_api/utils/` achatado em `core/text.py` | 6.4 ✅ |
+| **Regra de organização sem verificação automática** | Regra 8 / governança | ✅ `tests/architecture/test_module_organization.py` (regras A–E) no CI, allowlist zerada | 6.1 ✅, 6.6 ✅ |
 
 ---
 
@@ -154,15 +156,25 @@ Inventário medido (detalhe e baselines em [07-fase-6](./07-fase-6-padronizacao-
 | Cluster / sintoma | Medida | Decisão |
 |---|---|---|
 | `services/import_*` | 12 arquivos / 1.606 LOC | ✅ **empacotado** em `services/imports/` (3.7) |
-| `handlers/*_handler` | 8 módulos repetindo o pacote | **renomear** (6.5) |
-| `services/session_service`, `graph_api/services/graph_service` | 1 arquivo cada | **renomear** (6.5) |
-| `finance_api/utils/` | 1 módulo, 13 LOC | **achatar** para `core/text.py` (6.4) |
+| `handlers/*_handler` | 8 módulos repetindo o pacote | ✅ **renomeados** na 6.5 (`expense.py`, `session.py`, …) |
+| `services/session_service`, `graph_api/services/graph_service` | 1 arquivo cada | ✅ **renomeados** para `session.py` / `graph.py` (6.5) |
+| `finance_api/utils/` | 1 módulo, 13 LOC | ✅ **achatado** para `core/text.py` (6.4) |
 | `importers/c6_*` | 3 arquivos / 506 LOC | **observar** — empacotar a partir de 5 arquivos/800 LOC |
 | `services/classification*` + `ai_classifier` | 3 arquivos / 457 LOC | **observar** se ficam órfãos após 3.7 |
 | `services/payment_*` | 3 arquivos / 211 LOC | **manter plano** |
 | `finance_api/mcp/`, `telegram_api/handlers/` | bounded contexts | **manter** |
 
-**Enforcement:** a Regra 8 é verificada por `tests/architecture/test_module_organization.py` (5 checagens medíveis, baseline com allowlist explícita e burn-down obrigatório em 6.6). Review humano deixa de ser o único gate. **Ativo desde 2026-11-02** (6.1 concluída). Burn-down: 17 itens no congelamento → **14** após as Fases 3.5/3.6/3.7 → **12** após a Fase 4 → **10** após a 5.3, sem nenhuma entrada obsoleta.
+**Watchlist (reavaliar em 2026-11-02, fim da Fase 6):**
+
+| Cluster observado | Medida hoje | Gatilho medido para virar pacote |
+|---|---|---|
+| `finance_api/importers/c6_*` | 3 arquivos / 506 LOC | ≥ 5 arquivos **ou** ≥ 800 LOC → `importers/c6/` (provável ao adicionar Nubank/Itaú) |
+| `finance_api/services/classification*` + `ai_classifier.py` | 3 arquivos / 457 LOC | ≥ 5 arquivos **ou** ≥ 800 LOC, ou se ficarem órfãos de `services/` |
+| `finance_api/services/payment_*` | 3 arquivos / 211 LOC | ≥ 5 arquivos **ou** ≥ 800 LOC |
+
+**Estrutura canônica:** [08-estrutura-padrao-apis.md](./08-estrutura-padrao-apis.md) (documento normativo da 6.3).
+
+**Enforcement:** a Regra 8 é verificada por `tests/architecture/test_module_organization.py` (5 checagens medíveis, baseline com allowlist explícita e burn-down obrigatório em 6.6). Review humano deixa de ser o único gate. **Ativo desde 2026-11-02** (6.1 concluída). Burn-down: 17 itens no congelamento → **14** após as Fases 3.5/3.6/3.7 → **12** após a Fase 4 → **10** após a 5.3 → **0** na 6.6, com a allowlist apagada.
 
 ---
 
@@ -207,15 +219,15 @@ Cada commit: `make format` + `make lint` + `uv run pytest` verdes. **Nenhum comm
 - [x] **Zero** `__all__` em módulos internos (Regra 5).
 - [x] Cluster de import isolado em `finance_api/services/imports/` — arquivos planos, `__init__.py` vazio (Regra 6; Fase 3.7).
 - [x] Nenhum cluster de prefixo acima do limiar da Regra 8 (≥ 5 arquivos ou ≥ 800 LOC) fora de um pacote plano.
-- [ ] Nenhum pacote nomeado com keyword Python; nenhum módulo repetindo o nome do próprio pacote.
-- [ ] Nenhum pacote de um único módulo genérico (`utils/`).
-- [ ] `tests/architecture/test_module_organization.py` verde **sem allowlist** (Fase 6.6).
+- [x] Nenhum pacote nomeado com keyword Python; nenhum módulo repetindo o nome do próprio pacote.
+- [x] Nenhum pacote de um único módulo genérico (`utils/`).
+- [x] `tests/architecture/test_module_organization.py` verde **sem allowlist** (Fase 6.6).
 - [x] Retry/backoff de HTTP em **um único lugar** no `telegram_api`.
 - [x] Handlers do Telegram ≤ 30 LOC, delegando para `services/`.
 - [x] `ruff` (`C90`, `PLR0912`, `PLR0915`) sem violações; `make format`, `make lint`, `uv run pytest` verdes.
 - [x] Testes unitários atualizados/criados para cada colaborador extraído (fakes/mocks, sem banco real).
 - [x] Nenhuma mudança de contrato HTTP externo.
-- [ ] `git diff` apresentado ao usuário antes de qualquer commit.
+- [x] `git diff` apresentado ao usuário antes de qualquer commit.
 
 ---
 
