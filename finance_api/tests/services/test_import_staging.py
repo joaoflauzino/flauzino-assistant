@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
@@ -8,7 +8,10 @@ import pytest
 
 from finance_api.importers.schemas import ParsedTransaction, ResolvedImportTarget
 from finance_api.schemas.classification import ClassificationResult
-from finance_api.services.import_staging import StagingBuilder
+from finance_api.services.import_staging import (
+    StagingBuilder,
+    resolve_salary_competence_date,
+)
 
 SP_TZ = ZoneInfo("America/Sao_Paulo")
 
@@ -114,3 +117,48 @@ async def test_build_without_detector_for_kind_keeps_rows_clean(target) -> None:
     assert duplicates == 0
     assert staged[0].possible_duplicate_of_spent_id is None
     assert staged[0].possible_duplicate_of_income_id is None
+
+
+def test_salary_competence_date_shifts_to_the_previous_month_last_day() -> None:
+    """Salaries credited in the first week belong to the previous competence month."""
+    result = resolve_salary_competence_date(
+        kind="INCOME",
+        occurred_at=datetime(2026, 10, 1, 9, 0, tzinfo=SP_TZ),
+        raw_title="CRED SALARIO MENSAL",
+        raw_description="C6 BANK",
+    )
+
+    assert result == date(2026, 9, 30)
+
+
+def test_salary_competence_date_keeps_the_occurrence_date_after_the_first_week() -> None:
+    result = resolve_salary_competence_date(
+        kind="INCOME",
+        occurred_at=datetime(2026, 10, 20, 9, 0, tzinfo=SP_TZ),
+        raw_title="CRED SALARIO MENSAL",
+        raw_description="C6 BANK",
+    )
+
+    assert result == date(2026, 10, 20)
+
+
+def test_salary_competence_date_keeps_the_occurrence_date_for_non_salary_income() -> None:
+    result = resolve_salary_competence_date(
+        kind="INCOME",
+        occurred_at=datetime(2026, 10, 2, 9, 0, tzinfo=SP_TZ),
+        raw_title="Pix recebido de Carlos",
+        raw_description="PIX RECEBIDO",
+    )
+
+    assert result == date(2026, 10, 2)
+
+
+def test_competence_date_is_none_outside_income_kind() -> None:
+    result = resolve_salary_competence_date(
+        kind="EXPENSE",
+        occurred_at=datetime(2026, 10, 1, 9, 0, tzinfo=SP_TZ),
+        raw_title="CRED SALARIO MENSAL",
+        raw_description=None,
+    )
+
+    assert result is None

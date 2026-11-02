@@ -2,6 +2,8 @@
 
 from abc import ABC, abstractmethod
 from collections.abc import Callable
+from datetime import date
+from decimal import Decimal
 from typing import Protocol
 from uuid import UUID
 
@@ -9,6 +11,7 @@ from finance_api.models.categories import Category
 from finance_api.models.income_categories import IncomeCategory
 from finance_api.models.payment_methods import PaymentMethod
 from finance_api.models.staged_transactions import StagedTransaction
+from finance_api.repositories.staged_transactions import StagedTransactionRepository
 from finance_api.schemas.classification import (
     ClassificationContext,
     ClassificationResult,
@@ -96,6 +99,19 @@ class TransactionCommitStrategy(Protocol):
         tx: StagedTransaction,
         ctx: CommitContext,
     ) -> CommitStepOutcome: ...
+
+
+class DuplicateDetectorStrategy(Protocol):
+    """Structural contract for detecting possible duplicates of a staged row."""
+
+    async def detect(
+        self,
+        tx_repo: StagedTransactionRepository,
+        account_id: UUID | None,
+        credit_card_id: UUID | None,
+        amount: Decimal,
+        tx_date: date,
+    ) -> tuple[UUID | None, UUID | None]: ...
 
 
 class ClassificationHandlerProtocol(Protocol):

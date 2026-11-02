@@ -31,7 +31,6 @@ RULE_LEGEND = (
 
 BASELINE: dict[str, str] = {
     "A|finance_api/services|import": "3.7 — empacotar em services/imports/",
-    "B|finance_api/services/import_strategies.py": "3.5 — split bulk/commit",
     "B|telegram_api/core/http_client.py": "4.2 — split formatter/http clients",
     "B|telegram_api/handlers/expense_handler.py": "4.3 — expense_service",
     "D|graph_api/services/graph_service.py": "6.5 — renomear para graph.py",

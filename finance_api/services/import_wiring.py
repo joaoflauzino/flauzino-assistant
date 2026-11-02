@@ -18,11 +18,14 @@ from finance_api.services.import_bulk import ImportBulkService
 from finance_api.services.import_commit import ImportCommitService
 from finance_api.services.import_presenter import ImportBatchPresenter
 from finance_api.services.import_reclassify import ImportReclassifyService
-from finance_api.services.import_strategies import DuplicateDetectorStrategy
 from finance_api.services.import_transaction_editor import StagedTransactionEditor
 from finance_api.services.import_upload import ImportUploadService
 from finance_api.services.incomes import IncomeService
-from finance_api.services.protocols import BulkActionStrategy, TransactionCommitStrategy
+from finance_api.services.protocols import (
+    BulkActionStrategy,
+    DuplicateDetectorStrategy,
+    TransactionCommitStrategy,
+)
 from finance_api.services.spents import SpentService
 
 

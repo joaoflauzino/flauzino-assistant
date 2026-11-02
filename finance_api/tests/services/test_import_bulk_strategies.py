@@ -1,6 +1,6 @@
-"""Unit tests for BulkActionStrategy and TransactionCommitStrategy implementations."""
+"""Unit tests for the bulk action strategies applied to staged import rows."""
 
-from datetime import date, datetime
+from datetime import datetime
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
@@ -10,29 +10,19 @@ import pytest
 
 from finance_api.models.staged_transactions import StagedTransaction
 from finance_api.repositories.category_rules import CategoryRuleRepositoryProtocol
-from finance_api.schemas.enums import (
-    BulkActionType,
-    CommitOutcomeStatus,
-    StepOutcomeStatus,
-)
-from finance_api.schemas.imports import BulkActionRequest, CommitContext
-from finance_api.services.import_strategies import (
+from finance_api.schemas.enums import BulkActionType, StepOutcomeStatus
+from finance_api.schemas.imports import BulkActionRequest
+from finance_api.services.import_bulk_strategies import (
     ApproveBulkStrategy,
-    ExpenseCommitStrategy,
     IgnoreBulkStrategy,
-    IncomeCommitStrategy,
-    NonRecordCommitStrategy,
     ReopenBulkStrategy,
     SetCategoryBulkStrategy,
     build_default_bulk_strategies,
-    build_default_commit_strategies,
 )
-from finance_api.services.incomes import IncomeService
 from finance_api.services.protocols import (
     CategoryLookupProtocol,
     IncomeCategoryLookupProtocol,
 )
-from finance_api.services.spents import SpentService
 
 SP_TZ = ZoneInfo("America/Sao_Paulo")
 
@@ -204,76 +194,11 @@ async def test_set_category_bulk_strategy_validation_and_success() -> None:
     assert out_inc_err.error_message == "Categoria 'bonus_invalido' não existe"
 
 
-@pytest.mark.asyncio
-async def test_commit_strategies_expense_income_and_non_record() -> None:
-    spent_service = MagicMock(spec=SpentService)
-    created_spent_id = uuid4()
-    spent_service.create = AsyncMock(return_value=MagicMock(id=created_spent_id))
-
-    income_service = MagicMock(spec=IncomeService)
-    created_income_id = uuid4()
-    income_service.create = AsyncMock(return_value=MagicMock(id=created_income_id))
-
-    exp_strategy = ExpenseCommitStrategy(spent_service=spent_service)
-    inc_strategy = IncomeCommitStrategy(income_service=income_service)
-    non_rec_strategy = NonRecordCommitStrategy()
-
-    ctx = CommitContext(
-        payment_method_key="c6_joao",
-        payment_type_value="DEBIT",
-        account_id=uuid4(),
-    )
-
-    # Expense without category -> failed
-    tx_exp_no_cat = _make_tx(kind="EXPENSE", category=None, status="APPROVED")
-    res_fail = await exp_strategy.commit(tx_exp_no_cat, ctx)
-    assert res_fail.status == CommitOutcomeStatus.FAILED
-    assert res_fail.error_message == "Despesa sem categoria"
-
-    # Expense with category -> committed_spent
-    tx_exp = _make_tx(kind="EXPENSE", category="mercado", status="APPROVED")
-    res_exp = await exp_strategy.commit(tx_exp, ctx)
-    assert res_exp.status == CommitOutcomeStatus.COMMITTED_SPENT
-    assert tx_exp.committed_spent_id == created_spent_id
-    assert tx_exp.status == "COMMITTED"
-
-    # Income without category -> failed
-    tx_inc_no_cat = _make_tx(kind="INCOME", category=None, status="APPROVED")
-    res_inc_fail = await inc_strategy.commit(tx_inc_no_cat, ctx)
-    assert res_inc_fail.status == CommitOutcomeStatus.FAILED
-    assert res_inc_fail.error_message == "Receita sem categoria"
-
-    # Income with category -> committed_income
-    tx_inc = _make_tx(kind="INCOME", category="salario", status="APPROVED")
-    tx_inc.competence_date = date(2026, 9, 30)
-    res_inc = await inc_strategy.commit(tx_inc, ctx)
-    assert res_inc.status == CommitOutcomeStatus.COMMITTED_INCOME
-    assert tx_inc.committed_income_id == created_income_id
-    assert tx_inc.status == "COMMITTED"
-
-    # Non-record (TRANSFER / INVOICE_PAYMENT / REFUND) -> processed_without_record
-    tx_transfer = _make_tx(kind="TRANSFER", category=None, status="APPROVED")
-    res_non_rec = await non_rec_strategy.commit(tx_transfer, ctx)
-    assert res_non_rec.status == CommitOutcomeStatus.PROCESSED_WITHOUT_RECORD
-    assert tx_transfer.status == "COMMITTED"
-
-
-def test_strategy_builders_register_all_expected_keys() -> None:
+def test_bulk_strategy_builder_registers_all_expected_keys() -> None:
     bulk_map = build_default_bulk_strategies(
         rule_repo=MagicMock(),
         category_repo=MagicMock(),
         income_category_repo=MagicMock(),
     )
-    assert set(bulk_map.keys()) == {"approve", "ignore", "reopen", "set_category"}
 
-    commit_map = build_default_commit_strategies(
-        spent_service=MagicMock(),
-        income_service=MagicMock(),
-    )
-    assert set(commit_map.keys()) == {
-        "EXPENSE",
-        "INCOME",
-        "TRANSFER",
-        "INVOICE_PAYMENT",
-        "REFUND",
-    }
+    assert set(bulk_map.keys()) == {"approve", "ignore", "reopen", "set_category"}

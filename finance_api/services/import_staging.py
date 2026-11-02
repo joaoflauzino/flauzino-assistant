@@ -1,15 +1,42 @@
 """Staging builder: classifies, deduplicates, and materialises imported rows."""
 
+from datetime import date, datetime, timedelta
 from uuid import UUID
 
 from finance_api.importers.schemas import ParsedTransaction, ResolvedImportTarget
 from finance_api.models.staged_transactions import StagedTransaction
 from finance_api.repositories.staged_transactions import StagedTransactionRepository
+from finance_api.schemas.enums import TransactionKind
 from finance_api.services.classification import ClassificationResult, ClassificationService
-from finance_api.services.import_strategies import (
-    DuplicateDetectorStrategy,
-    resolve_salary_competence_date,
+from finance_api.services.protocols import DuplicateDetectorStrategy
+
+SALARY_KEYWORDS: tuple[str, ...] = (
+    "SALARIO",
+    "SALÁRIO",
+    "FOLHA",
+    "PRO-LABORE",
+    "REMUNERACAO",
+    "VENCIMENTO",
+    "PPR",
+    "PLR",
 )
+
+
+def resolve_salary_competence_date(
+    kind: str,
+    occurred_at: datetime,
+    raw_title: str,
+    raw_description: str | None,
+) -> date | None:
+    """Resolves competence date for salary-like income arriving within the first week of month."""
+    if kind != TransactionKind.INCOME:
+        return None
+    tx_dt = occurred_at.date()
+    norm_raw = f"{raw_title} {raw_description or ''}".upper()
+    if any(k in norm_raw for k in SALARY_KEYWORDS) and tx_dt.day <= 7:
+        first_of_month = tx_dt.replace(day=1)
+        return first_of_month - timedelta(days=1)
+    return tx_dt
 
 
 class StagingBuilder:

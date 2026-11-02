@@ -6,17 +6,17 @@ from finance_api.importers.registry import (
 )
 from finance_api.services.ai_classifier import AIClassifierClient
 from finance_api.services.import_bulk import ImportBulkService
+from finance_api.services.import_bulk_strategies import build_default_bulk_strategies
 from finance_api.services.import_commit import CommitContextResolver, ImportCommitService
+from finance_api.services.import_commit_strategies import (
+    build_default_commit_strategies,
+    build_default_duplicate_detectors,
+)
 from finance_api.services.import_enrichment import BatchEnrichmentService
 from finance_api.services.import_fingerprint import ImportFingerprintService
 from finance_api.services.import_presenter import ImportBatchPresenter
 from finance_api.services.import_reclassify import ImportReclassifyService
 from finance_api.services.import_staging import StagingBuilder
-from finance_api.services.import_strategies import (
-    build_default_bulk_strategies,
-    build_default_commit_strategies,
-    build_default_duplicate_detectors,
-)
 from finance_api.services.import_transaction_editor import StagedTransactionEditor
 from finance_api.services.import_upload import ImportUploadService
 from finance_api.services.import_wiring import (
