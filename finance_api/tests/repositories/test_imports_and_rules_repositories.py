@@ -6,13 +6,13 @@ from zoneinfo import ZoneInfo
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from finance_api.core.text import normalize_upper
 from finance_api.models.accounts import Account
 from finance_api.models.category_rules import CategoryRule
 from finance_api.models.import_batches import ImportBatch
 from finance_api.repositories.base import SQLAlchemyRepository
 from finance_api.repositories.category_rules import CategoryRuleRepository
 from finance_api.repositories.imports import ImportBatchRepository
-from finance_api.utils.text import normalize_upper
 
 pytestmark = pytest.mark.asyncio
 

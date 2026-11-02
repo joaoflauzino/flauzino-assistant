@@ -8,7 +8,7 @@ from graph_api.schemas.graphs import (
     ExpensePieChartRequest,
     GraphImageResponse,
 )
-from graph_api.services.graph_service import GraphRendererServiceDep
+from graph_api.services.graph import GraphRendererServiceDep
 
 router = APIRouter(prefix="/graphs", tags=["graphs"])
 

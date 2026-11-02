@@ -4,7 +4,7 @@ import pytest
 from telegram import CallbackQuery, Chat, Message, Update, User
 from telegram.ext import ContextTypes, ConversationHandler
 
-from telegram_api.handlers.balance_handler import (
+from telegram_api.handlers.balance import (
     SELECT_CATEGORY,
     balance_command,
     cancel,
@@ -36,7 +36,7 @@ def mock_context():
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.handlers.balance_handler.get_valid_categories")
+@patch("telegram_api.handlers.balance.get_valid_categories")
 async def test_balance_command(mock_get_categories, mock_update, mock_context):
     # Arrange
     mock_get_categories.return_value = ["mercado", "lazer"]
@@ -105,7 +105,7 @@ async def test_select_category_filtered(mock_update, mock_context):
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.handlers.balance_handler.get_balance_graph")
+@patch("telegram_api.handlers.balance.get_balance_graph")
 async def test_select_category_empty(mock_get_graph, mock_update, mock_context):
     # Arrange
     mock_update.callback_query.data = "generate"
@@ -128,7 +128,7 @@ async def test_select_category_empty(mock_get_graph, mock_update, mock_context):
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.handlers.balance_handler.get_balance_graph")
+@patch("telegram_api.handlers.balance.get_balance_graph")
 async def test_select_category_success(mock_get_graph, mock_update, mock_context):
     # Arrange
     mock_update.callback_query.data = "generate"

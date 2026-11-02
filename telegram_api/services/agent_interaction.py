@@ -9,7 +9,7 @@ import httpx
 from telegram_api.core.formatter import build_options_keyboard
 from telegram_api.core.logger import get_logger
 from telegram_api.core.sender import send_agent_reply
-from telegram_api.services.session_service import SessionService
+from telegram_api.services.session import SessionService
 
 logger = get_logger(__name__)
 

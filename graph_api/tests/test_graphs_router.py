@@ -9,7 +9,7 @@ from graph_api.services.chart_strategies import (
     ExpensePieChartStrategy,
     LimitsBarChartStrategy,
 )
-from graph_api.services.graph_service import (
+from graph_api.services.graph import (
     GraphRendererService,
     get_graph_renderer_service,
 )

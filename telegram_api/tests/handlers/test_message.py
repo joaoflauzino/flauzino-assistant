@@ -5,7 +5,7 @@ import pytest
 from telegram import CallbackQuery, Chat, Message, Update, User
 from telegram.ext import ContextTypes
 
-from telegram_api.handlers.message_handler import handle_agent_callback, handle_text_message
+from telegram_api.handlers.message import handle_agent_callback, handle_text_message
 
 
 @pytest.fixture
@@ -40,7 +40,7 @@ def mock_context():
 
 @pytest.mark.asyncio
 @patch("telegram_api.services.agent_interaction.SessionService")
-@patch("telegram_api.handlers.message_handler.send_message_to_agent")
+@patch("telegram_api.handlers.message.send_message_to_agent")
 async def test_handle_text_message_suggested_options(
     mock_send, mock_session_service, mock_update, mock_context
 ):
@@ -80,7 +80,7 @@ async def test_handle_text_message_suggested_options(
 
 @pytest.mark.asyncio
 @patch("telegram_api.services.agent_interaction.SessionService")
-@patch("telegram_api.handlers.message_handler.send_message_to_agent")
+@patch("telegram_api.handlers.message.send_message_to_agent")
 async def test_handle_agent_callback(mock_send, mock_session_service, mock_update, mock_context):
     # Arrange
     mock_session_service.get_session = AsyncMock(return_value=str(uuid.uuid4()))

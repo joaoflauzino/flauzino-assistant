@@ -2,12 +2,12 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from telegram_api.services.session_service import SessionService
+from telegram_api.services.session import SessionService
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.services.session_service.get_db")
-@patch("telegram_api.services.session_service.SessionRepository")
+@patch("telegram_api.services.session.get_db")
+@patch("telegram_api.services.session.SessionRepository")
 async def test_session_service_get_session(mock_repo_cls, mock_get_db):
     mock_session = AsyncMock()
     mock_get_db.return_value.__aenter__.return_value = mock_session
@@ -22,8 +22,8 @@ async def test_session_service_get_session(mock_repo_cls, mock_get_db):
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.services.session_service.get_db")
-@patch("telegram_api.services.session_service.SessionRepository")
+@patch("telegram_api.services.session.get_db")
+@patch("telegram_api.services.session.SessionRepository")
 async def test_session_service_sync_session_complete(mock_repo_cls, mock_get_db):
     mock_session = AsyncMock()
     mock_get_db.return_value.__aenter__.return_value = mock_session
@@ -39,8 +39,8 @@ async def test_session_service_sync_session_complete(mock_repo_cls, mock_get_db)
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.services.session_service.get_db")
-@patch("telegram_api.services.session_service.SessionRepository")
+@patch("telegram_api.services.session.get_db")
+@patch("telegram_api.services.session.SessionRepository")
 async def test_session_service_sync_session_incomplete(mock_repo_cls, mock_get_db):
     mock_session = AsyncMock()
     mock_get_db.return_value.__aenter__.return_value = mock_session
@@ -78,8 +78,8 @@ async def test_session_service_with_injected_repository_protocol():
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.services.session_service.get_db")
-@patch("telegram_api.services.session_service.SessionRepository")
+@patch("telegram_api.services.session.get_db")
+@patch("telegram_api.services.session.SessionRepository")
 async def test_session_service_list_known_chat_ids_default_db(mock_repo_cls, mock_get_db):
     mock_session = AsyncMock()
     mock_get_db.return_value.__aenter__.return_value = mock_session
@@ -115,8 +115,8 @@ async def test_sync_chat_session_complete_wins_over_session_id():
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.services.session_service.get_db")
-@patch("telegram_api.services.session_service.SessionRepository")
+@patch("telegram_api.services.session.get_db")
+@patch("telegram_api.services.session.SessionRepository")
 async def test_sync_session_noop_without_flags_default_db(mock_repo_cls, mock_get_db):
     mock_session = AsyncMock()
     mock_get_db.return_value.__aenter__.return_value = mock_session

@@ -5,7 +5,7 @@ import pytest
 from telegram import Chat, Message, Update, User, Voice
 from telegram.ext import ContextTypes
 
-from telegram_api.handlers.voice_handler import handle_voice_message
+from telegram_api.handlers.voice import handle_voice_message
 
 
 @pytest.fixture
@@ -40,7 +40,7 @@ def mock_context():
 
 @pytest.mark.asyncio
 @patch("telegram_api.services.agent_interaction.SessionService")
-@patch("telegram_api.handlers.voice_handler.send_audio_to_agent")
+@patch("telegram_api.handlers.voice.send_audio_to_agent")
 async def test_handle_voice_message_success(
     mock_send, mock_session_service, mock_voice_update, mock_context
 ):

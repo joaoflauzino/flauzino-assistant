@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import pytest
 
+from finance_api.core.text import normalize_upper
 from finance_api.models.category_rules import CategoryRule
 from finance_api.repositories.category_rules import CategoryRuleRepository
 from finance_api.schemas.classification import (
@@ -23,7 +24,6 @@ from finance_api.services.classification_chain import (
     build_default_classification_chain,
 )
 from finance_api.services.protocols import BaseClassificationHandler
-from finance_api.utils.text import normalize_upper
 
 
 def _make_context(

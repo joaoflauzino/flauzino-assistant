@@ -5,7 +5,7 @@ import pytest
 from telegram import Chat, Message, PhotoSize, Update, User
 from telegram.ext import ContextTypes
 
-from telegram_api.handlers.photo_handler import handle_photo_message
+from telegram_api.handlers.photo import handle_photo_message
 
 
 @pytest.fixture
@@ -38,7 +38,7 @@ def mock_context():
 
 @pytest.mark.asyncio
 @patch("telegram_api.services.agent_interaction.SessionService")
-@patch("telegram_api.handlers.photo_handler.send_receipt_to_agent")
+@patch("telegram_api.handlers.photo.send_receipt_to_agent")
 async def test_handle_photo_message_success(
     mock_send, mock_session_service, mock_photo_update, mock_context
 ):

@@ -1,3 +1,4 @@
+from finance_api.core.text import normalize_upper
 from finance_api.schemas.classification import (
     ExtractedMerchantInfo,
     RawTransactionText,
@@ -12,7 +13,6 @@ from finance_api.services.extractors import (
     extract_salary_or_bonus,
     get_default_extractor_pipeline,
 )
-from finance_api.utils.text import normalize_upper
 
 
 def _make_raw(

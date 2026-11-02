@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from telegram_api.handlers.balance_summary_handler import balanco_command
+from telegram_api.handlers.balance_summary import balanco_command
 from telegram_api.main import send_weekly_balance_summary
 
 
@@ -23,7 +23,7 @@ def mock_context():
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.handlers.balance_summary_handler.get_monthly_balance_summary")
+@patch("telegram_api.handlers.balance_summary.get_monthly_balance_summary")
 async def test_balanco_command_success(mock_get_summary, mock_update, mock_context):
     mock_get_summary.return_value = {
         "reference_month": "2026-08",
@@ -46,7 +46,7 @@ async def test_balanco_command_success(mock_get_summary, mock_update, mock_conte
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.handlers.balance_summary_handler.get_monthly_balance_summary")
+@patch("telegram_api.handlers.balance_summary.get_monthly_balance_summary")
 async def test_balanco_command_failure(mock_get_summary, mock_update, mock_context):
     mock_get_summary.return_value = None
 

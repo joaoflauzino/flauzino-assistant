@@ -6,8 +6,8 @@ from sqlalchemy import delete, desc, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from finance_api.core.text import normalize_upper
 from finance_api.models.category_rules import CategoryRule
-from finance_api.utils.text import normalize_upper
 
 
 class CategoryRuleRepositoryProtocol(Protocol):

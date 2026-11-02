@@ -4,9 +4,9 @@ from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from finance_api.core.logger import get_logger
+from finance_api.core.text import normalize_lower
 from finance_api.models.categories import Category
 from finance_api.schemas.categories import CategoryCreate, CategoryUpdate
-from finance_api.utils.text import normalize_lower
 
 logger = get_logger(__name__)
 

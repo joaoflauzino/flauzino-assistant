@@ -21,15 +21,15 @@ from telegram_api.core.http_client import close_http_client
 from telegram_api.core.logger import get_logger
 from telegram_api.core.metrics import start_metrics_server
 from telegram_api.core.middleware import auth_middleware
-from telegram_api.handlers.balance_handler import balance_handlers
-from telegram_api.handlers.balance_summary_handler import balanco_handler
-from telegram_api.handlers.command_handler import help_command, start_command
-from telegram_api.handlers.expense_handler import expense_conv_handler
-from telegram_api.handlers.income_handler import income_conv_handler
-from telegram_api.handlers.message_handler import agent_callback_handler, handle_text_message
-from telegram_api.handlers.photo_handler import handle_photo_message
-from telegram_api.handlers.voice_handler import handle_voice_message
-from telegram_api.services.session_service import SessionService
+from telegram_api.handlers.balance import balance_handlers
+from telegram_api.handlers.balance_summary import balanco_handler
+from telegram_api.handlers.command import help_command, start_command
+from telegram_api.handlers.expense import expense_conv_handler
+from telegram_api.handlers.income import income_conv_handler
+from telegram_api.handlers.message import agent_callback_handler, handle_text_message
+from telegram_api.handlers.photo import handle_photo_message
+from telegram_api.handlers.voice import handle_voice_message
+from telegram_api.services.session import SessionService
 from telegram_api.settings import settings
 
 logger = get_logger(__name__)

@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from telegram.ext import ConversationHandler
 
-from telegram_api.handlers.income_handler import (
+from telegram_api.handlers.income import (
     CONFIRMATION,
     SELECT_CATEGORY,
     SELECT_PAYMENT_METHOD,
@@ -38,7 +38,7 @@ def mock_context():
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.handlers.income_handler.get_valid_income_categories")
+@patch("telegram_api.handlers.income.get_valid_income_categories")
 async def test_receita_command(mock_get_cats, mock_update, mock_context):
     mock_get_cats.return_value = ["salario", "pix"]
 
@@ -74,7 +74,7 @@ async def test_type_description(mock_update, mock_context):
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.handlers.income_handler.get_valid_accounts")
+@patch("telegram_api.handlers.income.get_valid_accounts")
 async def test_type_value_success(mock_get_accs, mock_update, mock_context):
     mock_get_accs.return_value = ["itau_joao"]
     mock_context.user_data["income"] = {}
@@ -115,7 +115,7 @@ async def test_select_payment_method(mock_update, mock_context):
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.handlers.income_handler.save_income")
+@patch("telegram_api.handlers.income.save_income")
 async def test_confirm_income_success(mock_save_income, mock_update, mock_context):
     mock_context.user_data["income"] = {
         "category": "salario",

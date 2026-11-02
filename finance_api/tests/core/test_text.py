@@ -2,7 +2,7 @@
 
 import pytest
 
-from finance_api.utils.text import normalize_lower, normalize_upper, strip_diacritics
+from finance_api.core.text import normalize_lower, normalize_upper, strip_diacritics
 
 
 def test_strip_diacritics_keeps_the_original_casing():

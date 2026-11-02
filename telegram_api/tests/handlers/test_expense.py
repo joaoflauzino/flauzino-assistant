@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from telegram.ext import ConversationHandler
 
-from telegram_api.handlers.expense_handler import (
+from telegram_api.handlers.expense import (
     cancel,
     confirm_expense,
     gasto_command,
@@ -48,7 +48,7 @@ def mock_context():
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.handlers.expense_handler.get_valid_categories")
+@patch("telegram_api.handlers.expense.get_valid_categories")
 async def test_gasto_command(mock_get_categories, mock_update, mock_context):
     mock_get_categories.return_value = ["categoria1", "categoria2"]
 
@@ -85,7 +85,7 @@ async def test_type_item_bought(mock_update, mock_context):
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.handlers.expense_handler.get_valid_payment_methods")
+@patch("telegram_api.handlers.expense.get_valid_payment_methods")
 async def test_type_value_valid(mock_get_payment, mock_update, mock_context):
     mock_get_payment.return_value = ["itau", "nubank"]
     mock_context.user_data["expense"] = {}
@@ -141,7 +141,7 @@ async def test_type_location(mock_update, mock_context):
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.handlers.expense_handler.ask_for_date")
+@patch("telegram_api.handlers.expense.ask_for_date")
 async def test_select_purchase_type_a_vista(mock_ask, mock_update, mock_context):
     mock_context.user_data["expense"] = {}
     mock_update.callback_query.data = "a_vista"
@@ -177,7 +177,7 @@ async def test_type_total_installments(mock_update, mock_context):
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.handlers.expense_handler.ask_for_date")
+@patch("telegram_api.handlers.expense.ask_for_date")
 async def test_type_current_installment(mock_ask, mock_update, mock_context):
     mock_context.user_data["expense"] = {"total_installments": 10}
     mock_update.message.text = "5"
