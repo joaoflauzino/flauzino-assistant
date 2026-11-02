@@ -1,5 +1,7 @@
 """Session management service for Telegram chats."""
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Any
 
 from telegram_api.core.database import get_db
@@ -19,17 +21,23 @@ class SessionService:
     def __init__(self, repository: SessionRepositoryProtocol | None = None) -> None:
         self._repository = repository
 
+    @asynccontextmanager
+    async def _repository_scope(self) -> AsyncIterator[SessionRepositoryProtocol]:
+        """Yields the injected repository or a short-lived one backed by the default DB."""
+        if self._repository is not None:
+            yield self._repository
+            return
+
+        async with get_db() as session:
+            yield SessionRepository(session)
+
     async def get_active_session(
         self,
         chat_id: int,
         ttl_minutes: int | None = None,
     ) -> str | None:
         resolved_ttl = settings.SESSION_TTL_MINUTES if ttl_minutes is None else ttl_minutes
-        if self._repository is not None:
-            return await self._repository.get_session(chat_id, ttl_minutes=resolved_ttl)
-
-        async with get_db() as session:
-            repo = SessionRepository(session)
+        async with self._repository_scope() as repo:
             return await repo.get_session(chat_id, ttl_minutes=resolved_ttl)
 
     async def sync_chat_session(
@@ -39,29 +47,27 @@ class SessionService:
     ) -> None:
         is_complete = response_data.get("is_complete", False)
         new_session_id = response_data.get("session_id")
+        async with self._repository_scope() as repo:
+            await self._apply_sync(repo, chat_id, is_complete, new_session_id)
 
-        if self._repository is not None:
-            if is_complete:
-                await self._repository.delete_session(chat_id)
-                logger.info(f"Session cleared for chat {chat_id} (task complete)")
-            elif new_session_id:
-                await self._repository.save_session(chat_id, new_session_id)
+    async def _apply_sync(
+        self,
+        repo: SessionRepositoryProtocol,
+        chat_id: int,
+        is_complete: bool,
+        new_session_id: str | None,
+    ) -> None:
+        """Clears the session on completion or persists the new session id."""
+        if is_complete:
+            await repo.delete_session(chat_id)
+            logger.info(f"Session cleared for chat {chat_id} (task complete)")
             return
 
-        async with get_db() as session:
-            repo = SessionRepository(session)
-            if is_complete:
-                await repo.delete_session(chat_id)
-                logger.info(f"Session cleared for chat {chat_id} (task complete)")
-            elif new_session_id:
-                await repo.save_session(chat_id, new_session_id)
+        if new_session_id:
+            await repo.save_session(chat_id, new_session_id)
 
     async def list_known_chat_ids(self) -> list[int]:
-        if self._repository is not None:
-            return await self._repository.list_distinct_chat_ids()
-
-        async with get_db() as session:
-            repo = SessionRepository(session)
+        async with self._repository_scope() as repo:
             return await repo.list_distinct_chat_ids()
 
     @staticmethod
