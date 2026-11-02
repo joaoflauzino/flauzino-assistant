@@ -1,3 +1,6 @@
+# ruff: noqa: F401
+# Importing every model registers its table in ``Base.metadata`` (needed by create_all and
+# the migrations bootstrap). Keep the imports; they are intentionally side-effect only.
 from finance_api.models.accounts import Account
 from finance_api.models.categories import Category
 from finance_api.models.category_rules import CategoryRule
@@ -11,19 +14,3 @@ from finance_api.models.payment_methods import PaymentMethod
 from finance_api.models.spents import Spent
 from finance_api.models.staged_transactions import StagedTransaction
 from finance_api.models.subscriptions import Subscription
-
-__all__ = [
-    "Account",
-    "Category",
-    "CategoryRule",
-    "CreditCard",
-    "ImportBatch",
-    "IncomeCategory",
-    "Income",
-    "Invoice",
-    "SpendingLimit",
-    "PaymentMethod",
-    "Spent",
-    "StagedTransaction",
-    "Subscription",
-]
