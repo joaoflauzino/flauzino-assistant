@@ -22,7 +22,7 @@
 | Fase | Arquivo | Escopo | Status | Progresso |
 |---|---|---|---|---|
 | 0 | [01-fase-0-gates-e-rede-de-seguranca.md](./01-fase-0-gates-e-rede-de-seguranca.md) | WIP atual, gates de lint, testes de caracterização | ✅ Concluída | 4/4 tarefas |
-| 1 | [02-fase-1-condicionais-em-services.md](./02-fase-1-condicionais-em-services.md) | Eixo A — cascatas de `if` nos services | ⬜ Não iniciada | 0/6 tarefas |
+| 1 | [02-fase-1-condicionais-em-services.md](./02-fase-1-condicionais-em-services.md) | Eixo A — cascatas de `if` nos services | ✅ Concluída | 6/6 tarefas |
 | 2 | [03-fase-2-metodos-longos-em-services.md](./03-fase-2-metodos-longos-em-services.md) | Eixo B — métodos > 40 LOC nos services | ⬜ Não iniciada | 0/6 tarefas |
 | 3 | [04-fase-3-finance-api-repositorios-e-modulos.md](./04-fase-3-finance-api-repositorios-e-modulos.md) | Eixo C — `finance_api`: repositories, imports tardios, utils | ⬜ Não iniciada | 0/6 tarefas |
 | 4 | [05-fase-4-telegram-api-modulos-e-handlers.md](./05-fase-4-telegram-api-modulos-e-handlers.md) | Eixo C — `telegram_api`: Regra 4, splits, handlers finos | ⬜ Não iniciada | 0/5 tarefas |
@@ -31,7 +31,7 @@
 ### Definição de pronto global
 
 - [x] Fase 0 — gates e rede de segurança
-- [ ] Fase 1 — condicionais em services
+- [x] Fase 1 — condicionais em services
 - [ ] Fase 2 — métodos longos em services
 - [ ] Fase 3 — `finance_api` modular
 - [ ] Fase 4 — `telegram_api` modular
@@ -61,6 +61,8 @@
 - **56 funções top-level com `_underscore`** em 16 arquivos (violação da Regra 4).
 - **6 imports tardios** dentro de funções em `finance_api/repositories/` (violação do `AGENTS.md` §3.4).
 - **3 `__all__`** em `__init__.py` internos (violação da Regra 5).
+
+> **Atualização da Fase 1 (2026-11-02):** nenhuma função em `*/services/` permanece com mais de 3 condicionais. As violações restantes de Eixo A/B estão mapeadas nas fases 2–3.
 
 ### 2.1 Piores funções por densidade de condicionais (Eixo A)
 
