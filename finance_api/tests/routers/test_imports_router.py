@@ -39,7 +39,7 @@ from finance_api.schemas.imports import (
 )
 from finance_api.schemas.pagination import PaginatedResponse
 from finance_api.services.classification import ClassificationService
-from finance_api.services.imports import ImportService
+from finance_api.services.imports.facade import ImportService
 
 
 @pytest.fixture

@@ -4,6 +4,7 @@ from uuid import UUID
 
 from finance_api.core.decorators import handle_service_errors
 from finance_api.core.exceptions import EntityNotFoundError
+from finance_api.core.text import normalize_upper
 from finance_api.models.category_rules import CategoryRule
 from finance_api.repositories.category_rules import CategoryRuleRepositoryProtocol
 from finance_api.schemas.classification import (
@@ -21,7 +22,6 @@ from finance_api.services.protocols import (
     MerchantExtractorPipeline,
 )
 from finance_api.settings import settings
-from finance_api.utils.text import _normalize
 
 _PAYMENT_TYPE_PATTERNS: tuple[tuple[tuple[str, ...], PaymentType], ...] = (
     (("DEBITO DE CARTAO", "PAYGO*"), PaymentType.DEBIT),
@@ -29,7 +29,7 @@ _PAYMENT_TYPE_PATTERNS: tuple[tuple[tuple[str, ...], PaymentType], ...] = (
 )
 
 
-def _resolve_default_payment_type(
+def resolve_default_payment_type(
     is_credit_card: bool,
     norm_combined: str,
 ) -> PaymentType:
@@ -78,10 +78,10 @@ class ClassificationService:
 
     def get_own_holder_names(self) -> list[str]:
         raw = settings.OWN_HOLDER_NAMES
-        return [_normalize(n) for n in raw.split(",") if n.strip()]
+        return [normalize_upper(n) for n in raw.split(",") if n.strip()]
 
     def is_own_transfer(self, text: str) -> bool:
-        norm_text = _normalize(text)
+        norm_text = normalize_upper(text)
         return any(name and name in norm_text for name in self.get_own_holder_names())
 
     def extract_merchant_location_desc(
@@ -92,7 +92,7 @@ class ClassificationService:
         raw = RawTransactionText(
             title=title,
             description=desc,
-            norm_title=_normalize(title),
+            norm_title=normalize_upper(title),
             direction=direction,
         )
         extracted = self._extractor_pipeline(raw)
@@ -110,11 +110,11 @@ class ClassificationService:
         merchant, location, description = self.extract_merchant_location_desc(
             raw_title, raw_description, direction
         )
-        norm_title = _normalize(raw_title)
-        norm_desc = _normalize(raw_description or "")
+        norm_title = normalize_upper(raw_title)
+        norm_desc = normalize_upper(raw_description or "")
         norm_combined = f"{norm_title} {norm_desc}".strip()
 
-        default_payment_type = _resolve_default_payment_type(
+        default_payment_type = resolve_default_payment_type(
             is_credit_card=is_credit_card,
             norm_combined=norm_combined,
         )

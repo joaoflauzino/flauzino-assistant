@@ -1,9 +1,10 @@
 from collections.abc import Sequence
 from datetime import date, timedelta
 from decimal import Decimal
+from typing import Any
 from uuid import UUID
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import Select, and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from finance_api.models.incomes import Income
@@ -108,13 +109,33 @@ class StagedTransactionRepository:
         page: int = 1,
         size: int = 50,
     ) -> tuple[Sequence[StagedTransaction], int]:
-        conditions = []
-        if batch_id:
-            conditions.append(StagedTransaction.batch_id == batch_id)
-        if status:
-            conditions.append(StagedTransaction.status == status)
-        if kind:
-            conditions.append(StagedTransaction.kind == kind)
+        conditions = self._build_conditions(
+            batch_id, status, kind, only_duplicates, only_unclassified
+        )
+        items_query = self._apply_pagination(
+            self._with_conditions(select(StagedTransaction), conditions), page, size
+        )
+        count_query = self._with_conditions(select(func.count(StagedTransaction.id)), conditions)
+        total = (await self.db.execute(count_query)).scalar_one() or 0
+        items = (await self.db.execute(items_query)).scalars().all()
+        return items, total
+
+    def _build_conditions(
+        self,
+        batch_id: UUID | None = None,
+        status: str | None = None,
+        kind: str | None = None,
+        only_duplicates: bool = False,
+        only_unclassified: bool = False,
+    ) -> list[Any]:
+        """Translates the optional staged-transaction filters into query conditions."""
+        equality_filters = (
+            (batch_id, StagedTransaction.batch_id),
+            (status, StagedTransaction.status),
+            (kind, StagedTransaction.kind),
+        )
+        conditions = [column == value for value, column in equality_filters if value]
+
         if only_duplicates:
             conditions.append(
                 or_(
@@ -130,15 +151,18 @@ class StagedTransactionRepository:
                 )
             )
 
-        query = select(StagedTransaction)
-        count_query = select(func.count(StagedTransaction.id))
+        return conditions
 
-        if conditions:
-            query = query.where(and_(*conditions))
-            count_query = count_query.where(and_(*conditions))
+    def _with_conditions(self, query: Select, conditions: list[Any]) -> Select:
+        """Applies the collected conditions, skipping the clause when there is no filter."""
+        if not conditions:
+            return query
+        return query.where(and_(*conditions))
 
+    def _apply_pagination(self, query: Select, page: int, size: int) -> Select:
+        """Orders the listing deterministically and applies the page window."""
         offset = (page - 1) * size
-        query = (
+        return (
             query.order_by(
                 StagedTransaction.occurred_at.desc(), StagedTransaction.created_at.desc()
             )
@@ -146,19 +170,10 @@ class StagedTransactionRepository:
             .limit(size)
         )
 
-        total_res = await self.db.execute(count_query)
-        total = total_res.scalar_one() or 0
-
-        res = await self.db.execute(query)
-        items = res.scalars().all()
-        return items, total
-
     async def get_approved_for_commit(
         self, batch_id: UUID | None = None
     ) -> Sequence[StagedTransaction]:
-        conditions = [StagedTransaction.status == "APPROVED"]
-        if batch_id:
-            conditions.append(StagedTransaction.batch_id == batch_id)
+        conditions = self._build_conditions(batch_id=batch_id, status="APPROVED")
         query = (
             select(StagedTransaction)
             .where(and_(*conditions))

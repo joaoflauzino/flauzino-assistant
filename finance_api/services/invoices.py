@@ -172,7 +172,7 @@ class InvoiceService:
         if not invoice.credit_card_id and pm.id:
             patch["credit_card_id"] = pm.id
 
-        updated = await self.repo.update(invoice.id, InvoiceUpdate(**patch))
+        updated = await self.repo.update(invoice.id, InvoiceUpdate.model_validate(patch))
         return InvoiceResponse.model_validate(updated)
 
     async def _create_invoice(

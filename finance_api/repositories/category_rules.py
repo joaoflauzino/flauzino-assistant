@@ -1,18 +1,14 @@
-import unicodedata
 from collections.abc import Sequence
-from typing import Protocol
+from typing import Any, Protocol, cast
 from uuid import UUID
 
 from sqlalchemy import delete, desc, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from finance_api.core.text import normalize_upper
 from finance_api.models.category_rules import CategoryRule
-
-
-def _normalize(text: str) -> str:
-    nfkd = unicodedata.normalize("NFKD", text)
-    return "".join(c for c in nfkd if not unicodedata.combining(c)).upper().strip()
 
 
 class CategoryRuleRepositoryProtocol(Protocol):
@@ -47,18 +43,20 @@ class CategoryRuleRepository:
         return result.scalars().all()
 
     async def find_matching_rule(self, merchant: str, direction: str) -> CategoryRule | None:
-        norm_merchant = _normalize(merchant)
-        rules = await self.list_all()
-        for rule in rules:
+        norm_merchant = normalize_upper(merchant)
+        for rule in await self.list_all():
             if rule.direction != direction:
                 continue
-            norm_pattern = _normalize(rule.pattern)
-            if rule.match_type == "EXACT":
-                if norm_merchant == norm_pattern:
-                    return rule
-            elif norm_pattern in norm_merchant:
+            if self._matches_rule(rule, norm_merchant):
                 return rule
         return None
+
+    def _matches_rule(self, rule: CategoryRule, norm_merchant: str) -> bool:
+        """Tells whether the rule pattern matches the normalized merchant."""
+        norm_pattern = normalize_upper(rule.pattern)
+        if rule.match_type == "EXACT":
+            return norm_merchant == norm_pattern
+        return norm_pattern in norm_merchant
 
     async def increment_hits(self, rule_id: UUID) -> None:
         await self.db.execute(
@@ -105,6 +103,6 @@ class CategoryRuleRepository:
 
     async def delete_by_id(self, rule_id: UUID) -> bool:
         stmt = delete(CategoryRule).where(CategoryRule.id == rule_id)
-        result = await self.db.execute(stmt)
+        result = cast(CursorResult[Any], await self.db.execute(stmt))
         await self.db.commit()
         return result.rowcount > 0

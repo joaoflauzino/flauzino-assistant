@@ -36,11 +36,9 @@ from finance_api.services.accounts import AccountService
 from finance_api.services.balances import BalanceService
 from finance_api.services.classification import ClassificationService
 from finance_api.services.credit_cards import CreditCardService
-from finance_api.services.import_strategies import (
-    build_default_bulk_strategies,
-    build_default_commit_strategies,
-)
-from finance_api.services.imports import ImportService
+from finance_api.services.imports.facade import ImportService
+from finance_api.services.imports.factory import build_default_import_service
+from finance_api.services.imports.wiring import ImportOverrides, ImportServiceDeps
 from finance_api.services.income_categories import IncomeCategoryService
 from finance_api.services.incomes import IncomeService
 from finance_api.services.invoices import InvoiceService
@@ -275,16 +273,7 @@ def get_import_service(
     parser_factory: ParserFactoryDep,
     target_resolvers: TargetResolversDep,
 ) -> ImportService:
-    bulk_strategies = build_default_bulk_strategies(
-        rule_repo=rule_repo,
-        category_repo=cat_repo,
-        income_category_repo=inc_cat_repo,
-    )
-    commit_strategies = build_default_commit_strategies(
-        spent_service=spent_svc,
-        income_service=inc_svc,
-    )
-    return ImportService(
+    deps = ImportServiceDeps(
         batch_repo=batch_repo,
         tx_repo=tx_repo,
         rule_repo=rule_repo,
@@ -295,11 +284,12 @@ def get_import_service(
         income_service=inc_svc,
         category_repo=cat_repo,
         income_category_repo=inc_cat_repo,
-        bulk_strategies=bulk_strategies,
-        commit_strategies=commit_strategies,
+    )
+    overrides = ImportOverrides(
         parser_factory=parser_factory,
         target_resolvers=target_resolvers,
     )
+    return build_default_import_service(deps, overrides)
 
 
 ImportServiceDep = Annotated[ImportService, Depends(get_import_service)]

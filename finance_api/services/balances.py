@@ -16,6 +16,7 @@ from finance_api.repositories.payment_methods import PaymentMethodRepository
 from finance_api.repositories.spents import SpentRepository
 from finance_api.schemas.limits import CategoryBalance
 from finance_api.services.invoices import InvoiceService
+from finance_api.services.utils import build_category_balance
 
 logger = get_logger(__name__)
 
@@ -154,40 +155,24 @@ class BalanceService:
         cat_map: dict[str, str],
     ) -> list[CategoryBalance]:
         """Calculates available balance and percentage used for each category."""
-        balances: list[CategoryBalance] = []
-        processed_cats = set()
-
-        for limit in limits:
-            cat_key = limit.category
-            cat_display = cat_map.get(cat_key, cat_key)
-            spent = spent_by_category.get(cat_key, 0.0)
-            available = limit.amount - spent
-            percentage = (spent / limit.amount) * 100 if limit.amount > 0 else 100.0
-
-            balances.append(
-                CategoryBalance(
-                    category=cat_key,
-                    category_display_name=cat_display,
-                    limit=limit.amount,
-                    spent=spent,
-                    available=available,
-                    percentage_used=percentage,
-                )
+        balances = [
+            build_category_balance(
+                category=limit.category,
+                display_name=cat_map.get(limit.category, limit.category),
+                limit_amount=limit.amount,
+                spent=spent_by_category.get(limit.category, 0.0),
             )
-            processed_cats.add(cat_key)
-
-        for cat_key, spent in spent_by_category.items():
-            if cat_key not in processed_cats and spent > 0:
-                cat_display = cat_map.get(cat_key, cat_key)
-                balances.append(
-                    CategoryBalance(
-                        category=cat_key,
-                        category_display_name=cat_display,
-                        limit=0.0,
-                        spent=spent,
-                        available=-spent,
-                        percentage_used=100.0,
-                    )
-                )
-
+            for limit in limits
+        ]
+        processed_categories = {balance.category for balance in balances}
+        balances.extend(
+            build_category_balance(
+                category=category,
+                display_name=cat_map.get(category, category),
+                limit_amount=0.0,
+                spent=spent,
+            )
+            for category, spent in spent_by_category.items()
+            if category not in processed_categories and spent > 0
+        )
         return balances

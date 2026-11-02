@@ -1,19 +1,16 @@
-import unicodedata
+from typing import Any, cast
 from uuid import UUID
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, func, select, update
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from finance_api.core.logger import get_logger
+from finance_api.core.text import normalize_lower
 from finance_api.models.categories import Category
 from finance_api.schemas.categories import CategoryCreate, CategoryUpdate
 
 logger = get_logger(__name__)
-
-
-def _normalize_str(text: str) -> str:
-    nfkd = unicodedata.normalize("NFKD", text)
-    return "".join(c for c in nfkd if not unicodedata.combining(c)).lower().strip()
 
 
 class CategoryRepository:
@@ -32,8 +29,6 @@ class CategoryRepository:
         query = select(Category).order_by(Category.display_name)
 
         # Count query
-        from sqlalchemy import func
-
         count_query = select(func.count()).select_from(query.subquery())
         count_result = await self.db.execute(count_query)
         total = count_result.scalar() or 0
@@ -60,12 +55,12 @@ class CategoryRepository:
             return category
 
         # Fallback to normalized match (e.g. 'alimentação' matching 'alimentacao')
-        normalized_target = _normalize_str(key)
+        normalized_target = normalize_lower(key)
         all_cats_result = await self.db.execute(select(Category))
         for cat in all_cats_result.scalars().all():
             if (
-                _normalize_str(cat.key) == normalized_target
-                or _normalize_str(cat.display_name) == normalized_target
+                normalize_lower(cat.key) == normalized_target
+                or normalize_lower(cat.display_name) == normalized_target
             ):
                 return cat
 
@@ -85,7 +80,7 @@ class CategoryRepository:
 
     async def delete(self, category_id: UUID) -> bool:
         stmt = delete(Category).where(Category.id == category_id)
-        result = await self.db.execute(stmt)
+        result = cast(CursorResult[Any], await self.db.execute(stmt))
         await self.db.commit()
         if result.rowcount > 0:
             logger.info(f"Deleted category: {category_id}")

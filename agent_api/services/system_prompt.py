@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+from agent_api.services.utils import quote_join
+
 SP_TZ = ZoneInfo("America/Sao_Paulo")
 
 PLATFORM_INSTRUCTIONS: dict[str, str] = {
@@ -147,11 +149,11 @@ class PromptMetadata:
     ) -> "PromptMetadata":
         reference = now or datetime.now(SP_TZ)
         return cls(
-            valid_categories=_quote_join(categories),
-            valid_income_categories=_quote_join(income_categories),
-            valid_payment_methods=_quote_join(payment_methods),
-            valid_accounts=_quote_join(accounts),
-            valid_credit_cards=_quote_join(credit_cards),
+            valid_categories=quote_join(categories),
+            valid_income_categories=quote_join(income_categories),
+            valid_payment_methods=quote_join(payment_methods),
+            valid_accounts=quote_join(accounts),
+            valid_credit_cards=quote_join(credit_cards),
             today_date=reference.strftime("%Y-%m-%d"),
             current_year_month=reference.strftime("%Y-%m"),
         )
@@ -159,10 +161,6 @@ class PromptMetadata:
     @classmethod
     def empty(cls) -> "PromptMetadata":
         return cls.from_collections([], [], [], [], [])
-
-
-def _quote_join(values: list[str]) -> str:
-    return ", ".join(f"'{value}'" for value in values)
 
 
 def build_system_prompt(metadata: PromptMetadata, platform: str | None = None) -> str:

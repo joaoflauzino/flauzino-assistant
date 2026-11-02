@@ -1,3 +1,4 @@
+from finance_api.core.text import normalize_upper
 from finance_api.schemas.classification import (
     ExtractedMerchantInfo,
     RawTransactionText,
@@ -12,7 +13,6 @@ from finance_api.services.extractors import (
     extract_salary_or_bonus,
     get_default_extractor_pipeline,
 )
-from finance_api.utils.text import _normalize
 
 
 def _make_raw(
@@ -20,7 +20,7 @@ def _make_raw(
     description: str = "",
     direction: str = "OUT",
 ) -> RawTransactionText:
-    norm_title = _normalize(title)
+    norm_title = normalize_upper(title)
     return RawTransactionText(
         title=title,
         description=description,

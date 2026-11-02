@@ -7,15 +7,17 @@ import pytesseract
 from agent_api.core.decorators import handle_ocr_errors
 from agent_api.core.exceptions import InvalidImageError, OCRProcessingError
 from agent_api.core.logger import get_logger
+from agent_api.services.utils import average_confidence, clean_extracted_text
 
 logger = get_logger(__name__)
 
 # Supported image formats
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff"}
 MAX_FILE_SIZE_MB = 10
+TESSERACT_CONFIG = r"--oem 3 --psm 3"
 
 
-def validate_image_file(filename: str, file_size: int) -> None:
+def validate_image_file(filename: str | None, file_size: int) -> None:
     """Validate image file format and size.
 
     Args:
@@ -76,23 +78,9 @@ async def extract_text(image_bytes: bytes, lang: str = "eng") -> tuple[str, floa
     """
     logger.info(f"Starting OCR text extraction with language: {lang}")
 
-    # Preprocess image
     processed_image = await preprocess_image(image_bytes)
-
-    custom_config = r"--oem 3 --psm 3"
-    text = pytesseract.image_to_string(processed_image, lang=lang, config=custom_config)
-
-    data = pytesseract.image_to_data(
-        processed_image,
-        lang=lang,
-        config=custom_config,
-        output_type=pytesseract.Output.DICT,
-    )
-
-    confidences = [float(conf) for conf in data["conf"] if conf != "-1"]
-    avg_confidence = sum(confidences) / len(confidences) if confidences else 0.0
-
-    extracted_text = text.strip()
+    raw_text, confidence = run_tesseract(processed_image, lang)
+    extracted_text = clean_extracted_text(raw_text)
 
     if not extracted_text:
         raise OCRProcessingError(
@@ -102,7 +90,19 @@ async def extract_text(image_bytes: bytes, lang: str = "eng") -> tuple[str, floa
 
     logger.info(
         f"OCR completed. Extracted {len(extracted_text)} characters "
-        f"with {avg_confidence:.2f}% confidence"
+        f"with {confidence:.2f}% confidence"
     )
 
-    return extracted_text, avg_confidence
+    return extracted_text, confidence
+
+
+def run_tesseract(image: np.ndarray, lang: str) -> tuple[str, float]:
+    """Runs Tesseract over a preprocessed image, returning its text and average confidence."""
+    text = pytesseract.image_to_string(image, lang=lang, config=TESSERACT_CONFIG)
+    data = pytesseract.image_to_data(
+        image,
+        lang=lang,
+        config=TESSERACT_CONFIG,
+        output_type=pytesseract.Output.DICT,
+    )
+    return text, average_confidence(data["conf"])

@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import pytest
 
+from finance_api.core.text import normalize_upper
 from finance_api.models.category_rules import CategoryRule
 from finance_api.repositories.category_rules import CategoryRuleRepository
 from finance_api.schemas.classification import (
@@ -23,7 +24,6 @@ from finance_api.services.classification_chain import (
     build_default_classification_chain,
 )
 from finance_api.services.protocols import BaseClassificationHandler
-from finance_api.utils.text import _normalize
 
 
 def _make_context(
@@ -39,8 +39,8 @@ def _make_context(
     bank_category: str | None = None,
     is_credit_card: bool = False,
 ) -> ClassificationContext:
-    norm_title = _normalize(raw_title)
-    norm_desc = _normalize(raw_description or "")
+    norm_title = normalize_upper(raw_title)
+    norm_desc = normalize_upper(raw_description or "")
     norm_combined = f"{norm_title} {norm_desc}".strip()
     return ClassificationContext(
         raw_title=raw_title,

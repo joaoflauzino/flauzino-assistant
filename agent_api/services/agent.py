@@ -4,7 +4,7 @@ from typing import Any, NotRequired, cast
 from langchain.agents import AgentState, create_agent
 from langchain.agents.structured_output import ToolStrategy
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolCall
 
 from agent_api.core.callbacks import AgentLoggingCallbackHandler
 from agent_api.core.decorators import handle_llm_errors
@@ -13,7 +13,7 @@ from agent_api.schemas.assistant import AssistantResponse
 from agent_api.services.finance import FinanceService
 from agent_api.services.graph import GraphService
 from agent_api.services.system_prompt import PromptMetadata, build_system_prompt
-from agent_api.services.tools import create_agent_tools
+from agent_api.services.tools.registry import create_agent_tools
 from agent_api.services.utils import attach_image
 
 logger = get_logger(__name__)
@@ -46,14 +46,18 @@ class AgentService:
     async def _load_prompt_metadata(self) -> PromptMetadata:
         """Fetches financial metadata, falling back to empty lists on failure."""
         try:
-            categories, income_categories, payment_methods, accounts, credit_cards = (
-                await asyncio.gather(
-                    self.finance_service.get_categories(),
-                    self.finance_service.get_income_categories(),
-                    self.finance_service.get_payment_methods(),
-                    self.finance_service.get_accounts(),
-                    self.finance_service.get_credit_cards(),
-                )
+            (
+                categories,
+                income_categories,
+                payment_methods,
+                accounts,
+                credit_cards,
+            ) = await asyncio.gather(
+                self.finance_service.get_categories(),
+                self.finance_service.get_income_categories(),
+                self.finance_service.get_payment_methods(),
+                self.finance_service.get_accounts(),
+                self.finance_service.get_credit_cards(),
             )
         except Exception as error:
             logger.warning(
@@ -122,9 +126,7 @@ class AgentService:
 
         return None
 
-    def _response_from_tool_calls(
-        self, tool_calls: list[dict[str, Any]]
-    ) -> AssistantResponse | None:
+    def _response_from_tool_calls(self, tool_calls: list[ToolCall]) -> AssistantResponse | None:
         for tool_call in tool_calls:
             if tool_call.get("name") != "AssistantResponse":
                 continue

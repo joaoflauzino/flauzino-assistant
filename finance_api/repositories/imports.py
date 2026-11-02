@@ -1,4 +1,3 @@
-from collections.abc import Sequence
 from typing import Protocol
 from uuid import UUID
 
@@ -24,7 +23,7 @@ class ImportBatchRepositoryProtocol(RepositoryProtocol[ImportBatch, UUID], Proto
 
     async def get_by_sha256(self, sha256_hash: str) -> ImportBatch | None: ...
 
-    async def list_all(self, limit: int = 50) -> Sequence[ImportBatch]: ...
+    async def list_all(self, limit: int = 50, offset: int = 0) -> list[ImportBatch]: ...
 
     async def get_counts_by_status(self, batch_id: UUID) -> dict[str, int]: ...
 
@@ -60,11 +59,11 @@ class ImportBatchRepository(SQLAlchemyRepository[ImportBatch, UUID]):
         )
         return result.scalar_one_or_none()
 
-    async def list_all(self, limit: int = 50) -> Sequence[ImportBatch]:
+    async def list_all(self, limit: int = 50, offset: int = 0) -> list[ImportBatch]:
         result = await self.db.execute(
-            select(ImportBatch).order_by(desc(ImportBatch.created_at)).limit(limit)
+            select(ImportBatch).order_by(desc(ImportBatch.created_at)).offset(offset).limit(limit)
         )
-        return result.scalars().all()
+        return list(result.scalars().all())
 
     async def get_counts_by_status(self, batch_id: UUID) -> dict[str, int]:
         stmt = (

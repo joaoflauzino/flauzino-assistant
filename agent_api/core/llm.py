@@ -4,6 +4,7 @@ from functools import lru_cache
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_openai import ChatOpenAI
+from pydantic import SecretStr
 
 from agent_api.core.exceptions import LLMProviderError
 from agent_api.settings import settings
@@ -43,7 +44,7 @@ def build_openai_chat_agent() -> BaseChatModel:
         )
     return ChatOpenAI(
         model=settings.MODEL_NAME,
-        api_key=api_key,
+        api_key=SecretStr(api_key),
         max_retries=2,
         reasoning_effort="none",
     )
@@ -58,7 +59,7 @@ def build_openai_batch_classifier() -> BaseChatModel:
         )
     return ChatOpenAI(
         model=settings.MODEL_NAME,
-        api_key=api_key,
+        api_key=SecretStr(api_key),
         max_retries=2,
         reasoning_effort="none",
     )

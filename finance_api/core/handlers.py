@@ -1,44 +1,36 @@
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
-from finance_api.core.exceptions import (
-    DatabaseError,
-    EntityConflictError,
-    EntityNotFoundError,
-    ServiceError,
-    ValidationError,
-)
 
-
-async def database_error_handler(request: Request, exc: DatabaseError) -> JSONResponse:
+async def database_error_handler(request: Request, exc: Exception) -> JSONResponse:
     return JSONResponse(
         status_code=500,
         content={"message": "Database Error", "detail": str(exc)},
     )
 
 
-async def entity_not_found_handler(request: Request, exc: EntityNotFoundError) -> JSONResponse:
+async def entity_not_found_handler(request: Request, exc: Exception) -> JSONResponse:
     return JSONResponse(
         status_code=404,
         content={"message": "Not Found", "detail": str(exc)},
     )
 
 
-async def entity_conflict_handler(request: Request, exc: EntityConflictError) -> JSONResponse:
+async def entity_conflict_handler(request: Request, exc: Exception) -> JSONResponse:
     return JSONResponse(
         status_code=409,
         content={"message": "Conflict", "detail": str(exc)},
     )
 
 
-async def validation_error_handler(request: Request, exc: ValidationError) -> JSONResponse:
+async def validation_error_handler(request: Request, exc: Exception) -> JSONResponse:
     return JSONResponse(
         status_code=422,
         content={"message": "Validation Error", "detail": str(exc)},
     )
 
 
-async def service_error_handler(request: Request, exc: ServiceError) -> JSONResponse:
+async def service_error_handler(request: Request, exc: Exception) -> JSONResponse:
     return JSONResponse(
         status_code=500,
         content={"message": "Internal Server Error", "detail": str(exc)},

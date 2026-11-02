@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from telegram_api.models.session import TelegramSession
-from telegram_api.repositories.session_repository import SessionRepository
+from telegram_api.repositories.session_repository import SessionRepository, is_session_expired
 
 
 @pytest.mark.asyncio
@@ -104,3 +104,24 @@ async def test_list_distinct_chat_ids_and_error_handling():
     await repo.save_session(chat_id=111, session_id=str(uuid.uuid4()))
     await repo.delete_session(chat_id=111)
     assert mock_db.rollback.await_count >= 2
+
+
+def test_is_session_expired_requires_a_positive_ttl():
+    now = datetime.now(UTC)
+
+    assert is_session_expired(now, None) is False
+    assert is_session_expired(now, 0) is False
+    assert is_session_expired(now, -5) is False
+
+
+def test_is_session_expired_compares_against_naive_timestamps():
+    naive_updated_at = datetime.now(UTC).replace(tzinfo=None) - timedelta(minutes=45)
+
+    assert is_session_expired(naive_updated_at, 30) is True
+
+
+def test_is_session_expired_keeps_recent_and_future_sessions():
+    now = datetime.now(UTC)
+
+    assert is_session_expired(now - timedelta(minutes=5), 30) is False
+    assert is_session_expired(now + timedelta(minutes=5), 30) is False

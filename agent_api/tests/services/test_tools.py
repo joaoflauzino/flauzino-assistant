@@ -7,7 +7,12 @@ from agent_api.schemas.limit import LimitDetails
 from agent_api.schemas.spending import SpendingDetails
 from agent_api.services.finance import FinanceService
 from agent_api.services.graph import GraphService
-from agent_api.services.tools import create_agent_tools
+from agent_api.services.tools.graph import (
+    CHART_SUCCESS_MESSAGE,
+    CHART_WITHOUT_DATA_MESSAGE,
+    build_chart_command,
+)
+from agent_api.services.tools.registry import create_agent_tools
 
 
 @pytest.fixture
@@ -176,3 +181,18 @@ async def test_gerar_grafico_sem_dados(tools_map, mock_finance_service):
 
     content = result.content if hasattr(result, "content") else str(result)
     assert "Não foram encontrados limites ou gastos" in content
+
+
+def test_build_chart_command_attaches_image_and_tool_message():
+    """The command carries both the chart image and the tool reply for the given call id."""
+    command = build_chart_command("fake_b64_chart", "call_789")
+
+    assert command.update["image_base64"] == "fake_b64_chart"
+    assert len(command.update["messages"]) == 1
+    assert command.update["messages"][0].content == CHART_SUCCESS_MESSAGE
+    assert command.update["messages"][0].tool_call_id == "call_789"
+
+
+def test_without_data_message_is_shared_with_the_tool():
+    """The tool returns the same message the unit tests assert on."""
+    assert "Não foram encontrados limites ou gastos" in CHART_WITHOUT_DATA_MESSAGE

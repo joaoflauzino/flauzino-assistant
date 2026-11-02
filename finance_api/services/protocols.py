@@ -2,13 +2,18 @@
 
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from typing import Protocol
+from datetime import date
+from decimal import Decimal
+from typing import Any, Protocol
 from uuid import UUID
+
+import httpx
 
 from finance_api.models.categories import Category
 from finance_api.models.income_categories import IncomeCategory
 from finance_api.models.payment_methods import PaymentMethod
 from finance_api.models.staged_transactions import StagedTransaction
+from finance_api.repositories.staged_transactions import StagedTransactionRepository
 from finance_api.schemas.classification import (
     ClassificationContext,
     ClassificationResult,
@@ -27,10 +32,29 @@ type MerchantExtractorStep = Callable[[RawTransactionText], ExtractedMerchantInf
 type MerchantExtractorPipeline = Callable[[RawTransactionText], ExtractedMerchantInfo]
 
 
+class AIClassifierHttpClientProtocol(Protocol):
+    """HTTP contract required by the AI classification client."""
+
+    async def post(
+        self,
+        url: str,
+        *,
+        json: dict[str, Any],
+        timeout: float,
+    ) -> httpx.Response: ...
+
+
 class CategoryLookupProtocol(Protocol):
     """Structural contract for looking up expense categories by key."""
 
     async def get_by_key(self, key: str) -> Category | None: ...
+
+
+class CategorizedAmountProtocol(Protocol):
+    """Structural contract for any amount that can be aggregated by category."""
+
+    amount: float
+    category: str
 
 
 class IncomeCategoryLookupProtocol(Protocol):
@@ -89,6 +113,19 @@ class TransactionCommitStrategy(Protocol):
         tx: StagedTransaction,
         ctx: CommitContext,
     ) -> CommitStepOutcome: ...
+
+
+class DuplicateDetectorStrategy(Protocol):
+    """Structural contract for detecting possible duplicates of a staged row."""
+
+    async def detect(
+        self,
+        tx_repo: StagedTransactionRepository,
+        account_id: UUID | None,
+        credit_card_id: UUID | None,
+        amount: Decimal,
+        tx_date: date,
+    ) -> tuple[UUID | None, UUID | None]: ...
 
 
 class ClassificationHandlerProtocol(Protocol):

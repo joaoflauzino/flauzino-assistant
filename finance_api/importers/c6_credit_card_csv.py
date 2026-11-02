@@ -31,7 +31,7 @@ DELIMITER = ";"
 DECODE_ERROR = "Não foi possível decodificar o arquivo de fatura C6."
 EMPTY_ERROR = "O arquivo de fatura C6 está vazio."
 HEADER_ERROR = (
-    "Cabeçalho da fatura C6 não encontrado. " "Verifique se o arquivo possui as colunas esperadas."
+    "Cabeçalho da fatura C6 não encontrado. Verifique se o arquivo possui as colunas esperadas."
 )
 INSTALLMENT_PATTERN = re.compile(r"^(\d+)/(\d+)$")
 FILENAME_DATE_PATTERN = re.compile(r"(\d{4}-\d{2}-\d{2})")

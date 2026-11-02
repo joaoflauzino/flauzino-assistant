@@ -8,6 +8,8 @@ from httpx import ASGITransport, AsyncClient
 
 from finance_api.core.database import get_db
 from finance_api.main import app
+from finance_api.models.accounts import Account
+from finance_api.models.credit_cards import CreditCard
 from finance_api.repositories.payment_methods import PaymentMethodRepository
 from finance_api.schemas.payment_methods import PaymentMethodResponse
 
@@ -86,6 +88,49 @@ async def test_list_payment_methods(test_client):
     mock_service.list.assert_awaited_once()
 
     app.dependency_overrides.clear()
+
+
+async def test_list_payment_methods_serializes_derived_sources(test_client):
+    """Regression: payment methods derived from cards/accounts must expose created_at."""
+    card = CreditCard(
+        id=uuid4(),
+        key="c6_card",
+        name="C6 Carbon",
+        account_id=uuid4(),
+        closing_day=2,
+        due_day=10,
+        credit_limit=1000.0,
+        created_at=datetime(2026, 1, 2, 3, 4, 5),
+    )
+    account = Account(
+        id=uuid4(),
+        key="c6_joao",
+        name="C6 João",
+        bank="c6",
+        owner="joao",
+        type="CHECKING",
+        created_at=datetime(2026, 2, 3, 4, 5, 6),
+    )
+
+    def execute_result(items: list) -> MagicMock:
+        result = MagicMock()
+        result.scalars.return_value.all.return_value = items
+        return result
+
+    mock_db = AsyncMock()
+    mock_db.execute.side_effect = [execute_result([card]), execute_result([account])]
+    app.dependency_overrides[get_db] = lambda: mock_db
+
+    try:
+        response = await test_client.get("/payment-methods/")
+        assert response.status_code == 200
+        data = response.json()
+        assert [item["key"] for item in data["items"]] == ["c6_card", "c6_joao"]
+        assert data["items"][0]["created_at"].startswith("2026-01-02")
+        assert data["items"][1]["created_at"].startswith("2026-02-03")
+        assert data["total"] == 2
+    finally:
+        app.dependency_overrides.pop(get_db, None)
 
 
 async def test_get_payment_method(test_client):

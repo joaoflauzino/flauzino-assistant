@@ -13,10 +13,9 @@ from agent_api.schemas.classify import (
     LLMBatchClassificationResult,
     LLMItemClassification,
 )
+from agent_api.services.utils import build_tx_payload, normalize_confidence
 
 logger = get_logger(__name__)
-
-DEFAULT_CONFIDENCE = 0.75
 
 SYSTEM_PROMPT = """Você é um especialista em classificação financeira e categorização de extratos bancários brasileiros.
 Sua missão é classificar cada transação na categoria mais adequada, usando ESTRITAMENTE as chaves fornecidas.
@@ -68,7 +67,12 @@ class ClassifyService:
                 HumanMessage(content=user_content),
             ]
             logger.info(f"Classifying {len(request.transactions)} transactions with LLM")
-            return await structured_llm.ainvoke(messages)
+            result = await structured_llm.ainvoke(messages)
+            if isinstance(result, LLMBatchClassificationResult):
+                return result
+            if isinstance(result, dict):
+                return LLMBatchClassificationResult.model_validate(result)
+            return None
         except Exception as error:
             logger.error(f"LLM classification failed: {error}", exc_info=True)
             raise LLMProviderError(
@@ -81,7 +85,7 @@ class ClassifyService:
         income_keys: dict[str, str],
         transactions: list[ClassifyItemInput],
     ) -> str:
-        tx_payload = _build_tx_payload(transactions)
+        tx_payload = build_tx_payload(transactions)
         return (
             "Categorias de Despesa permitidas (OUT):\n"
             f"{json.dumps(expense_keys, ensure_ascii=False, indent=2)}\n\n"
@@ -119,7 +123,7 @@ class ClassifyService:
         allowed = expense_keys if target.direction == "OUT" else income_keys
         candidate = item.category.strip().lower() if item.category else None
         if candidate and candidate in allowed:
-            return candidate, _normalize_confidence(item.confidence)
+            return candidate, normalize_confidence(item.confidence)
         return None, None
 
     def _assemble_response(
@@ -138,25 +142,3 @@ class ClassifyService:
                 )
             )
         return ClassifyBatchResponse(suggestions=suggestions)
-
-
-def _build_tx_payload(
-    transactions: list[ClassifyItemInput],
-) -> list[dict[str, object]]:
-    return [
-        {
-            "id": transaction.id,
-            "merchant": transaction.merchant,
-            "raw_title": transaction.raw_title,
-            "raw_description": transaction.raw_description,
-            "direction": transaction.direction,
-            "amount": transaction.amount,
-        }
-        for transaction in transactions
-    ]
-
-
-def _normalize_confidence(confidence: float | None) -> float:
-    if confidence is None:
-        return DEFAULT_CONFIDENCE
-    return round(float(confidence), 2)

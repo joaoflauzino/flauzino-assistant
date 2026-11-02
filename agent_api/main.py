@@ -44,7 +44,7 @@ STALE_SESSION_MAX_AGE_MINUTES = int(os.getenv("STALE_SESSION_MAX_AGE_MINUTES", "
 CLEANUP_INTERVAL_SECONDS = int(os.getenv("SESSION_CLEANUP_INTERVAL_SECONDS", "3600"))
 
 
-async def _session_cleanup_loop() -> None:
+async def session_cleanup_loop() -> None:
     """Periodically purge stale sessions in the background."""
     while True:
         await asyncio.sleep(CLEANUP_INTERVAL_SECONDS)
@@ -61,7 +61,7 @@ async def _session_cleanup_loop() -> None:
 @asynccontextmanager
 async def lifespan(application: FastAPI) -> AsyncIterator[None]:
     """Manage startup/shutdown lifecycle events."""
-    cleanup_task = asyncio.create_task(_session_cleanup_loop())
+    cleanup_task = asyncio.create_task(session_cleanup_loop())
     logger.info("Started session cleanup background task")
     yield
     cleanup_task.cancel()

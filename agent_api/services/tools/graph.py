@@ -14,6 +14,21 @@ from agent_api.services.graph import GraphService
 
 logger = get_logger(__name__)
 
+CHART_WITHOUT_DATA_MESSAGE = (
+    "Não foram encontrados limites ou gastos para gerar o gráfico solicitado."
+)
+CHART_SUCCESS_MESSAGE = "[Gráfico gerado com sucesso e exibido ao usuário]"
+
+
+def build_chart_command(image_base64: str, tool_call_id: str) -> Command:
+    """Builds the command that attaches the chart to the agent state and to the reply."""
+    return Command(
+        update={
+            "image_base64": image_base64,
+            "messages": [ToolMessage(content=CHART_SUCCESS_MESSAGE, tool_call_id=tool_call_id)],
+        }
+    )
+
 
 def build_gerar_grafico(
     finance_service: FinanceService,
@@ -46,23 +61,13 @@ def build_gerar_grafico(
             categories=categorias, reference_month=mes_referencia
         )
         if not balances:
-            return "Não foram encontrados limites ou gastos para gerar o gráfico solicitado."
+            return CHART_WITHOUT_DATA_MESSAGE
 
         image_b64 = await graph_service.generate_chart(
             chart_type=tipo,
             balances=balances,
             mode=modo,
         )
-        return Command(
-            update={
-                "image_base64": image_b64,
-                "messages": [
-                    ToolMessage(
-                        content="[Gráfico gerado com sucesso e exibido ao usuário]",
-                        tool_call_id=tool_call_id,
-                    )
-                ],
-            }
-        )
+        return build_chart_command(image_b64, tool_call_id)
 
     return gerar_grafico

@@ -22,7 +22,7 @@ def get_model() -> WhisperModel:
     return _model
 
 
-def validate_audio_file(filename: str, file_size: int) -> None:
+def validate_audio_file(filename: str | None, file_size: int) -> None:
     """Validate audio file extension and size."""
     if file_size > MAX_AUDIO_SIZE_BYTES:
         raise InvalidAudioError(

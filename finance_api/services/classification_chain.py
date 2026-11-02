@@ -3,6 +3,7 @@
 from collections.abc import Sequence
 from decimal import Decimal
 
+from finance_api.core.text import normalize_upper
 from finance_api.repositories.category_rules import CategoryRuleRepositoryProtocol
 from finance_api.schemas.classification import (
     BANK_CATEGORY_MAP,
@@ -16,7 +17,6 @@ from finance_api.services.protocols import (
     BaseClassificationHandler,
     ClassificationHandlerProtocol,
 )
-from finance_api.utils.text import _normalize
 
 
 class OwnTransferHandler(BaseClassificationHandler):
@@ -184,7 +184,7 @@ class BankCategoryHandler(BaseClassificationHandler):
 
     async def handle(self, ctx: ClassificationContext) -> ClassificationResult:
         if ctx.bank_category and ctx.default_kind == TransactionKind.EXPENSE:
-            norm_bcat = _normalize(ctx.bank_category)
+            norm_bcat = normalize_upper(ctx.bank_category)
             mapped = BANK_CATEGORY_MAP.get(norm_bcat)
             if mapped is not None:
                 sug_cat, conf = mapped

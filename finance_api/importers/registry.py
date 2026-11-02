@@ -128,10 +128,7 @@ class CheckingAccountTargetResolver:
         credit_card_id: UUID | None,
         bank_hint: str | None = None,
     ) -> ResolvedImportTarget:
-        if not account_id and credit_card_id:
-            card = await self._credit_card_repo.get_by_id(credit_card_id)
-            if card:
-                account_id = card.account_id
+        account_id = await self._account_id_from_card(account_id, credit_card_id)
 
         if not account_id:
             raise ValidationError("Informe a conta bancária para a importação do extrato.")
@@ -146,6 +143,17 @@ class CheckingAccountTargetResolver:
             target_key=acc.key,
             target_name=acc.name,
         )
+
+    async def _account_id_from_card(
+        self,
+        account_id: UUID | None,
+        credit_card_id: UUID | None,
+    ) -> UUID | None:
+        """Falls back to the card's account when only the card was provided."""
+        if account_id or not credit_card_id:
+            return account_id
+        card = await self._credit_card_repo.get_by_id(credit_card_id)
+        return card.account_id if card else account_id
 
 
 # ---------------------------------------------------------------------------
