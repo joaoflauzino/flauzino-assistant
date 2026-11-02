@@ -1,7 +1,7 @@
 # Fase 3 — Eixo C `finance_api`: Repositories, Imports Tardios e Utils
 
 > **Spec:** [00-master-plan.md](./00-master-plan.md)
-> **Status:** ⬜ Não iniciada · (`⬜ Não iniciada` → `🟨 Em andamento` → `✅ Concluída`)
+> **Status:** 🟨 Em andamento (2026-11-02) · (`⬜ Não iniciada` → `🟨 Em andamento` → `✅ Concluída`)
 > **Depende de:** Fase 0 concluída (pode rodar em paralelo com Fases 1–2 se houver reviewers distintos)
 > **Commits previstos:** 5
 > **Meta:** zero imports tardios, zero `except Exception` em repositories, zero utilidade duplicada, cluster de import empacotado.
@@ -13,9 +13,9 @@
 ### 3.1 `finance_api/repositories/payment_methods.py:28` — `get_by_key` (52 LOC, 2× `except Exception`, `getattr` defensivo, 5 imports tardios no arquivo)
 O pior cluster de anti-patterns do repositório (`python-anti-patterns`: *Errors should never pass silently*).
 
-- [ ] Mover imports para o topo (`CreditCard`, `Account`, `func`) — `AGENTS.md` §3.4
-- [ ] Remover `try/except Exception` que engole falha de query — erro de banco deve subir (decorator global loga)
-- [ ] Substituir a cascata por dispatch: lista ordenada de `(query_fn, adapter)` — payment_methods → credit_cards → accounts:
+- [x] Mover imports para o topo (`CreditCard`, `Account`, `func`) — `AGENTS.md` §3.4
+- [x] Remover `try/except Exception` que engole falha de query — erro de banco deve subir (decorator global loga)
+- [x] Substituir a cascata por dispatch: lista ordenada de `(query_fn, adapter)` — payment_methods → credit_cards → accounts:
 
 ```python
 async def get_by_key(self, key: str) -> PaymentMethod | None:
@@ -26,13 +26,13 @@ async def get_by_key(self, key: str) -> PaymentMethod | None:
     return None
 ```
 
-- [ ] Remover `getattr(card, "name", None)` — modelos são tipados; usar o campo real
-- [ ] Testes: `test_payment_methods_repository.py` (4 caminhos caracterizados na Fase 0)
-- [ ] Commit: `refactor(repositories): payment_methods lookup chain + top-level imports`
+- [x] Remover `getattr(card, "name", None)` — modelos são tipados; usar o campo real
+- [x] Testes: `test_payment_methods_repository.py` (4 caminhos caracterizados na Fase 0)
+- [x] Commit: `refactor(repositories): payment_methods lookup chain + top-level imports`
 
 ### 3.2 `finance_api/repositories/categories.py:35` — import tardio
-- [ ] Mover `from sqlalchemy import func` para o topo (mecânico, risco zero)
-- [ ] Commit: agrupado com 3.1
+- [x] Mover `from sqlalchemy import func` para o topo (mecânico, risco zero)
+- [x] Commit: agrupado com 3.1
 
 ### 3.3 Consolidação de `normalize` duplicado (Regra 3 do `python-modular-code-organization`)
 Hoje: `_normalize_str` em `repositories/categories.py:14` e `income_categories.py:14`, `_normalize` em `category_rules.py:13`, e `finance_api/utils/text.py` já tem `normalize_text` + alias `_normalize` (viola Regra 4).
@@ -51,6 +51,8 @@ Hoje: `_normalize_str` em `repositories/categories.py:14` e `income_categories.p
 - [ ] Commit: `refactor(repositories): staged_transactions conditions/pagination`
 
 ### 3.5 `finance_api/services/import_strategies.py` (349 linhas — acima do teto ~300 da Regra 6)
+> **Entre 3.4 e 3.5 roda a Fase 6.1** (gate de arquitetura): o split abaixo deve fazer a regra B (arquivo > 300 LOC) cair de 3 → 2 violações e a 3.7 deve zerar a regra A.
+
 Dividir em **arquivos planos e coesos** (sem subpacotes — Regra 6):
 
 - [ ] `import_bulk_strategies.py` (bulk actions + `build_default_bulk_strategies`)
@@ -154,4 +156,10 @@ finance_api/services/imports/
 
 | Data | Commit | Descrição | Testes |
 |---|---|---|---|
-| — | — | — | — |
+| 2026-11-02 | — (aguardando autorização) | 3.1 lookup chain ordenado (PM → cartão → conta) + adapters puros `payment_method_from_credit_card`/`payment_method_from_account`; removidos 4 `except Exception`, 4 `getattr` e 5 imports tardios. `get_by_key` 52 → 12 LOC; `list` 56 → 8 LOC; `list_credit_cards` 31 → 6 LOC | 16 passed (repo) · 372 (finance_api) |
+| 2026-11-02 | — | 3.2 `func` movido para o topo em `categories.py` | agrupado no commit 3.1 |
+
+### Notas de execução
+
+- **3.1** — a cadeia ficou `_find_payment_method → _find_credit_card → _find_account` (mesma ordem e mesmos logs `debug` de antes), cada passo com guard clause; os adapters CreditCard/Account → `PaymentMethod` são funções puras de módulo (Regra 4) e ganharam testes diretos. `payment_method_from_account(..., include_bank=True)` preserva a diferença histórica entre `get_by_key` (nome puro) e `list` (nome + banco).
+- **3.1 (mocks)** — dois testes precisavam de mocks mais fiéis, como previsto na Fase 1.3: `test_list_credit_cards` e `test_invoices_router` devolviam `PaymentMethod` no lugar de `CreditCard`; agora usam as entidades reais. Adicionado teste de regressão provando que erro de banco **propaga** (`SQLAlchemyError`) em vez de virar `None` silencioso.

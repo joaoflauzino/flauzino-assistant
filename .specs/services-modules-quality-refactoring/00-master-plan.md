@@ -4,7 +4,7 @@
 >
 > **Branch de trabalho:** `feat/refactor` (3º ciclo — os planos anteriores `.specs/code-quality-refactoring/`, `.specs/quality-refactoring/` e `.specs/python-patterns-refactoring/` já foram em grande parte executados; este plano é **incremental** e parte do estado atual medido).
 >
-> **Status geral:** 🟨 Em execução — Fases 0, 1 e 2 concluídas em 2026-11-02; Fase 3 aguardando início; Fase 6 (padronização de módulos) planejada, com a tarefa 6.1 antecipada como pré-requisito das Fases 3–5.
+> **Status geral:** 🟨 Em execução — Fases 0, 1 e 2 concluídas em 2026-11-02; Fase 3 em início; Fase 6 planejada, com a tarefa 6.1 posicionada entre 3.4 e 3.5 (protege 3.5, 3.7 e as Fases 4–5 sem churn de baseline).
 
 ---
 
@@ -24,10 +24,10 @@
 | 0 | [01-fase-0-gates-e-rede-de-seguranca.md](./01-fase-0-gates-e-rede-de-seguranca.md) | WIP atual, gates de lint, testes de caracterização | ✅ Concluída | 4/4 tarefas |
 | 1 | [02-fase-1-condicionais-em-services.md](./02-fase-1-condicionais-em-services.md) | Eixo A — cascatas de `if` nos services | ✅ Concluída | 6/6 tarefas |
 | 2 | [03-fase-2-metodos-longos-em-services.md](./03-fase-2-metodos-longos-em-services.md) | Eixo B — métodos > 40 LOC nos services | ✅ Concluída | 6/6 tarefas |
-| 3 | [04-fase-3-finance-api-repositorios-e-modulos.md](./04-fase-3-finance-api-repositorios-e-modulos.md) | Eixo C — `finance_api`: repositories, imports tardios, utils, pacote `imports/` | ⬜ Não iniciada | 0/7 tarefas |
+| 3 | [04-fase-3-finance-api-repositorios-e-modulos.md](./04-fase-3-finance-api-repositorios-e-modulos.md) | Eixo C — `finance_api`: repositories, imports tardios, utils, pacote `imports/` | 🟨 Em andamento | 2/7 tarefas |
 | 4 | [05-fase-4-telegram-api-modulos-e-handlers.md](./05-fase-4-telegram-api-modulos-e-handlers.md) | Eixo C — `telegram_api`: Regra 4, splits, handlers finos | ⬜ Não iniciada | 0/5 tarefas |
 | 5 | [06-fase-5-agent-api-e-verificacao-final.md](./06-fase-5-agent-api-e-verificacao-final.md) | Eixo C — `agent_api`, `__all__`, verificação final | ⬜ Não iniciada | 0/4 tarefas |
-| 6 | [07-fase-6-padronizacao-de-modulos.md](./07-fase-6-padronizacao-de-modulos.md) | Eixo C — padrão de módulos no repo inteiro + gate de arquitetura (política como código) | ⬜ Não iniciada (6.1 antecipada) | 0/6 tarefas |
+| 6 | [07-fase-6-padronizacao-de-modulos.md](./07-fase-6-padronizacao-de-modulos.md) | Eixo C — padrão de módulos no repo inteiro + gate de arquitetura (política como código) | ⬜ Não iniciada (6.1 entre 3.4 e 3.5) | 0/6 tarefas |
 
 ### Definição de pronto global
 
@@ -67,6 +67,8 @@
 > **Atualização da Fase 1 (2026-11-02):** nenhuma função em `*/services/` permanece com mais de 3 condicionais. As violações restantes de Eixo A/B estão mapeadas nas fases 2–3.
 
 > **Atualização da Fase 2 (2026-11-02):** nenhuma função em `*/services/` (nem em `importers/`) permanece com **profundidade ≥ 4**; os únicos casos acima de 40 LOC dentro do escopo dos services são os três aceitos em §2.6 (`import_staging._to_staged` 45, `tools/graph.build_gerar_grafico` 41, `importers/c6_credit_card_csv._parse_row` 50). `ImportService.__init__` caiu de 97 → 16 LOC. Violações de LOC restantes ficam fora dos services: `repositories/` (Fase 3.1/3.4) e `telegram_api/handlers|core` (Fase 4.2/4.4).
+
+> **Atualização da Fase 3.1 (2026-11-02):** `repositories/payment_methods.py` zerou dívida: `get_by_key` 52 → 12 LOC, `list` 56 → 8 LOC, `list_credit_cards` 31 → 6 LOC; **0** `except Exception`, **0** `getattr` defensivo e **0** imports tardios no arquivo (antes 4/4/5). O item "imports tardios em `payment_methods.py` (5×)" de §2.3 fica quitado também; resta apenas `categories.py`, resolvido na 3.2.
 
 ### 2.1 Piores funções por densidade de condicionais (Eixo A)
 
@@ -165,10 +167,10 @@ Inventário medido (detalhe e baselines em [07-fase-6](./07-fase-6-padronizacao-
 7. `refactor(imports): kind dispatch in SetCategoryBulkStrategy` (1.5)
 8. `refactor(imports): factory for ImportService wiring` (2.1)
 9. `refactor(services): decompose long methods (ocr, incomes, ai_classifier, graph tool)` (2.2–2.5)
-10. `test(architecture): enforce module organization rules` (**6.1 — antecipada, antes de qualquer fase 3+**)
-11. `refactor(repositories): payment_methods lookup chain + top-level imports` (3.1–3.2)
-12. `refactor(utils): consolidate text normalization` (3.3)
-13. `refactor(repositories): staged_transactions conditions/pagination` (3.4)
+10. `refactor(repositories): payment_methods lookup chain + top-level imports` (3.1–3.2)
+11. `refactor(utils): consolidate text normalization` (3.3)
+12. `refactor(repositories): staged_transactions conditions/pagination` (3.4)
+13. `test(architecture): enforce module organization rules` (**6.1 — checkpoint entre 3.4 e 3.5**)
 14. `refactor(imports): split import_strategies into bulk/commit modules` (3.5)
 15. `refactor(imports): group the import feature into services/imports package` (3.7 — depende de 3.5)
 16. `refactor(telegram): split formatter/sender + http clients + retry` (4.1–4.2)

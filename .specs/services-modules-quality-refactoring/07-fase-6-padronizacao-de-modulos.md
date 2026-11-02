@@ -2,7 +2,7 @@
 
 > **Spec:** [00-master-plan.md](./00-master-plan.md)
 > **Status:** ⬜ Não iniciada · (`⬜ Não iniciada` → `🟨 Em andamento` → `✅ Concluída`)
-> **Depende de:** Fase 0 concluída · **6.1 é pré-requisito das Fases 3–5** · 6.4 depende de 3.3 · 6.5 depende da Fase 4 concluída
+> **Depende de:** Fase 0 concluída · **6.1 entra entre 3.4 e 3.5** (antes de 3.5/3.7 e das Fases 4–5) · 6.4 depende de 3.3 · 6.5 depende da Fase 4 concluída
 > **Commits previstos:** 5
 > **Meta:** o repositório inteiro segue o mesmo critério de organização de módulos, e esse critério é verificado automaticamente (política como código), não por review.
 
@@ -38,8 +38,8 @@ Fora do escopo deste gate: as 56 funções top-level com `_` (Regra 4) já estã
 
 ## 2. Tarefas
 
-### 6.1 Gate de arquitetura (política como código) — **pré-requisito das Fases 3–5**
-Objetivo: impedir que as fases seguintes (ou qualquer feature futura) reintroduzam o problema.
+### 6.1 Gate de arquitetura (política como código) — **checkpoint entre 3.4 e 3.5**
+Objetivo: impedir que as fases seguintes (3.5, 3.7, 4.x e 5.x) ou qualquer feature futura reintroduzam o problema. Posicionado **depois** das tarefas que só reduzem dívida (3.1–3.4) e **antes** das mudanças estruturais (3.5 e 3.7) — assim o baseline já nasce menor e cada mudança estrutural seguinte tem prova automática ("antes/depois"), sem editar a allowlist em commits de dívida.
 
 - [ ] Criar `tests/architecture/test_module_organization.py` (+ `tests/architecture/__init__.py`)
 - [ ] Adicionar `"tests"` a `testpaths` no `pyproject.toml` (hoje só as 4 APIs são coletadas) e corrigir `make test-mcp`, que aponta para `tests/finance_api/test_mcp_tools.py` (inexistente — o real é `finance_api/tests/test_mcp_tools.py`)
