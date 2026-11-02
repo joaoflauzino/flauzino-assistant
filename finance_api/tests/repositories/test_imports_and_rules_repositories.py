@@ -10,8 +10,9 @@ from finance_api.models.accounts import Account
 from finance_api.models.category_rules import CategoryRule
 from finance_api.models.import_batches import ImportBatch
 from finance_api.repositories.base import SQLAlchemyRepository
-from finance_api.repositories.category_rules import CategoryRuleRepository, _normalize
+from finance_api.repositories.category_rules import CategoryRuleRepository
 from finance_api.repositories.imports import ImportBatchRepository
+from finance_api.utils.text import normalize_upper
 
 pytestmark = pytest.mark.asyncio
 
@@ -55,7 +56,7 @@ async def test_sqlalchemy_base_repository_methods() -> None:
 
 
 async def test_category_rule_repository_operations() -> None:
-    assert _normalize("  São Paulo - Ação  ") == "SAO PAULO - ACAO"
+    assert normalize_upper("  São Paulo - Ação  ") == "SAO PAULO - ACAO"
 
     mock_db = AsyncMock(spec=AsyncSession)
     repo = CategoryRuleRepository(mock_db)

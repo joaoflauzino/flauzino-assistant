@@ -1,4 +1,3 @@
-import unicodedata
 from collections.abc import Sequence
 from typing import Protocol
 from uuid import UUID
@@ -8,11 +7,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from finance_api.models.category_rules import CategoryRule
-
-
-def _normalize(text: str) -> str:
-    nfkd = unicodedata.normalize("NFKD", text)
-    return "".join(c for c in nfkd if not unicodedata.combining(c)).upper().strip()
+from finance_api.utils.text import normalize_upper
 
 
 class CategoryRuleRepositoryProtocol(Protocol):
@@ -47,12 +42,12 @@ class CategoryRuleRepository:
         return result.scalars().all()
 
     async def find_matching_rule(self, merchant: str, direction: str) -> CategoryRule | None:
-        norm_merchant = _normalize(merchant)
+        norm_merchant = normalize_upper(merchant)
         rules = await self.list_all()
         for rule in rules:
             if rule.direction != direction:
                 continue
-            norm_pattern = _normalize(rule.pattern)
+            norm_pattern = normalize_upper(rule.pattern)
             if rule.match_type == "EXACT":
                 if norm_merchant == norm_pattern:
                     return rule

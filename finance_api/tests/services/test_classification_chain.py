@@ -23,7 +23,7 @@ from finance_api.services.classification_chain import (
     build_default_classification_chain,
 )
 from finance_api.services.protocols import BaseClassificationHandler
-from finance_api.utils.text import _normalize
+from finance_api.utils.text import normalize_upper
 
 
 def _make_context(
@@ -39,8 +39,8 @@ def _make_context(
     bank_category: str | None = None,
     is_credit_card: bool = False,
 ) -> ClassificationContext:
-    norm_title = _normalize(raw_title)
-    norm_desc = _normalize(raw_description or "")
+    norm_title = normalize_upper(raw_title)
+    norm_desc = normalize_upper(raw_description or "")
     norm_combined = f"{norm_title} {norm_desc}".strip()
     return ClassificationContext(
         raw_title=raw_title,

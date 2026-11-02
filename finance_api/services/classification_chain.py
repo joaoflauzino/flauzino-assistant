@@ -16,7 +16,7 @@ from finance_api.services.protocols import (
     BaseClassificationHandler,
     ClassificationHandlerProtocol,
 )
-from finance_api.utils.text import _normalize
+from finance_api.utils.text import normalize_upper
 
 
 class OwnTransferHandler(BaseClassificationHandler):
@@ -184,7 +184,7 @@ class BankCategoryHandler(BaseClassificationHandler):
 
     async def handle(self, ctx: ClassificationContext) -> ClassificationResult:
         if ctx.bank_category and ctx.default_kind == TransactionKind.EXPENSE:
-            norm_bcat = _normalize(ctx.bank_category)
+            norm_bcat = normalize_upper(ctx.bank_category)
             mapped = BANK_CATEGORY_MAP.get(norm_bcat)
             if mapped is not None:
                 sug_cat, conf = mapped

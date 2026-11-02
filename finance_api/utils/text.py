@@ -3,11 +3,17 @@
 import unicodedata
 
 
-def normalize_text(text: str) -> str:
-    """Normalizes text by removing diacritics and converting to uppercase."""
+def strip_diacritics(text: str) -> str:
+    """Removes diacritics while preserving the original casing and inner spacing."""
     nfkd = unicodedata.normalize("NFKD", text)
-    return "".join(c for c in nfkd if not unicodedata.combining(c)).upper().strip()
+    return "".join(char for char in nfkd if not unicodedata.combining(char))
 
 
-# Alias backward-compatible
-_normalize = normalize_text
+def normalize_upper(text: str) -> str:
+    """Normalizes text for accent- and case-insensitive matching in uppercase."""
+    return strip_diacritics(text).upper().strip()
+
+
+def normalize_lower(text: str) -> str:
+    """Normalizes text for accent- and case-insensitive keys in lowercase."""
+    return strip_diacritics(text).lower().strip()
