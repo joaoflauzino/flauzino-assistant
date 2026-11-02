@@ -56,9 +56,5 @@ max-complexity = 10
 max-branches = 8 # permissivo no início; reduzir para 6 ao final das fases
 max-statements = 50 # permissivo no início; reduzir para 40 ao final das fases
 
-[tool.ruff.lint.per-file-ignores]
-# Dívida congelada (master plan §2): substituída por chain of responsibility na Fase 1.1.
-"agent_api/services/agent.py" = ["PLR0912"]
-
 [tool.ruff.lint.isort]
 known-first-party = ["finance_api", "agent_api", "graph_api", "telegram_api"]
