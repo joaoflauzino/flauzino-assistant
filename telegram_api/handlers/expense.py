@@ -52,6 +52,9 @@ def build_inline_keyboard(options: list[str], columns: int = 2) -> InlineKeyboar
 
 async def gasto_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Start the expense registration flow."""
+    if update.effective_user is None or update.message is None or context.user_data is None:
+        return ConversationHandler.END
+
     set_request_id()
     logger.info(f"User {update.effective_user.id} started expense registration flow")
     context.user_data["expense"] = {}
@@ -68,6 +71,9 @@ async def gasto_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
 
 async def select_category(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
+    if query is None or context.user_data is None:
+        return ConversationHandler.END
+
     await query.answer()
 
     context.user_data["expense"]["category"] = query.data
@@ -80,21 +86,29 @@ async def select_category(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 
 async def type_item_bought(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    text = update.message.text
+    message = update.message
+    if message is None or message.text is None or context.user_data is None:
+        return ConversationHandler.END
+
+    text = message.text
     context.user_data["expense"]["item_bought"] = text
     logger.info(f"Typed item bought: {text}")
 
-    await update.message.reply_text("Qual foi o valor?")
+    await message.reply_text("Qual foi o valor?")
     return TYPE_VALUE
 
 
 async def type_value(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    text = update.message.text
+    message = update.message
+    if message is None or message.text is None or context.user_data is None:
+        return ConversationHandler.END
+
+    text = message.text
     try:
         value = float(text.replace(",", "."))
         context.user_data["expense"]["amount"] = value
     except ValueError:
-        await update.message.reply_text(
+        await message.reply_text(
             "Valor inválido. Por favor, digite um número (ex: 50.00 ou 50,00)."
         )
         return TYPE_VALUE
@@ -104,7 +118,7 @@ async def type_value(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     payment_methods = await get_valid_payment_methods()
     reply_markup = build_inline_keyboard(payment_methods)
 
-    await update.message.reply_text(
+    await message.reply_text(
         "Qual foi o método de pagamento?",
         reply_markup=reply_markup,
     )
@@ -113,6 +127,9 @@ async def type_value(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def select_payment_method(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
+    if query is None or context.user_data is None:
+        return ConversationHandler.END
+
     await query.answer()
 
     context.user_data["expense"]["payment_method"] = query.data
@@ -125,7 +142,11 @@ async def select_payment_method(update: Update, context: ContextTypes.DEFAULT_TY
 
 
 async def type_location(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    text = update.message.text
+    message = update.message
+    if message is None or message.text is None or context.user_data is None:
+        return ConversationHandler.END
+
+    text = message.text
     context.user_data["expense"]["location"] = text
     logger.info(f"Typed location: {text}")
 
@@ -138,12 +159,15 @@ async def type_location(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    await update.message.reply_text("Qual o tipo dessa despesa?", reply_markup=reply_markup)
+    await message.reply_text("Qual o tipo dessa despesa?", reply_markup=reply_markup)
     return SELECT_PURCHASE_TYPE
 
 
 async def select_purchase_type(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
+    if query is None or context.user_data is None:
+        return ConversationHandler.END
+
     await query.answer()
 
     purchase_type = query.data
@@ -158,24 +182,32 @@ async def select_purchase_type(update: Update, context: ContextTypes.DEFAULT_TYP
 
 
 async def type_total_installments(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    text = update.message.text
+    message = update.message
+    if message is None or message.text is None or context.user_data is None:
+        return ConversationHandler.END
+
+    text = message.text
     try:
         total = int(text)
         if total < 2:
             raise ValueError()
         context.user_data["expense"]["total_installments"] = total
     except ValueError:
-        await update.message.reply_text("Por favor, digite um número inteiro maior que 1.")
+        await message.reply_text("Por favor, digite um número inteiro maior que 1.")
         return TYPE_TOTAL_INSTALLMENTS
 
-    await update.message.reply_text(
+    await message.reply_text(
         "Essa é a parcela de número X? (Ex: 1 se for nova, 5 se for uma compra em andamento)"
     )
     return TYPE_CURRENT_INSTALLMENT
 
 
 async def type_current_installment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    text = update.message.text
+    message = update.message
+    if message is None or message.text is None or context.user_data is None:
+        return ConversationHandler.END
+
+    text = message.text
     total = context.user_data["expense"]["total_installments"]
     try:
         current = int(text)
@@ -183,14 +215,17 @@ async def type_current_installment(update: Update, context: ContextTypes.DEFAULT
             raise ValueError()
         context.user_data["expense"]["current_installment"] = current
     except ValueError:
-        await update.message.reply_text(f"Por favor, digite um número entre 1 e {total}.")
+        await message.reply_text(f"Por favor, digite um número entre 1 e {total}.")
         return TYPE_CURRENT_INSTALLMENT
 
-    return await ask_for_date(update.message, context)
+    return await ask_for_date(message, context)
 
 
 async def confirm_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
+    if query is None or context.user_data is None:
+        return ConversationHandler.END
+
     await query.answer()
 
     if query.data == "confirm":
@@ -213,7 +248,11 @@ async def confirm_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancels and ends the conversation."""
-    await update.message.reply_text("Registro cancelado.")
+    message = update.message
+    if message is None or context.user_data is None:
+        return ConversationHandler.END
+
+    await message.reply_text("Registro cancelado.")
     context.user_data.pop("expense", None)
     return ConversationHandler.END
 

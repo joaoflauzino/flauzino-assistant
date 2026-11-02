@@ -1,6 +1,8 @@
+from typing import Any, cast
 from uuid import UUID
 
 from sqlalchemy import delete, func, select, update
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from finance_api.core.logger import get_logger
@@ -78,7 +80,7 @@ class CategoryRepository:
 
     async def delete(self, category_id: UUID) -> bool:
         stmt = delete(Category).where(Category.id == category_id)
-        result = await self.db.execute(stmt)
+        result = cast(CursorResult[Any], await self.db.execute(stmt))
         await self.db.commit()
         if result.rowcount > 0:
             logger.info(f"Deleted category: {category_id}")

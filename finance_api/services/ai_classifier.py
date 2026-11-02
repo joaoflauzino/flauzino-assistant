@@ -4,6 +4,7 @@ import httpx
 
 from finance_api.core.http_client import get_http_client
 from finance_api.core.logger import get_logger
+from finance_api.services.protocols import AIClassifierHttpClientProtocol
 from finance_api.settings import settings
 
 logger = get_logger(__name__)
@@ -40,7 +41,7 @@ def extract_suggestions(
 
 
 class AIClassifierClient:
-    def __init__(self, client: httpx.AsyncClient | None = None):
+    def __init__(self, client: AIClassifierHttpClientProtocol | None = None):
         self.client = client or get_http_client()
         self.base_url = settings.AGENT_SERVICE_URL.rstrip("/")
 

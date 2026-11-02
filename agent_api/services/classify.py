@@ -67,7 +67,12 @@ class ClassifyService:
                 HumanMessage(content=user_content),
             ]
             logger.info(f"Classifying {len(request.transactions)} transactions with LLM")
-            return await structured_llm.ainvoke(messages)
+            result = await structured_llm.ainvoke(messages)
+            if isinstance(result, LLMBatchClassificationResult):
+                return result
+            if isinstance(result, dict):
+                return LLMBatchClassificationResult.model_validate(result)
+            return None
         except Exception as error:
             logger.error(f"LLM classification failed: {error}", exc_info=True)
             raise LLMProviderError(

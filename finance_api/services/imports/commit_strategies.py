@@ -34,7 +34,7 @@ class ExpenseCommitStrategy:
 
         spent_data = SpentCreate(
             category=tx.category,
-            amount=tx.amount,
+            amount=float(tx.amount),
             item_bought=tx.description[:50],
             payment_method=ctx.payment_method_key,
             payment_type=ctx.payment_type_value,
@@ -71,7 +71,7 @@ class IncomeCommitStrategy:
 
         income_data = IncomeCreate(
             description=tx.description[:100],
-            amount=tx.amount,
+            amount=float(tx.amount),
             category=tx.category,
             payment_method=ctx.payment_method_key,
             account_id=ctx.account_id,

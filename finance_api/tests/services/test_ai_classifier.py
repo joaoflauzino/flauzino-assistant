@@ -28,6 +28,8 @@ class FakeHttpClient:
         self.calls.append({"url": url, "json": json, "timeout": timeout})
         if self._error is not None:
             raise self._error
+        if self._response is None:
+            raise RuntimeError("Fake HTTP client has no response configured")
         return self._response
 
 
@@ -42,7 +44,10 @@ def build_response(
     )
 
 
-def build_client(response: httpx.Response | None = None, error: Exception | None = None):
+def build_client(
+    response: httpx.Response | None = None,
+    error: Exception | None = None,
+) -> tuple[AIClassifierClient, FakeHttpClient]:
     fake = FakeHttpClient(response=response, error=error)
     return AIClassifierClient(client=fake), fake
 

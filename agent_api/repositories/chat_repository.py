@@ -1,9 +1,10 @@
 import uuid
 from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import Protocol
+from typing import Any, Protocol, cast
 
 from sqlalchemy import delete, func, select
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -103,11 +104,12 @@ class ChatRepository:
         )
         stale_ids = select(subquery.c.session_id).where(subquery.c.last_msg < cutoff)
 
-        result = await self.session.execute(
-            delete(ChatSession).where(ChatSession.id.in_(stale_ids))
+        result = cast(
+            CursorResult[Any],
+            await self.session.execute(delete(ChatSession).where(ChatSession.id.in_(stale_ids))),
         )
         await self.session.commit()
-        deleted_count = result.rowcount
+        deleted_count = result.rowcount or 0
         if deleted_count:
             logger.info(f"Cleaned up {deleted_count} stale chat sessions")
         return deleted_count

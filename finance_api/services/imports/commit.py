@@ -21,10 +21,10 @@ from finance_api.services.protocols import TransactionCommitStrategy
 logger = get_logger(__name__)
 
 VALID_ACCOUNT_PAYMENT_TYPES = ("PIX", "DEBIT", "CASH", "TRANSFER", "OTHER")
-OUTCOME_COUNTERS: dict[CommitOutcomeStatus, str] = {
-    CommitOutcomeStatus.COMMITTED_SPENT: "committed_spents",
-    CommitOutcomeStatus.COMMITTED_INCOME: "committed_incomes",
-    CommitOutcomeStatus.PROCESSED_WITHOUT_RECORD: "processed_without_record",
+OUTCOME_COUNTERS: dict[str, str] = {
+    CommitOutcomeStatus.COMMITTED_SPENT.value: "committed_spents",
+    CommitOutcomeStatus.COMMITTED_INCOME.value: "committed_incomes",
+    CommitOutcomeStatus.PROCESSED_WITHOUT_RECORD.value: "processed_without_record",
 }
 
 

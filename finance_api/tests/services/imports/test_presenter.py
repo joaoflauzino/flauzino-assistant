@@ -88,12 +88,12 @@ def test_build_batch_response_includes_target_and_counts() -> None:
 
 
 @pytest.mark.asyncio
-async def test_build_batch_list_falls_back_to_card_name() -> None:
+async def test_build_batch_list_falls_back_to_card_name(mocker) -> None:
     presenter = _presenter()
     card_id = uuid4()
     card = MagicMock(id=card_id)
     card.name = "C6 Carbon Black"
-    presenter._credit_card_repo.get_by_id = AsyncMock(return_value=card)
+    mocker.patch.object(presenter._credit_card_repo, "get_by_id", new=AsyncMock(return_value=card))
     batch = _batch(credit_card_id=card_id)
 
     responses = await presenter.build_batch_list([batch])

@@ -45,6 +45,9 @@ def build_inline_keyboard(options: list[str], columns: int = 2) -> InlineKeyboar
 
 async def receita_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Start the income registration flow."""
+    if update.effective_user is None or update.message is None or context.user_data is None:
+        return ConversationHandler.END
+
     set_request_id()
     logger.info(f"User {update.effective_user.id} started income registration flow")
     context.user_data["income"] = {}
@@ -62,6 +65,9 @@ async def receita_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 async def select_category(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
+    if query is None or context.user_data is None:
+        return ConversationHandler.END
+
     await query.answer()
 
     context.user_data["income"]["category"] = query.data
@@ -75,23 +81,31 @@ async def select_category(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 
 async def type_description(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    text = update.message.text
+    message = update.message
+    if message is None or message.text is None or context.user_data is None:
+        return ConversationHandler.END
+
+    text = message.text
     context.user_data["income"]["description"] = text
     logger.info(f"Typed income description: {text}")
 
-    await update.message.reply_text("Qual foi o valor recebido em R$?")
+    await message.reply_text("Qual foi o valor recebido em R$?")
     return TYPE_VALUE
 
 
 async def type_value(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    text = update.message.text
+    message = update.message
+    if message is None or message.text is None or context.user_data is None:
+        return ConversationHandler.END
+
+    text = message.text
     try:
         value = float(text.replace("R$", "").replace(" ", "").replace(",", "."))
         if value <= 0:
             raise ValueError()
         context.user_data["income"]["amount"] = value
     except ValueError:
-        await update.message.reply_text(
+        await message.reply_text(
             "Valor inválido. Por favor, digite um número positivo (ex: 1500.00 ou 1500,00)."
         )
         return TYPE_VALUE
@@ -102,7 +116,7 @@ async def type_value(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     options_with_skip = accounts + ["Pular / Nenhuma"]
     reply_markup = build_inline_keyboard(options_with_skip)
 
-    await update.message.reply_text(
+    await message.reply_text(
         "Em qual conta bancária esse valor foi creditado?",
         reply_markup=reply_markup,
     )
@@ -111,6 +125,9 @@ async def type_value(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def select_payment_method(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
+    if query is None or context.user_data is None:
+        return ConversationHandler.END
+
     await query.answer()
 
     selected = query.data
@@ -145,6 +162,9 @@ async def select_payment_method(update: Update, context: ContextTypes.DEFAULT_TY
 
 async def confirm_income(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
+    if query is None or context.user_data is None:
+        return ConversationHandler.END
+
     await query.answer()
 
     if query.data == "confirm_no":
@@ -181,8 +201,13 @@ async def confirm_income(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 
 async def cancel_income(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    logger.info(f"User {update.effective_user.id} cancelled income flow")
-    await update.message.reply_text("Operação de receita cancelada.")
+    user = update.effective_user
+    message = update.message
+    if user is None or message is None or context.user_data is None:
+        return ConversationHandler.END
+
+    logger.info(f"User {user.id} cancelled income flow")
+    await message.reply_text("Operação de receita cancelada.")
     context.user_data.pop("income", None)
     return ConversationHandler.END
 

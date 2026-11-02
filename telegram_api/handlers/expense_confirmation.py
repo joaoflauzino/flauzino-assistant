@@ -3,8 +3,8 @@
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import ContextTypes
+from telegram import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
+from telegram.ext import ContextTypes, ConversationHandler
 
 from telegram_api.handlers.expense_states import (
     CONFIRMATION,
@@ -13,7 +13,10 @@ from telegram_api.handlers.expense_states import (
 )
 
 
-async def ask_for_date(message_target, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def ask_for_date(
+    message_target: Message | CallbackQuery,
+    context: ContextTypes.DEFAULT_TYPE,
+) -> int:
     keyboard = [
         [
             InlineKeyboardButton("📅 Hoje (Agora)", callback_data="date_hoje"),
@@ -26,7 +29,7 @@ async def ask_for_date(message_target, context: ContextTypes.DEFAULT_TYPE) -> in
     reply_markup = InlineKeyboardMarkup(keyboard)
     text = "Qual foi a data da compra?"
 
-    if hasattr(message_target, "edit_message_text"):
+    if isinstance(message_target, CallbackQuery):
         await message_target.edit_message_text(text=text, reply_markup=reply_markup)
     else:
         await message_target.reply_text(text=text, reply_markup=reply_markup)
@@ -36,9 +39,12 @@ async def ask_for_date(message_target, context: ContextTypes.DEFAULT_TYPE) -> in
 
 async def select_date_option(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
+    if query is None or context.user_data is None:
+        return SELECT_DATE_OPTION
+
     await query.answer()
 
-    option = query.data
+    option = query.data or ""
     tz = ZoneInfo("America/Sao_Paulo")
     if option == "date_hoje":
         context.user_data["expense"]["created_at"] = datetime.now(tz)
@@ -55,7 +61,11 @@ async def select_date_option(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 async def type_custom_date(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    text = update.message.text
+    message = update.message
+    if message is None or message.text is None or context.user_data is None:
+        return TYPE_CUSTOM_DATE
+
+    text = message.text
     try:
         dt = datetime.strptime(text, "%d/%m/%Y")
         tz = ZoneInfo("America/Sao_Paulo")
@@ -63,15 +73,21 @@ async def type_custom_date(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         dt = dt.replace(hour=now.hour, minute=now.minute, second=now.second, tzinfo=tz)
         context.user_data["expense"]["created_at"] = dt
     except ValueError:
-        await update.message.reply_text(
+        await message.reply_text(
             "Formato inválido. Por favor, digite no formato DD/MM/AAAA (ex: 15/06/2026):"
         )
         return TYPE_CUSTOM_DATE
 
-    return await show_confirmation(update.message, context)
+    return await show_confirmation(message, context)
 
 
-async def show_confirmation(message_target, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def show_confirmation(
+    message_target: Message | CallbackQuery,
+    context: ContextTypes.DEFAULT_TYPE,
+) -> int:
+    if context.user_data is None:
+        return ConversationHandler.END
+
     expense = context.user_data["expense"]
 
     ptype = expense.get("purchase_type", "a_vista")
@@ -104,7 +120,7 @@ async def show_confirmation(message_target, context: ContextTypes.DEFAULT_TYPE) 
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    if hasattr(message_target, "edit_message_text"):
+    if isinstance(message_target, CallbackQuery):
         await message_target.edit_message_text(text=summary, reply_markup=reply_markup)
     else:
         await message_target.reply_text(summary, reply_markup=reply_markup)

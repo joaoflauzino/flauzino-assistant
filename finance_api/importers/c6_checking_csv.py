@@ -27,8 +27,7 @@ from finance_api.importers.schemas import (
 TITLE_MARKER = "EXTRATO DE CONTA CORRENTE C6 BANK"
 HEADER_PREFIX = "Data Lançamento,Data Contábil"
 HEADER_ERROR = (
-    "Cabeçalho do extrato C6 não encontrado. "
-    "Verifique se o arquivo é um CSV de conta corrente C6."
+    "Cabeçalho do extrato C6 não encontrado. Verifique se o arquivo é um CSV de conta corrente C6."
 )
 DECODE_ERROR = "Não foi possível decodificar o arquivo de extrato."
 AGENCY_PATTERN = re.compile(r"Agência:\s*([^\s/]+)\s*/\s*Conta:\s*([^\s/]+)")

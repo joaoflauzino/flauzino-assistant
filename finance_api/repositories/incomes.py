@@ -1,8 +1,10 @@
 import builtins
 from datetime import date
+from typing import Any, cast
 from uuid import UUID
 
 from sqlalchemy import delete, func, select, update
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from finance_api.core.logger import get_logger
@@ -97,7 +99,7 @@ class IncomeRepository:
 
     async def delete(self, income_id: UUID) -> bool:
         stmt = delete(Income).where(Income.id == income_id)
-        result = await self.db.execute(stmt)
+        result = cast(CursorResult[Any], await self.db.execute(stmt))
         await self.db.commit()
         if result.rowcount > 0:
             logger.info(f"Deleted income: {income_id}")

@@ -75,11 +75,11 @@ class SetCategoryBulkStrategy:
         rule_repo: CategoryRuleRepositoryProtocol,
     ) -> None:
         self._repositories_by_kind: dict[
-            TransactionKind,
+            str,
             CategoryLookupProtocol | IncomeCategoryLookupProtocol,
         ] = {
-            TransactionKind.EXPENSE: category_repo,
-            TransactionKind.INCOME: income_category_repo,
+            TransactionKind.EXPENSE.value: category_repo,
+            TransactionKind.INCOME.value: income_category_repo,
         }
         self._rule_repo = rule_repo
 

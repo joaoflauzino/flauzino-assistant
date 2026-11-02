@@ -29,20 +29,25 @@ VOICE_MESSAGES = InteractionMessages(
 
 async def handle_voice_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle voice messages and audio files from users."""
-    if not update.message:
+    message = update.message
+    if message is None:
         return
 
     # Can be a voice note or an audio file
-    media_item = update.message.voice or update.message.audio
+    media_item = message.voice or message.audio
     if not media_item:
         return
 
-    chat_id = update.effective_chat.id
+    chat = update.effective_chat
+    if chat is None:
+        return
+
+    chat_id = chat.id
     mime_type = media_item.mime_type or "audio/ogg"
 
     set_request_id()
     logger.info(f"Received audio/voice from chat {chat_id} with mime {mime_type}")
-    await update.message.chat.send_action("record_audio")
+    await message.chat.send_action("record_audio")
 
     async def call(session_id: str | None) -> dict:
         audio_file = await context.bot.get_file(media_item.file_id)
@@ -51,7 +56,7 @@ async def handle_voice_message(update: Update, context: ContextTypes.DEFAULT_TYP
         logger.info(
             f"Downloaded audio from chat {chat_id}, size: {len(audio_bytes.getvalue())} bytes"
         )
-        await update.message.chat.send_action("typing")
+        await message.chat.send_action("typing")
         return await send_audio_to_agent(
             file_content=audio_bytes.getvalue(),
             filename=f"audio_{chat_id}.ogg",
@@ -60,7 +65,7 @@ async def handle_voice_message(update: Update, context: ContextTypes.DEFAULT_TYP
         )
 
     await handle_agent_interaction(
-        target_message=update.message,
+        target_message=message,
         chat_id=chat_id,
         call=call,
         messages=VOICE_MESSAGES,

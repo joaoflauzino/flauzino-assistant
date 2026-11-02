@@ -83,8 +83,8 @@ class BatchEnrichmentService:
         )
 
     async def _load_categories(self) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
-        expense_cats, _ = await self._category_repo.list(page=1, size=200)
-        income_cats, _ = await self._income_category_repo.list(page=1, size=200)
+        expense_cats, _ = await self._category_repo.list(skip=0, limit=200)
+        income_cats, _ = await self._income_category_repo.list(skip=0, limit=200)
         return (
             [{"key": c.key, "display_name": c.display_name} for c in expense_cats],
             [{"key": c.key, "display_name": c.display_name} for c in income_cats],

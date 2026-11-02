@@ -78,21 +78,26 @@ async def test_update_rejects_unknown_kind() -> None:
 
 
 @pytest.mark.asyncio
-async def test_update_normalizes_category_and_validates_it() -> None:
+async def test_update_normalizes_category_and_validates_it(mocker) -> None:
     tx = _staged()
     editor, _, _ = _editor(tx)
+    category_lookup = mocker.patch.object(
+        editor._category_repo,
+        "get_by_key",
+        new=AsyncMock(return_value=MagicMock(key="mercado")),
+    )
 
     await editor.update(tx.id, StagedTransactionUpdate(category="  Mercado "))
 
     assert tx.category == "mercado"
-    editor._category_repo.get_by_key.assert_awaited_once_with("mercado")
+    category_lookup.assert_awaited_once_with("mercado")
 
 
 @pytest.mark.asyncio
-async def test_update_rejects_unknown_expense_category() -> None:
+async def test_update_rejects_unknown_expense_category(mocker) -> None:
     tx = _staged()
     editor, _, _ = _editor(tx)
-    editor._category_repo.get_by_key = AsyncMock(return_value=None)
+    mocker.patch.object(editor._category_repo, "get_by_key", new=AsyncMock(return_value=None))
 
     with pytest.raises(ValidationError):
         await editor.update(tx.id, StagedTransactionUpdate(category="inexistente"))

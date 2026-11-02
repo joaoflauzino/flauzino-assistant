@@ -1,5 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 from zoneinfo import ZoneInfo
 
 from finance_api.importers.schemas import ParsedTransaction
@@ -9,7 +10,7 @@ SP_TZ = ZoneInfo("America/Sao_Paulo")
 
 
 def _tx(**overrides) -> ParsedTransaction:
-    base = {
+    base: dict[str, Any] = {
         "occurred_at": datetime(2026, 8, 5, 12, 0, tzinfo=SP_TZ),
         "posted_at": None,
         "raw_title": "Pix enviado para CEMIG",

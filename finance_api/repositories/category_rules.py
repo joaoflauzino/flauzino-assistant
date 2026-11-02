@@ -1,9 +1,10 @@
 from collections.abc import Sequence
-from typing import Protocol
+from typing import Any, Protocol, cast
 from uuid import UUID
 
 from sqlalchemy import delete, desc, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from finance_api.core.text import normalize_upper
@@ -102,6 +103,6 @@ class CategoryRuleRepository:
 
     async def delete_by_id(self, rule_id: UUID) -> bool:
         stmt = delete(CategoryRule).where(CategoryRule.id == rule_id)
-        result = await self.db.execute(stmt)
+        result = cast(CursorResult[Any], await self.db.execute(stmt))
         await self.db.commit()
         return result.rowcount > 0

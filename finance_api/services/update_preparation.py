@@ -96,7 +96,8 @@ class SpentPaymentStep:
         if not data.payment_method:
             return
 
-        payment_method = await self._require_payment_method(data)
+        payment_method = await self._require_payment_method(data.payment_method)
+        data.payment_method = payment_method.key
         target = await self._resolver.resolve(
             payment_method.key,
             requested_payment_type=data.payment_type,
@@ -104,12 +105,11 @@ class SpentPaymentStep:
         )
         apply_payment_target(data, target)
 
-    async def _require_payment_method(self, data: SpentUpdate) -> PaymentMethod:
-        payment_method = await self._pm_repo.get_by_key(data.payment_method)
+    async def _require_payment_method(self, key: str) -> PaymentMethod:
+        payment_method = await self._pm_repo.get_by_key(key)
         if payment_method is None:
-            raise ValidationError(self.MESSAGE.format(key=data.payment_method))
+            raise ValidationError(self.MESSAGE.format(key=key))
 
-        data.payment_method = payment_method.key
         return payment_method
 
 
@@ -130,7 +130,8 @@ class IncomePaymentStep:
         if not data.payment_method:
             return
 
-        payment_method = await self._require_payment_method(data)
+        payment_method = await self._require_payment_method(data.payment_method)
+        data.payment_method = payment_method.key
         if data.account_id:
             return
 
@@ -138,12 +139,11 @@ class IncomePaymentStep:
         if target.account_id:
             data.account_id = target.account_id
 
-    async def _require_payment_method(self, data: IncomeUpdate) -> PaymentMethod:
-        payment_method = await self._pm_repo.get_by_key(data.payment_method)
+    async def _require_payment_method(self, key: str) -> PaymentMethod:
+        payment_method = await self._pm_repo.get_by_key(key)
         if payment_method is None:
-            raise ValidationError(self.MESSAGE.format(key=data.payment_method))
+            raise ValidationError(self.MESSAGE.format(key=key))
 
-        data.payment_method = payment_method.key
         return payment_method
 
 

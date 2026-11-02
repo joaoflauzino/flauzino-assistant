@@ -142,6 +142,9 @@ class SpentService:
         matched_category = await self._validate_category(spent.category)
         spent.category = matched_category.key
 
+        if spent.payment_method is None:
+            raise ValidationError("Método de pagamento é obrigatório.")
+
         matched_pm = await self._validate_payment_method(spent.payment_method)
         spent.payment_method = matched_pm.key
 
@@ -197,17 +200,16 @@ class SpentService:
 
         strategies: dict[str, DashboardPeriodStrategy] = {
             "CIVIL_MONTH": CivilMonthDashboardStrategy(self.repo),
-            "INVOICES": (
-                InvoicesDashboardStrategy(self.repo, active_inv, active_pm) if active_inv else None
-            ),
         }
+        if active_inv is not None:
+            strategies["INVOICES"] = InvoicesDashboardStrategy(self.repo, active_inv, active_pm)
 
         strategy = strategies.get(mode)
         if strategy is None:
             raise ValidationError(f"Modo inválido: {mode}")
 
         items, total = await strategy.fetch_spents(reference_month, skip, size)
-        return PaginatedResponse.create(items, total, page, size)
+        return PaginatedResponse.create(list(items), total, page, size)
 
     @handle_service_errors
     async def get_by_id(self, spent_id: UUID) -> "Spent":

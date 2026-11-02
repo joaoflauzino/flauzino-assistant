@@ -11,7 +11,7 @@ SETTINGS_PATH = "telegram_api.core.middleware.settings"
 
 
 def _message(**overrides) -> SimpleNamespace:
-    defaults = {
+    defaults: dict[str, object] = {
         "text": None,
         "photo": [],
         "voice": None,

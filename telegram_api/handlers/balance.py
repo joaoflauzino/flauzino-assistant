@@ -16,7 +16,7 @@ from telegram_api.core.logger import get_logger
 
 logger = get_logger(__name__)
 
-SELECT_CATEGORY = range(1)
+SELECT_CATEGORY = 0
 
 CATEGORY_PREFIX = "cat:"
 
@@ -56,6 +56,7 @@ class CategorySelection:
     @classmethod
     def load(cls, context: ContextTypes.DEFAULT_TYPE) -> "CategorySelection":
         user_data = context.user_data
+        assert user_data is not None
         return cls(user_data=user_data, categories=list(user_data.get("available_categories", [])))
 
     @property
@@ -83,19 +84,25 @@ class CategorySelection:
 
 async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Start the balance consultation flow and return a graph."""
-    set_request_id()
-    logger.info(f"User {update.effective_user.id} requested balance graph via command")
+    user = update.effective_user
+    message = update.message
+    user_data = context.user_data
+    if user is None or message is None or message.text is None or user_data is None:
+        return ConversationHandler.END
 
-    command_used = update.message.text.split()[0].replace("/", "").lower()
-    context.user_data["balance_mode"] = command_used
-    context.user_data["selected_categories"] = set()
+    set_request_id()
+    logger.info(f"User {user.id} requested balance graph via command")
+
+    command_used = message.text.split()[0].replace("/", "").lower()
+    user_data["balance_mode"] = command_used
+    user_data["selected_categories"] = set()
 
     categories = await get_valid_categories()
-    context.user_data["available_categories"] = categories
+    user_data["available_categories"] = categories
 
-    reply_markup = build_inline_keyboard(categories, context.user_data["selected_categories"])
+    reply_markup = build_inline_keyboard(categories, user_data["selected_categories"])
 
-    await update.message.reply_text(
+    await message.reply_text(
         "Selecione as categorias que deseja visualizar:",
         reply_markup=reply_markup,
     )
@@ -109,18 +116,21 @@ async def repaint(query: CallbackQuery, selection: CategorySelection) -> None:
 
 
 async def select_all(update: Update, selection: CategorySelection) -> int:
+    assert update.callback_query is not None
     selection.select_all()
     await repaint(update.callback_query, selection)
     return SELECT_CATEGORY
 
 
 async def select_none(update: Update, selection: CategorySelection) -> int:
+    assert update.callback_query is not None
     selection.select_none()
     await repaint(update.callback_query, selection)
     return SELECT_CATEGORY
 
 
 async def toggle_category(update: Update, selection: CategorySelection) -> int:
+    assert update.callback_query is not None
     data = update.callback_query.data or ""
     selection.toggle(data.removeprefix(CATEGORY_PREFIX))
     await repaint(update.callback_query, selection)
@@ -143,14 +153,19 @@ async def reply_with_graph(
         )
         return
 
-    await update.effective_message.reply_photo(
-        photo=img_data, caption=f"Aqui está o gráfico de {mode}."
-    )
-    await query.message.delete()
+    message = update.effective_message
+    if message is None:
+        return
+
+    await message.reply_photo(photo=img_data, caption=f"Aqui está o gráfico de {mode}.")
+    await query.delete_message()
 
 
 async def generate_graph(update: Update, selection: CategorySelection) -> int:
     query = update.callback_query
+    if query is None:
+        return ConversationHandler.END
+
     selected = selection.selected or set(selection.categories)
 
     await query.edit_message_text("Gerando gráfico dos seus saldos, aguarde...")
@@ -179,6 +194,9 @@ def resolve_action(data: str) -> CategoryAction:
 
 async def select_category(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
+    if query is None or context.user_data is None:
+        return ConversationHandler.END
+
     await query.answer()
 
     action = resolve_action(query.data or "")
@@ -187,6 +205,9 @@ async def select_category(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancels and ends the conversation."""
+    if update.message is None:
+        return ConversationHandler.END
+
     await update.message.reply_text("Consulta cancelada.")
     return ConversationHandler.END
 

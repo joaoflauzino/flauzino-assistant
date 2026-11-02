@@ -17,7 +17,7 @@ MAX_FILE_SIZE_MB = 10
 TESSERACT_CONFIG = r"--oem 3 --psm 3"
 
 
-def validate_image_file(filename: str, file_size: int) -> None:
+def validate_image_file(filename: str | None, file_size: int) -> None:
     """Validate image file format and size.
 
     Args:

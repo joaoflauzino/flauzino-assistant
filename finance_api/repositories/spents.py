@@ -1,8 +1,10 @@
 import builtins
 from datetime import date
+from typing import Any, cast
 from uuid import UUID
 
 from sqlalchemy import and_, case, delete, func, or_, select, text, update
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from finance_api.core.logger import get_logger
@@ -150,7 +152,7 @@ class SpentRepository:
 
     async def delete(self, spent_id: UUID) -> bool:
         stmt = delete(Spent).where(Spent.id == spent_id)
-        result = await self.db.execute(stmt)
+        result = cast(CursorResult[Any], await self.db.execute(stmt))
         await self.db.commit()
         if result.rowcount > 0:
             logger.info(f"Deleted spent: {spent_id}")

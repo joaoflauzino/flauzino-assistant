@@ -4,8 +4,10 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from datetime import date
 from decimal import Decimal
-from typing import Protocol
+from typing import Any, Protocol
 from uuid import UUID
+
+import httpx
 
 from finance_api.models.categories import Category
 from finance_api.models.income_categories import IncomeCategory
@@ -28,6 +30,18 @@ from finance_api.schemas.payment_resolution import ResolvedPaymentTarget
 
 type MerchantExtractorStep = Callable[[RawTransactionText], ExtractedMerchantInfo | None]
 type MerchantExtractorPipeline = Callable[[RawTransactionText], ExtractedMerchantInfo]
+
+
+class AIClassifierHttpClientProtocol(Protocol):
+    """HTTP contract required by the AI classification client."""
+
+    async def post(
+        self,
+        url: str,
+        *,
+        json: dict[str, Any],
+        timeout: float,
+    ) -> httpx.Response: ...
 
 
 class CategoryLookupProtocol(Protocol):

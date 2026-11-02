@@ -150,7 +150,7 @@ async def test_select_category_success(mock_get_graph, mock_update, mock_context
     mock_update.effective_message.reply_photo.assert_called_once_with(
         photo=b"fake_png_data", caption="Aqui está o gráfico de limites."
     )
-    mock_update.callback_query.message.delete.assert_called_once()
+    mock_update.callback_query.delete_message.assert_awaited_once()
 
 
 @pytest.mark.asyncio

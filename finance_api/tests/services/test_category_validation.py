@@ -27,9 +27,8 @@ async def test_spent_creation_validates_category(mocker):
     service = SpentService(mock_repo)
 
     # Mock CategoryRepository to return None (category doesn't exist)
-    mocker.patch("finance_api.services.spents.CategoryRepository").return_value.get_by_key = (
-        AsyncMock(return_value=None)
-    )
+    category_repo = mocker.patch("finance_api.services.spents.CategoryRepository")
+    category_repo.return_value.get_by_key = AsyncMock(return_value=None)
 
     # Should raise ValidationError
     with pytest.raises(ValidationError, match="não existe"):
@@ -57,9 +56,8 @@ async def test_spent_creation_with_valid_category(mocker):
     # Mock CategoryRepository to return a category (category exists)
     mock_category = MagicMock()
     mock_category.key = "test_cat"
-    mocker.patch("finance_api.services.spents.CategoryRepository").return_value.get_by_key = (
-        AsyncMock(return_value=mock_category)
-    )
+    category_repo = mocker.patch("finance_api.services.spents.CategoryRepository")
+    category_repo.return_value.get_by_key = AsyncMock(return_value=mock_category)
 
     # Mock create
     mock_created_spent = MagicMock()
@@ -69,9 +67,8 @@ async def test_spent_creation_with_valid_category(mocker):
 
     # Mock PaymentMethodRepository to return a payment method
     mock_pm = MagicMock()
-    mocker.patch("finance_api.services.spents.PaymentMethodRepository").return_value.get_by_key = (
-        AsyncMock(return_value=mock_pm)
-    )
+    payment_method_repo = mocker.patch("finance_api.services.spents.PaymentMethodRepository")
+    payment_method_repo.return_value.get_by_key = AsyncMock(return_value=mock_pm)
 
     # Create spent - should succeed
     spent = await service.create(
@@ -99,9 +96,8 @@ async def test_spent_update_validates_category(mocker):
     service = SpentService(mock_repo)
 
     # Mock CategoryRepository to return None (category doesn't exist)
-    mocker.patch("finance_api.services.spents.CategoryRepository").return_value.get_by_key = (
-        AsyncMock(return_value=None)
-    )
+    category_repo = mocker.patch("finance_api.services.spents.CategoryRepository")
+    category_repo.return_value.get_by_key = AsyncMock(return_value=None)
 
     # Try to update with invalid category - should raise ValidationError
     with pytest.raises(ValidationError, match="não existe"):

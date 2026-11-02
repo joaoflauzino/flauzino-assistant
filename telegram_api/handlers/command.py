@@ -8,6 +8,11 @@ logger = get_logger(__name__)
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle /start command."""
+    user = update.effective_user
+    message = update.message
+    if user is None or message is None:
+        return
+
     welcome_message = (
         "👋 Olá! Sou o assistente financeiro da Família Flauzino.\n\n"
         "Você pode:\n"
@@ -19,12 +24,17 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         "Use /help para mais informações!"
     )
 
-    logger.info(f"User {update.effective_user.id} started the bot")
-    await update.message.reply_text(welcome_message)
+    logger.info(f"User {user.id} started the bot")
+    await message.reply_text(welcome_message)
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle /help command."""
+    user = update.effective_user
+    message = update.message
+    if user is None or message is None:
+        return
+
     help_message = (
         "📋 *Como usar o bot:*\n\n"
         "*Registrar despesas (Guiado):*\n"
@@ -43,5 +53,5 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         '- _"Fechei o mês no positivo?"_\n'
     )
 
-    logger.info(f"User {update.effective_user.id} requested help")
-    await update.message.reply_text(help_message, parse_mode="Markdown")
+    logger.info(f"User {user.id} requested help")
+    await message.reply_text(help_message, parse_mode="Markdown")

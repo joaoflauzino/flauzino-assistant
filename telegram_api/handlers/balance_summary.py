@@ -11,15 +11,20 @@ logger = get_logger(__name__)
 
 async def balanco_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle /balanco command to show executive monthly cash flow."""
+    user = update.effective_user
+    message = update.message
+    if user is None or message is None:
+        return
+
     set_request_id()
-    logger.info(f"User {update.effective_user.id} requested monthly balance summary")
+    logger.info(f"User {user.id} requested monthly balance summary")
 
     args = context.args or []
     reference_month = args[0] if len(args) > 0 else None
 
     summary = await get_monthly_balance_summary(reference_month=reference_month)
     if not summary:
-        await update.message.reply_text(
+        await message.reply_text(
             "❌ Não foi possível carregar o resumo do balanço mensal no momento. Tente novamente mais tarde."
         )
         return
@@ -43,7 +48,7 @@ async def balanco_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         f"📈 *Taxa de Economia:* {savings_rate:.1f}%\n"
     )
 
-    await update.message.reply_text(msg, parse_mode="Markdown")
+    await message.reply_text(msg, parse_mode="Markdown")
 
 
 balanco_handler = CommandHandler("balanco", balanco_command)

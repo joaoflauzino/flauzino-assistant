@@ -7,7 +7,7 @@ from finance_api.core.exceptions import EntityNotFoundError, ValidationError
 from finance_api.models.categories import Category
 from finance_api.models.payment_methods import PaymentMethod
 from finance_api.schemas.payment_resolution import ResolvedPaymentTarget
-from finance_api.schemas.spents import SpentUpdate
+from finance_api.schemas.spents import SpentCreate, SpentUpdate
 from finance_api.services.spents import SpentService
 from finance_api.tests.fakes.fake_payment_resolver import FakePaymentResolver
 
@@ -59,6 +59,29 @@ async def test_update_rejects_unknown_payment_method(service, mock_repo, mock_pm
         await service.update(uuid4(), SpentUpdate(payment_method="cartao_fantasma"))
 
     mock_repo.update.assert_not_awaited()
+
+
+async def test_create_rejects_missing_payment_method(
+    service,
+    mock_repo,
+    mock_category_repo,
+    mock_pm_repo,
+):
+    mock_category_repo.get_by_key.return_value = Category(
+        id=uuid4(), key="mercado", display_name="Mercado"
+    )
+    spent = SpentCreate(
+        category="mercado",
+        amount=20.0,
+        item_bought="Pão",
+        payment_method=None,
+    )
+
+    with pytest.raises(ValidationError, match="pagamento é obrigatório"):
+        await service.create(spent)
+
+    mock_pm_repo.get_by_key.assert_not_awaited()
+    mock_repo.create.assert_not_awaited()
 
 
 async def test_update_normalizes_category_key(service, mock_repo, mock_category_repo):
