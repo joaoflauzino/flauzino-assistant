@@ -129,3 +129,30 @@ async def test_get_by_key_falls_back_to_account():
     assert result.key == "c6_joao"
     assert result.display_name == "C6 João"
     assert result.is_credit_card is False
+
+
+async def test_get_by_key_finds_payment_method_table_first():
+    mock_session = AsyncMock()
+    method = PaymentMethod(key="pix_joao", display_name="Pix João", is_credit_card=False)
+    res_pm = MagicMock()
+    res_pm.scalar_one_or_none.return_value = method
+    mock_session.execute.return_value = res_pm
+
+    repo = PaymentMethodRepository(mock_session)
+    result = await repo.get_by_key("pix_joao")
+
+    assert result is method
+    mock_session.execute.assert_awaited_once()
+
+
+async def test_get_by_key_returns_none_when_not_found_anywhere():
+    mock_session = AsyncMock()
+    res = MagicMock()
+    res.scalar_one_or_none.return_value = None
+    mock_session.execute.return_value = res
+
+    repo = PaymentMethodRepository(mock_session)
+    result = await repo.get_by_key("metodo_fantasma")
+
+    assert result is None
+    assert mock_session.execute.await_count == 3

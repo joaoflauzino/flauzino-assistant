@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from unittest.mock import AsyncMock
 from uuid import uuid4
 from zoneinfo import ZoneInfo
@@ -10,7 +10,8 @@ from finance_api.models.income_categories import IncomeCategory
 from finance_api.models.incomes import Income
 from finance_api.models.payment_methods import PaymentMethod
 from finance_api.models.spents import Spent
-from finance_api.schemas.incomes import IncomeCreate
+from finance_api.schemas.incomes import IncomeCreate, IncomeUpdate
+from finance_api.schemas.payment_resolution import ResolvedPaymentTarget
 from finance_api.services.incomes import IncomeService
 from finance_api.tests.fakes.fake_payment_resolver import FakePaymentResolver
 
@@ -179,7 +180,6 @@ async def test_monthly_summary_invalid_month_format(income_service):
 async def test_create_income_with_competence_date(
     income_service, mock_income_repo, mock_cat_repo, mock_pm_repo
 ):
-    from datetime import date
 
     mock_cat_repo.get_by_key.return_value = IncomeCategory(
         id=uuid4(), key="salario", display_name="Salário"
@@ -212,3 +212,80 @@ async def test_create_income_with_competence_date(
 
     assert result.description == "Salário de Setembro pago em Outubro"
     assert result.competence_date == date(2026, 9, 30)
+
+
+def make_income(income_id, **overrides) -> Income:
+    fields = {
+        "id": income_id,
+        "description": "Salário",
+        "amount": 5000.0,
+        "category": "salario",
+        "payment_method": "itau_joao",
+        "received_at": datetime(2026, 10, 1, tzinfo=ZoneInfo("America/Sao_Paulo")),
+        "created_at": datetime.now(ZoneInfo("America/Sao_Paulo")),
+    }
+    fields.update(overrides)
+    return Income(**fields)
+
+
+@pytest.mark.asyncio
+async def test_update_income_rejects_unknown_category(
+    income_service, mock_income_repo, mock_cat_repo
+):
+    mock_cat_repo.get_by_key.return_value = None
+
+    with pytest.raises(ValidationError, match="não existe"):
+        await income_service.update(uuid4(), IncomeUpdate(category="inexistente"))
+
+    mock_income_repo.update.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_update_income_rejects_unknown_payment_method(
+    income_service, mock_income_repo, mock_pm_repo
+):
+    mock_pm_repo.get_by_key.return_value = None
+
+    with pytest.raises(ValidationError, match="não existe"):
+        await income_service.update(uuid4(), IncomeUpdate(payment_method="cartao_fantasma"))
+
+    mock_income_repo.update.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_update_income_resolves_account_from_payment_method(
+    mock_income_repo, mock_cat_repo, mock_pm_repo
+):
+    income_id = uuid4()
+    account_id = uuid4()
+    service = IncomeService(
+        repo=mock_income_repo,
+        category_repo=mock_cat_repo,
+        pm_repo=mock_pm_repo,
+        payment_resolver=FakePaymentResolver(
+            {
+                "itau_joao": ResolvedPaymentTarget(
+                    account_id=account_id, credit_card_id=None, payment_type="DEBIT"
+                )
+            }
+        ),
+    )
+    mock_pm_repo.get_by_key.return_value = PaymentMethod(
+        id=uuid4(), key="itau_joao", display_name="Itaú"
+    )
+    mock_income_repo.update.return_value = make_income(income_id)
+
+    update_data = IncomeUpdate(payment_method="itau_joao")
+    result = await service.update(income_id, update_data)
+
+    assert update_data.account_id == account_id
+    assert update_data.payment_method == "itau_joao"
+    assert result.description == "Salário"
+
+
+@pytest.mark.asyncio
+async def test_update_income_raises_when_repository_returns_none(income_service, mock_income_repo):
+    mock_income_repo.update.return_value = None
+
+    with pytest.raises(EntityNotFoundError, match="não encontrada"):
+        await income_service.update(uuid4(), IncomeUpdate(amount=100.0))

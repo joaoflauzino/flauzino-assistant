@@ -4,7 +4,7 @@
 >
 > **Branch de trabalho:** `feat/refactor` (3º ciclo — os planos anteriores `.specs/code-quality-refactoring/`, `.specs/quality-refactoring/` e `.specs/python-patterns-refactoring/` já foram em grande parte executados; este plano é **incremental** e parte do estado atual medido).
 >
-> **Status geral:** ⬜ Aguardando aprovação humana — nenhuma execução iniciada (`AGENTS.md` §6 e §7).
+> **Status geral:** 🟨 Em execução — Fase 0 concluída em 2026-11-02; Fase 1 aguardando início.
 
 ---
 
@@ -21,7 +21,7 @@
 
 | Fase | Arquivo | Escopo | Status | Progresso |
 |---|---|---|---|---|
-| 0 | [01-fase-0-gates-e-rede-de-seguranca.md](./01-fase-0-gates-e-rede-de-seguranca.md) | WIP atual, gates de lint, testes de caracterização | ⬜ Não iniciada | 0/4 tarefas |
+| 0 | [01-fase-0-gates-e-rede-de-seguranca.md](./01-fase-0-gates-e-rede-de-seguranca.md) | WIP atual, gates de lint, testes de caracterização | ✅ Concluída | 4/4 tarefas |
 | 1 | [02-fase-1-condicionais-em-services.md](./02-fase-1-condicionais-em-services.md) | Eixo A — cascatas de `if` nos services | ⬜ Não iniciada | 0/6 tarefas |
 | 2 | [03-fase-2-metodos-longos-em-services.md](./03-fase-2-metodos-longos-em-services.md) | Eixo B — métodos > 40 LOC nos services | ⬜ Não iniciada | 0/6 tarefas |
 | 3 | [04-fase-3-finance-api-repositorios-e-modulos.md](./04-fase-3-finance-api-repositorios-e-modulos.md) | Eixo C — `finance_api`: repositories, imports tardios, utils | ⬜ Não iniciada | 0/6 tarefas |
@@ -30,7 +30,7 @@
 
 ### Definição de pronto global
 
-- [ ] Fase 0 — gates e rede de segurança
+- [x] Fase 0 — gates e rede de segurança
 - [ ] Fase 1 — condicionais em services
 - [ ] Fase 2 — métodos longos em services
 - [ ] Fase 3 — `finance_api` modular
@@ -56,8 +56,8 @@
 ## 2. Linha de base medida (working tree atual, AST scan sem testes)
 
 - **904 funções de produção** nas 4 APIs.
-- **33 funções violando os gates** (`ifs > 3` OU `loc > 40` OU `profundidade ≥ 4`).
-- **~50% das violações (17) estão na camada `services/`** — foco pedido pelo desenvolvedor.
+- **35 funções violando os gates** (`ifs > 3` OU `loc > 40` OU `profundidade ≥ 4`) — re-medido em 2026-11-02 na Fase 0 (eram 33 antes do WIP de faturas/dashboard).
+- **~54% das violações (19) estão na camada `services/`** — foco pedido pelo desenvolvedor.
 - **56 funções top-level com `_underscore`** em 16 arquivos (violação da Regra 4).
 - **6 imports tardios** dentro de funções em `finance_api/repositories/` (violação do `AGENTS.md` §3.4).
 - **3 `__all__`** em `__init__.py` internos (violação da Regra 5).
@@ -67,7 +67,7 @@
 | Arquivo:linha | Função | LOC | `if`s | Prof. | Problema central | Fase |
 |---|---|---:|---:|---:|---|---|
 | `agent_api/services/agent.py:83` | `_extract_assistant_response` | 49 | 7 | 5 | 3 estratégias de extração em cascata + merge de `image_base64` repetido 3× | 1.1 |
-| `finance_api/services/invoices.py:131` | `update_invoice_dates` | 43 | 6 | 2 | patch vs criação + patch campo-a-campo (Regra 7) — **WIP não commitado** | 1.2 |
+| `finance_api/services/invoices.py:131` | `update_invoice_dates` | 43 | 6 | 3 | patch vs criação + patch campo-a-campo (Regra 7) — WIP commitado (`0351f34`) | 1.2 |
 | `finance_api/repositories/staged_transactions.py:101` | `list_by_filter` | 54 | 6 | 1 | condições + paginação inline | 3.4 |
 | `finance_api/services/spents.py:216` | `update` | 30 | 6 | 2 | orquestração validação categoria → PM → resolver → patch | 1.3 |
 | `finance_api/services/incomes.py:122` | `update` | 16 | 5 | 3 | mesmo padrão duplicado do `spents.update` | 1.3 |
@@ -76,7 +76,7 @@
 | `telegram_api/services/session_service.py:35` | `sync_chat_session` | 23 | 5 | 3 | branch "repo injetado vs default" duplica delete/save | 1.4 |
 | `finance_api/services/import_strategies.py:113` | `SetCategoryBulkStrategy.execute` | 38 | 5 | 1 | validação EXPENSE/INCOME duplicada | 1.5 |
 | `telegram_api/core/http_client.py:362` | `get_balance_graph` | 60 | 4 | 1 | fetch + payload + graph + erros inline | 4.2 |
-| `finance_api/services/balances.py:90` | `_resolve_pm_invoice_period` | 40 | 4 | 2 | **WIP não commitado** — reavaliar | 1.6 |
+| `finance_api/services/balances.py:90` | `_resolve_pm_invoice_period` | 40 | 4 | 3 | **WIP commitado** (`0351f34`) — reavaliar | 1.6 |
 | `finance_api/repositories/payment_methods.py:28` | `get_by_key` | 52 | 3 | 2 | 2× `try/except Exception` + imports tardios + `getattr` defensivo | 3.1 |
 
 ### 2.2 Métodos longos sem excesso de `if` (Eixo B — SRP/tamanho)
@@ -92,6 +92,7 @@
 | `agent_api/services/tools/graph.py:18` | `build_gerar_grafico` | 51 | closure + função interna longa (docstring = contrato LLM) | 2.5 |
 | `agent_api/services/ocr.py:63` | `extract_text` | 46 | I/O + validação + pytesseract + limpeza | 2.2 |
 | `finance_api/services/incomes.py:148` | `get_monthly_summary` | 45 | fetch + agregações + montagem | 2.3 |
+| `finance_api/services/balances.py:138` | `_build_balances` | 44 | montagem do DTO com agregações inline (**nova violação**, re-medida na Fase 0) | 2.3 |
 | `finance_api/services/import_staging.py:94` | `_to_staged` | 45 | mapping puro (0 `if`) | 2.6 (documentar) |
 | `finance_api/services/ai_classifier.py:17` | `classify_batch` | 43 | payload + LLM + sanitize no mesmo método | 2.4 |
 
