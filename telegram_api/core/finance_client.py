@@ -67,7 +67,7 @@ async def get_valid_owners() -> list[str]:
     return await fetch_keys("/payment-owners/?size=100", DEFAULT_OWNERS, "payment owners")
 
 
-async def save_spent(details: dict) -> dict[str, Any]:
+async def save_spent(details: dict[str, Any]) -> dict[str, Any]:
     """Save a spent directly to finance API.
 
     Args:
@@ -83,7 +83,7 @@ async def save_spent(details: dict) -> dict[str, Any]:
     return response.json()
 
 
-async def save_income(details: dict) -> dict[str, Any]:
+async def save_income(details: dict[str, Any]) -> dict[str, Any]:
     """Save an income directly to finance API.
 
     Args:
@@ -99,7 +99,7 @@ async def save_income(details: dict) -> dict[str, Any]:
     return response.json()
 
 
-async def save_subscription(details: dict) -> dict[str, Any]:
+async def save_subscription(details: dict[str, Any]) -> dict[str, Any]:
     """Save a subscription directly to finance API.
 
     Args:

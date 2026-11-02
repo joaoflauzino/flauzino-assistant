@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import httpx
+from sqlalchemy.exc import SQLAlchemyError
 
 from telegram_api.core.formatter import build_options_keyboard
 from telegram_api.core.logger import get_logger
@@ -65,18 +66,20 @@ async def handle_agent_interaction(
     """Runs the agent call and replies, translating transport failures into user messages."""
     try:
         response_data = await run_agent_call(chat_id, call)
-        await reply_with_response(
-            target_message, response_data, messages, with_options=with_options
-        )
-        logger.info(f"Sent agent response to chat {chat_id}")
     except httpx.HTTPStatusError as error:
         logger.error(
             f"HTTP error from agent_api: {error.response.status_code} - {error.response.text}"
         )
         await target_message.reply_text(messages.http_error)
+        return
     except httpx.RequestError as error:
         logger.error(f"Connection error to agent_api: {error}")
         await target_message.reply_text(messages.connection_error)
-    except Exception as error:  # Boundary: never leave the chat without an answer.
+        return
+    except (SQLAlchemyError, TypeError, ValueError) as error:
         logger.error(f"Unexpected error handling agent interaction: {error}", exc_info=True)
         await target_message.reply_text(messages.unexpected_error)
+        return
+
+    await reply_with_response(target_message, response_data, messages, with_options=with_options)
+    logger.info(f"Sent agent response to chat {chat_id}")

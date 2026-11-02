@@ -4,14 +4,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from telegram_api.core.agent_client import send_message_to_agent
 from telegram_api.core.correlation import CORRELATION_HEADER, set_request_id
 
 
 @pytest.mark.asyncio
 @patch("telegram_api.core.agent_client.get_http_client")
 async def test_send_message_to_agent_includes_correlation_header(mock_get_client):
-    from telegram_api.core.agent_client import send_message_to_agent
-
     mock_client = AsyncMock()
     mock_resp = MagicMock()
     mock_resp.status_code = 200
@@ -31,8 +30,6 @@ async def test_send_message_to_agent_includes_correlation_header(mock_get_client
 @pytest.mark.asyncio
 @patch("telegram_api.core.agent_client.get_http_client")
 async def test_send_message_to_agent_forwards_the_session_id(mock_get_client):
-    from telegram_api.core.agent_client import send_message_to_agent
-
     mock_client = AsyncMock()
     mock_client.post.return_value = MagicMock(
         raise_for_status=MagicMock(), json=MagicMock(return_value={"response": "ok"})

@@ -22,24 +22,13 @@ class SubscriptionService:
     def __init__(
         self,
         repo: SubscriptionRepository,
-        payment_resolver: PaymentResolutionService | None = None,
-        category_repo: CategoryRepository | None = None,
+        *,
+        payment_resolver: PaymentResolutionService,
+        category_repo: CategoryRepository,
     ):
         self.repo = repo
-        self._payment_resolver = payment_resolver
-        self._category_repo = category_repo
-
-    @property
-    def category_repo(self) -> CategoryRepository:
-        if self._category_repo is not None:
-            return self._category_repo
-        return CategoryRepository(self.repo.db)
-
-    @property
-    def payment_resolver(self) -> PaymentResolutionService:
-        if self._payment_resolver is not None:
-            return self._payment_resolver
-        return PaymentResolutionService(db=getattr(self.repo, "db", None))
+        self.payment_resolver = payment_resolver
+        self.category_repo = category_repo
 
     async def _resolve_payment_relations(
         self, data: SubscriptionCreate | SubscriptionUpdate

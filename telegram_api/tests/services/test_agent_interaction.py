@@ -1,5 +1,6 @@
 """Unit tests for the shared agent interaction flow."""
 
+from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import httpx
@@ -99,7 +100,7 @@ async def test_reply_with_response_ignores_options_by_default():
 async def test_handle_agent_interaction_replies_on_success():
     target = AsyncMock()
 
-    async def call(session_id: str | None) -> dict:
+    async def call(session_id: str | None) -> dict[str, Any]:
         return {"response": "resposta"}
 
     with (
@@ -119,7 +120,7 @@ async def test_handle_agent_interaction_replies_on_success():
 async def test_handle_agent_interaction_maps_http_status_errors():
     target = AsyncMock()
 
-    async def call(session_id: str | None) -> dict:
+    async def call(session_id: str | None) -> dict[str, Any]:
         raise http_status_error()
 
     with patch(SESSION_PATH) as session_service:
@@ -135,7 +136,7 @@ async def test_handle_agent_interaction_maps_http_status_errors():
 async def test_handle_agent_interaction_maps_connection_errors():
     target = AsyncMock()
 
-    async def call(session_id: str | None) -> dict:
+    async def call(session_id: str | None) -> dict[str, Any]:
         raise httpx.ConnectError("refused")
 
     with patch(SESSION_PATH) as session_service:
@@ -148,11 +149,11 @@ async def test_handle_agent_interaction_maps_connection_errors():
 
 
 @pytest.mark.asyncio
-async def test_handle_agent_interaction_maps_unexpected_errors():
+async def test_handle_agent_interaction_maps_value_errors():
     target = AsyncMock()
 
-    async def call(session_id: str | None) -> dict:
-        raise RuntimeError("bug")
+    async def call(session_id: str | None) -> dict[str, Any]:
+        raise ValueError("invalid agent response")
 
     with patch(SESSION_PATH) as session_service:
         session_service.get_session = AsyncMock(return_value=None)
@@ -161,3 +162,20 @@ async def test_handle_agent_interaction_maps_unexpected_errors():
         await handle_agent_interaction(target, 42, call, MESSAGES)
 
     target.reply_text.assert_awaited_once_with("unexpected error")
+
+
+@pytest.mark.asyncio
+async def test_handle_agent_interaction_does_not_swallow_unexpected_errors():
+    target = AsyncMock()
+
+    async def call(session_id: str | None) -> dict[str, Any]:
+        raise RuntimeError("bug")
+
+    with patch(SESSION_PATH) as session_service:
+        session_service.get_session = AsyncMock(return_value=None)
+        session_service.sync_session = AsyncMock()
+
+        with pytest.raises(RuntimeError, match="bug"):
+            await handle_agent_interaction(target, 42, call, MESSAGES)
+
+    target.reply_text.assert_not_awaited()
