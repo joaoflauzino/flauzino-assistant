@@ -20,7 +20,8 @@ from finance_api.repositories.staged_transactions import StagedTransactionReposi
 from finance_api.schemas.imports import BulkActionRequest, CommitRequest
 from finance_api.services.ai_classifier import AIClassifierClient
 from finance_api.services.classification import ClassificationService
-from finance_api.services.imports import ImportService
+from finance_api.services.import_factory import build_default_import_service
+from finance_api.services.import_wiring import ImportOverrides, ImportServiceDeps
 from finance_api.services.incomes import IncomeService
 from finance_api.services.spents import SpentService
 
@@ -104,7 +105,7 @@ def mock_dependencies():
     ai_client = MagicMock(spec=AIClassifierClient)
     ai_client.classify_batch = AsyncMock(return_value=({}, False))
 
-    service = ImportService(
+    deps = ImportServiceDeps(
         batch_repo=batch_repo,
         tx_repo=tx_repo,
         rule_repo=rule_repo,
@@ -115,8 +116,8 @@ def mock_dependencies():
         income_service=income_service,
         category_repo=cat_repo,
         income_category_repo=inc_cat_repo,
-        ai_client=ai_client,
     )
+    service = build_default_import_service(deps, ImportOverrides(ai_client=ai_client))
 
     return service, acc_id, batch_repo, tx_repo, spent_service, income_service, rule_repo
 
