@@ -4,15 +4,6 @@ import pytest
 from telegram.ext import ConversationHandler
 
 from telegram_api.handlers.expense_handler import (
-    SELECT_CATEGORY,
-    SELECT_DATE_OPTION,
-    SELECT_PAYMENT_METHOD,
-    SELECT_PURCHASE_TYPE,
-    TYPE_CURRENT_INSTALLMENT,
-    TYPE_ITEM_BOUGHT,
-    TYPE_LOCATION,
-    TYPE_TOTAL_INSTALLMENTS,
-    TYPE_VALUE,
     cancel,
     confirm_expense,
     gasto_command,
@@ -24,6 +15,17 @@ from telegram_api.handlers.expense_handler import (
     type_location,
     type_total_installments,
     type_value,
+)
+from telegram_api.handlers.expense_states import (
+    SELECT_CATEGORY,
+    SELECT_DATE_OPTION,
+    SELECT_PAYMENT_METHOD,
+    SELECT_PURCHASE_TYPE,
+    TYPE_CURRENT_INSTALLMENT,
+    TYPE_ITEM_BOUGHT,
+    TYPE_LOCATION,
+    TYPE_TOTAL_INSTALLMENTS,
+    TYPE_VALUE,
 )
 
 
@@ -189,7 +191,7 @@ async def test_type_current_installment(mock_ask, mock_update, mock_context):
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.handlers.expense_handler.save_spent")
+@patch("telegram_api.services.expense.save_spent")
 async def test_confirm_expense_a_vista(mock_save_spent, mock_update, mock_context):
     mock_context.user_data["expense"] = {
         "purchase_type": "a_vista",
@@ -207,7 +209,7 @@ async def test_confirm_expense_a_vista(mock_save_spent, mock_update, mock_contex
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.handlers.expense_handler.save_subscription")
+@patch("telegram_api.services.expense.save_subscription")
 async def test_confirm_expense_assinatura(mock_save_sub, mock_update, mock_context):
     mock_context.user_data["expense"] = {
         "purchase_type": "assinatura",
@@ -225,7 +227,7 @@ async def test_confirm_expense_assinatura(mock_save_sub, mock_update, mock_conte
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.handlers.expense_handler.save_spent")
+@patch("telegram_api.services.expense.save_spent")
 async def test_cancel_expense(mock_save_spent, mock_update, mock_context):
     mock_context.user_data["expense"] = {"data": "test"}
     mock_update.callback_query.data = "cancel"

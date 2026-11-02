@@ -1,0 +1,15 @@
+"""Conversation state identifiers for the expense flow."""
+
+(
+    SELECT_CATEGORY,
+    TYPE_ITEM_BOUGHT,
+    TYPE_VALUE,
+    SELECT_PAYMENT_METHOD,
+    TYPE_LOCATION,
+    SELECT_PURCHASE_TYPE,
+    TYPE_TOTAL_INSTALLMENTS,
+    TYPE_CURRENT_INSTALLMENT,
+    SELECT_DATE_OPTION,
+    TYPE_CUSTOM_DATE,
+    CONFIRMATION,
+) = range(11)

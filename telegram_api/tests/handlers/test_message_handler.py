@@ -39,7 +39,7 @@ def mock_context():
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.handlers.message_handler.SessionService")
+@patch("telegram_api.services.agent_interaction.SessionService")
 @patch("telegram_api.handlers.message_handler.send_message_to_agent")
 async def test_handle_text_message_suggested_options(
     mock_send, mock_session_service, mock_update, mock_context
@@ -79,7 +79,7 @@ async def test_handle_text_message_suggested_options(
 
 
 @pytest.mark.asyncio
-@patch("telegram_api.handlers.message_handler.SessionService")
+@patch("telegram_api.services.agent_interaction.SessionService")
 @patch("telegram_api.handlers.message_handler.send_message_to_agent")
 async def test_handle_agent_callback(mock_send, mock_session_service, mock_update, mock_context):
     # Arrange

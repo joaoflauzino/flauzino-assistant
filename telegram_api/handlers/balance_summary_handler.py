@@ -2,16 +2,11 @@ from telegram import Update
 from telegram.ext import CommandHandler, ContextTypes
 
 from telegram_api.core.correlation import set_request_id
-from telegram_api.core.http_client import get_monthly_balance_summary
+from telegram_api.core.finance_client import get_monthly_balance_summary
 from telegram_api.core.logger import get_logger
+from telegram_api.core.utils import format_currency
 
 logger = get_logger(__name__)
-
-
-def _format_currency(value: float) -> str:
-    formatted = f"{abs(value):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    sign = "+" if value > 0 else ("-" if value < 0 else "")
-    return f"{sign}R$ {formatted}"
 
 
 async def balanco_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -41,10 +36,10 @@ async def balanco_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     msg = (
         f"📊 *Balanço Financeiro Integrado* (`{ref_month}`)\n\n"
-        f"💰 *Receitas (Entradas):* {_format_currency(total_incomes)}\n"
-        f"💸 *Despesas (Saídas):* {_format_currency(total_spents)}\n"
+        f"💰 *Receitas (Entradas):* {format_currency(total_incomes)}\n"
+        f"💸 *Despesas (Saídas):* {format_currency(total_spents)}\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"{status_icon} *Resultado Líquido:* {_format_currency(net_balance)} ({status_label})\n"
+        f"{status_icon} *Resultado Líquido:* {format_currency(net_balance)} ({status_label})\n"
         f"📈 *Taxa de Economia:* {savings_rate:.1f}%\n"
     )
 

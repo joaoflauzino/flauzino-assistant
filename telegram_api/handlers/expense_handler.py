@@ -1,10 +1,6 @@
 import warnings
-from collections.abc import Awaitable, Callable
-from datetime import datetime, timedelta
-from typing import Any
-from zoneinfo import ZoneInfo
 
-from telegram import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
     CallbackQueryHandler,
     CommandHandler,
@@ -16,29 +12,29 @@ from telegram.ext import (
 from telegram.warnings import PTBUserWarning
 
 from telegram_api.core.correlation import set_request_id
-from telegram_api.core.http_client import (
-    get_valid_categories,
-    get_valid_payment_methods,
-    save_spent,
-    save_subscription,
-)
+from telegram_api.core.finance_client import get_valid_categories, get_valid_payment_methods
 from telegram_api.core.logger import get_logger
+from telegram_api.handlers.expense_confirmation import (
+    ask_for_date,
+    select_date_option,
+    type_custom_date,
+)
+from telegram_api.handlers.expense_states import (
+    CONFIRMATION,
+    SELECT_CATEGORY,
+    SELECT_DATE_OPTION,
+    SELECT_PAYMENT_METHOD,
+    SELECT_PURCHASE_TYPE,
+    TYPE_CURRENT_INSTALLMENT,
+    TYPE_CUSTOM_DATE,
+    TYPE_ITEM_BOUGHT,
+    TYPE_LOCATION,
+    TYPE_TOTAL_INSTALLMENTS,
+    TYPE_VALUE,
+)
+from telegram_api.services.expense import persist_expense
 
 logger = get_logger(__name__)
-
-(
-    SELECT_CATEGORY,
-    TYPE_ITEM_BOUGHT,
-    TYPE_VALUE,
-    SELECT_PAYMENT_METHOD,
-    TYPE_LOCATION,
-    SELECT_PURCHASE_TYPE,
-    TYPE_TOTAL_INSTALLMENTS,
-    TYPE_CURRENT_INSTALLMENT,
-    SELECT_DATE_OPTION,
-    TYPE_CUSTOM_DATE,
-    CONFIRMATION,
-) = range(11)
 
 
 def build_inline_keyboard(options: list[str], columns: int = 2) -> InlineKeyboardMarkup:
@@ -146,105 +142,6 @@ async def type_location(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     return SELECT_PURCHASE_TYPE
 
 
-async def ask_for_date(message_target, context: ContextTypes.DEFAULT_TYPE) -> int:
-    keyboard = [
-        [
-            InlineKeyboardButton("📅 Hoje (Agora)", callback_data="date_hoje"),
-            InlineKeyboardButton("📅 Ontem", callback_data="date_ontem"),
-        ],
-        [
-            InlineKeyboardButton("⌨️ Outra Data (Digitar)", callback_data="date_custom"),
-        ],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    text = "Qual foi a data da compra?"
-
-    if hasattr(message_target, "edit_message_text"):
-        await message_target.edit_message_text(text=text, reply_markup=reply_markup)
-    else:
-        await message_target.reply_text(text=text, reply_markup=reply_markup)
-
-    return SELECT_DATE_OPTION
-
-
-async def select_date_option(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    query = update.callback_query
-    await query.answer()
-
-    option = query.data
-    tz = ZoneInfo("America/Sao_Paulo")
-    if option == "date_hoje":
-        context.user_data["expense"]["created_at"] = datetime.now(tz)
-        return await show_confirmation(query, context)
-    elif option == "date_ontem":
-        context.user_data["expense"]["created_at"] = datetime.now(tz) - timedelta(days=1)
-        return await show_confirmation(query, context)
-    elif option == "date_custom":
-        await query.edit_message_text(
-            "Por favor, digite a data no formato DD/MM/AAAA (ex: 15/06/2026):"
-        )
-        return TYPE_CUSTOM_DATE
-    return SELECT_DATE_OPTION
-
-
-async def type_custom_date(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    text = update.message.text
-    try:
-        dt = datetime.strptime(text, "%d/%m/%Y")
-        tz = ZoneInfo("America/Sao_Paulo")
-        now = datetime.now(tz)
-        dt = dt.replace(hour=now.hour, minute=now.minute, second=now.second, tzinfo=tz)
-        context.user_data["expense"]["created_at"] = dt
-    except ValueError:
-        await update.message.reply_text(
-            "Formato inválido. Por favor, digite no formato DD/MM/AAAA (ex: 15/06/2026):"
-        )
-        return TYPE_CUSTOM_DATE
-
-    return await show_confirmation(update.message, context)
-
-
-async def show_confirmation(message_target, context: ContextTypes.DEFAULT_TYPE) -> int:
-    expense = context.user_data["expense"]
-
-    ptype = expense.get("purchase_type", "a_vista")
-    ptype_str = "À vista"
-    if ptype == "parcelada":
-        ptype_str = f"Parcelada ({expense.get('current_installment', 1)}/{expense.get('total_installments', 1)})"
-    elif ptype == "assinatura":
-        ptype_str = "Assinatura Contínua"
-
-    created_at_dt = expense.get("created_at")
-    date_str = created_at_dt.strftime("%d/%m/%Y") if created_at_dt else "Hoje (Agora)"
-
-    summary = (
-        "Confira os dados do seu gasto:\n"
-        f"- Categoria: {expense.get('category')}\n"
-        f"- Item: {expense.get('item_bought')}\n"
-        f"- Valor: R$ {expense.get('amount'):.2f}\n"
-        f"- Pagamento: {expense.get('payment_method')}\n"
-        f"- Local: {expense.get('location', 'N/A')}\n"
-        f"- Data: {date_str}\n"
-        f"- Tipo: {ptype_str}\n\n"
-        "Tudo correto?"
-    )
-
-    keyboard = [
-        [
-            InlineKeyboardButton("Sim, confirmar", callback_data="confirm"),
-            InlineKeyboardButton("Não, cancelar", callback_data="cancel"),
-        ]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
-    if hasattr(message_target, "edit_message_text"):
-        await message_target.edit_message_text(text=summary, reply_markup=reply_markup)
-    else:
-        await message_target.reply_text(summary, reply_markup=reply_markup)
-
-    return CONFIRMATION
-
-
 async def select_purchase_type(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     await query.answer()
@@ -292,82 +189,20 @@ async def type_current_installment(update: Update, context: ContextTypes.DEFAULT
     return await ask_for_date(update.message, context)
 
 
-ExpenseData = dict[str, Any]
-PurchaseSaver = Callable[[ExpenseData], Awaitable[None]]
-
-
-def _with_created_at(data: ExpenseData, expense: ExpenseData) -> ExpenseData:
-    if "created_at" in expense:
-        data["created_at"] = expense["created_at"].isoformat()
-    return data
-
-
-def _build_spent_data(expense: ExpenseData) -> ExpenseData:
-    spent_data: ExpenseData = {
-        "category": expense.get("category"),
-        "amount": expense.get("amount"),
-        "item_bought": expense.get("item_bought"),
-        "payment_method": expense.get("payment_method"),
-        "location": expense.get("location", "N/A"),
-    }
-    return _with_created_at(spent_data, expense)
-
-
-def _build_subscription_data(expense: ExpenseData) -> ExpenseData:
-    subscription_data: ExpenseData = {
-        "name": expense.get("item_bought"),
-        "category": expense.get("category"),
-        "amount": expense.get("amount"),
-        "payment_method": expense.get("payment_method"),
-    }
-    return _with_created_at(subscription_data, expense)
-
-
-async def _save_single_purchase(expense: ExpenseData) -> None:
-    await save_spent(_build_spent_data(expense))
-
-
-async def _save_installment(expense: ExpenseData) -> None:
-    spent_data = _build_spent_data(expense)
-    spent_data["is_installment"] = True
-    spent_data["current_installment"] = expense.get("current_installment", 1)
-    spent_data["total_installments"] = expense.get("total_installments", 1)
-    await save_spent(spent_data)
-
-
-async def _save_continuous_subscription(expense: ExpenseData) -> None:
-    await save_subscription(_build_subscription_data(expense))
-
-
-PURCHASE_SAVERS: dict[str, PurchaseSaver] = {
-    "a_vista": _save_single_purchase,
-    "parcelada": _save_installment,
-    "assinatura": _save_continuous_subscription,
-}
-
-
-def _resolve_saver(expense: ExpenseData) -> PurchaseSaver:
-    return PURCHASE_SAVERS.get(expense.get("purchase_type", "a_vista"), _save_single_purchase)
-
-
-async def _persist_expense(query: CallbackQuery, expense: ExpenseData) -> None:
-    try:
-        await _resolve_saver(expense)(expense)
-        await query.edit_message_text(text="✅ Registro salvo com sucesso!")
-        logger.info("Saved successfully.")
-    except Exception as e:  # Boundary: report save failures back to the user.
-        logger.error(f"Failed to save: {e}")
-        await query.edit_message_text(
-            text="❌ Ocorreu um erro ao salvar. Tente novamente mais tarde."
-        )
-
-
 async def confirm_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     await query.answer()
 
     if query.data == "confirm":
-        await _persist_expense(query, context.user_data.get("expense", {}))
+        try:
+            await persist_expense(context.user_data.get("expense", {}))
+            await query.edit_message_text(text="✅ Registro salvo com sucesso!")
+            logger.info("Saved successfully.")
+        except Exception as error:  # Boundary: report save failures back to the user.
+            logger.error(f"Failed to save: {error}")
+            await query.edit_message_text(
+                text="❌ Ocorreu um erro ao salvar. Tente novamente mais tarde."
+            )
     else:
         await query.edit_message_text(text="❌ Registro cancelado.")
         logger.info("Registration cancelled.")

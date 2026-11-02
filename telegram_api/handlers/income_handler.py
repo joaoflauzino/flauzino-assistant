@@ -12,7 +12,7 @@ from telegram.ext import (
 from telegram.warnings import PTBUserWarning
 
 from telegram_api.core.correlation import set_request_id
-from telegram_api.core.http_client import (
+from telegram_api.core.finance_client import (
     get_valid_accounts,
     get_valid_income_categories,
     save_income,

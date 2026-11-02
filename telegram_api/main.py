@@ -16,7 +16,8 @@ from telegram.ext import (
 )
 
 from telegram_api.core.database import close_db, init_db
-from telegram_api.core.http_client import close_http_client, get_balance_graph
+from telegram_api.core.finance_client import get_balance_graph
+from telegram_api.core.http_client import close_http_client
 from telegram_api.core.logger import get_logger
 from telegram_api.core.metrics import start_metrics_server
 from telegram_api.core.middleware import auth_middleware
@@ -38,7 +39,7 @@ WEEKLY_SUMMARY_DAYS = (4,)  # 4 = Friday in python-telegram-bot run_daily (0=Mon
 WEEKLY_SUMMARY_CAPTION = "Aqui está seu *Resumo Semanal de Saldos e Limites*!"
 
 
-def _register_handlers(application: Application) -> None:
+def register_handlers(application: Application) -> None:
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(balanco_handler)
@@ -55,7 +56,7 @@ def _register_handlers(application: Application) -> None:
     application.add_handler(agent_callback_handler)
 
 
-def _schedule_weekly_summary(application: Application) -> None:
+def schedule_weekly_summary(application: Application) -> None:
     # Note: APScheduler/JobQueue runs in UTC by default; 10:00 BRT is 13:00 UTC.
     job_queue = application.job_queue
     if job_queue is None:
@@ -68,35 +69,35 @@ def _schedule_weekly_summary(application: Application) -> None:
     )
 
 
-async def _post_init(application: Application) -> None:
+async def post_init(application: Application) -> None:
     logger.info("Initializing resources...")
     await init_db()
-    _schedule_weekly_summary(application)
+    schedule_weekly_summary(application)
     logger.info("Scheduled weekly balance summary for Friday 10:00 AM (BRT)")
 
 
-async def _post_shutdown(application: Application) -> None:
+async def post_shutdown(application: Application) -> None:
     logger.info("Shutting down, cleaning up resources...")
     await close_http_client()
     await close_db()
 
 
-def _signal_handler(signum: int, frame: Any) -> None:
+def signal_handler(signum: int, frame: Any) -> None:
     logger.info(f"Received signal {signum}, shutting down...")
     sys.exit(0)
 
 
-def _register_signal_handlers() -> None:
-    signal.signal(signal.SIGINT, _signal_handler)
-    signal.signal(signal.SIGTERM, _signal_handler)
+def register_signal_handlers() -> None:
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
 
 
-def _build_application() -> Application:
+def build_application() -> Application:
     application = Application.builder().token(settings.TELEGRAM_BOT_TOKEN).build()
     application.add_handler(TypeHandler(Update, auth_middleware), group=-1)
-    _register_handlers(application)
-    application.post_init = _post_init
-    application.post_shutdown = _post_shutdown
+    register_handlers(application)
+    application.post_init = post_init
+    application.post_shutdown = post_shutdown
     return application
 
 
@@ -107,17 +108,17 @@ def main() -> None:
     start_metrics_server(port=settings.METRICS_PORT)
     logger.info(f"Prometheus metrics server started on port {settings.METRICS_PORT}")
 
-    application = _build_application()
+    application = build_application()
     logger.info("Handlers registered successfully")
 
-    _register_signal_handlers()
+    register_signal_handlers()
     logger.info(
         f"Bot started. Polling Telegram for updates and forwarding to agent_api: {settings.AGENT_API_URL}"
     )
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
-async def _send_summary_photos(
+async def send_summary_photos(
     context: ContextTypes.DEFAULT_TYPE, chat_ids: list[int], img_data: bytes
 ) -> None:
     for chat_id in chat_ids:
@@ -147,7 +148,7 @@ async def send_weekly_balance_summary(context: ContextTypes.DEFAULT_TYPE) -> Non
             return
 
         chat_ids = await SessionService().list_known_chat_ids()
-        await _send_summary_photos(context, chat_ids, img_data)
+        await send_summary_photos(context, chat_ids, img_data)
     except Exception as e:  # Boundary: job failures are logged, never raised to the scheduler.
         logger.error(f"Error generating weekly balance summary graph: {e}")
 

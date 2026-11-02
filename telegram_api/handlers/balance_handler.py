@@ -11,7 +11,7 @@ from telegram.ext import (
 )
 
 from telegram_api.core.correlation import set_request_id
-from telegram_api.core.http_client import get_balance_graph, get_valid_categories
+from telegram_api.core.finance_client import get_balance_graph, get_valid_categories
 from telegram_api.core.logger import get_logger
 
 logger = get_logger(__name__)
@@ -102,32 +102,32 @@ async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     return SELECT_CATEGORY
 
 
-async def _repaint(query: CallbackQuery, selection: CategorySelection) -> None:
+async def repaint(query: CallbackQuery, selection: CategorySelection) -> None:
     await query.edit_message_reply_markup(
         reply_markup=build_inline_keyboard(selection.categories, selection.selected)
     )
 
 
-async def _select_all(update: Update, selection: CategorySelection) -> int:
+async def select_all(update: Update, selection: CategorySelection) -> int:
     selection.select_all()
-    await _repaint(update.callback_query, selection)
+    await repaint(update.callback_query, selection)
     return SELECT_CATEGORY
 
 
-async def _select_none(update: Update, selection: CategorySelection) -> int:
+async def select_none(update: Update, selection: CategorySelection) -> int:
     selection.select_none()
-    await _repaint(update.callback_query, selection)
+    await repaint(update.callback_query, selection)
     return SELECT_CATEGORY
 
 
-async def _toggle_category(update: Update, selection: CategorySelection) -> int:
+async def toggle_category(update: Update, selection: CategorySelection) -> int:
     data = update.callback_query.data or ""
     selection.toggle(data.removeprefix(CATEGORY_PREFIX))
-    await _repaint(update.callback_query, selection)
+    await repaint(update.callback_query, selection)
     return SELECT_CATEGORY
 
 
-async def _reply_with_graph(
+async def reply_with_graph(
     update: Update, query: CallbackQuery, categories: set[str], mode: str
 ) -> None:
     try:
@@ -149,39 +149,39 @@ async def _reply_with_graph(
     await query.message.delete()
 
 
-async def _generate_graph(update: Update, selection: CategorySelection) -> int:
+async def generate_graph(update: Update, selection: CategorySelection) -> int:
     query = update.callback_query
     selected = selection.selected or set(selection.categories)
 
     await query.edit_message_text("Gerando gráfico dos seus saldos, aguarde...")
-    await _reply_with_graph(update, query, selected, selection.mode)
+    await reply_with_graph(update, query, selected, selection.mode)
     return ConversationHandler.END
 
 
-async def _ignore(update: Update, selection: CategorySelection) -> int:
+async def ignore(update: Update, selection: CategorySelection) -> int:
     return SELECT_CATEGORY
 
 
 CategoryAction = Callable[[Update, CategorySelection], Awaitable[int]]
 
 ACTIONS: dict[str, CategoryAction] = {
-    "all": _select_all,
-    "none": _select_none,
-    "generate": _generate_graph,
+    "all": select_all,
+    "none": select_none,
+    "generate": generate_graph,
 }
 
 
-def _resolve_action(data: str) -> CategoryAction:
+def resolve_action(data: str) -> CategoryAction:
     if data.startswith(CATEGORY_PREFIX):
-        return _toggle_category
-    return ACTIONS.get(data, _ignore)
+        return toggle_category
+    return ACTIONS.get(data, ignore)
 
 
 async def select_category(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     await query.answer()
 
-    action = _resolve_action(query.data or "")
+    action = resolve_action(query.data or "")
     return await action(update, CategorySelection.load(context))
 
 
