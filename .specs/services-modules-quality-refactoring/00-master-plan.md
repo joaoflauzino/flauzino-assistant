@@ -4,7 +4,7 @@
 >
 > **Branch de trabalho:** `feat/refactor` (3º ciclo — os planos anteriores `.specs/code-quality-refactoring/`, `.specs/quality-refactoring/` e `.specs/python-patterns-refactoring/` já foram em grande parte executados; este plano é **incremental** e parte do estado atual medido).
 >
-> **Status geral:** 🟨 Em execução — Fases 0, 1, 2 e 3 concluídas em 2026-11-02; Fase 4 é a próxima; Fase 6 em andamento (6.1 concluída — gate de arquitetura ativo, baseline 17 → 14 conforme as fases quitam dívida).
+> **Status geral:** 🟨 Em execução — Fases 0, 1, 2, 3 e 4 concluídas em 2026-11-02; Fase 5 é a próxima; Fase 6 em andamento (6.1 concluída — gate ativo, baseline 17 → 12 conforme as fases quitam dívida).
 
 ---
 
@@ -25,7 +25,7 @@
 | 1 | [02-fase-1-condicionais-em-services.md](./02-fase-1-condicionais-em-services.md) | Eixo A — cascatas de `if` nos services | ✅ Concluída | 6/6 tarefas |
 | 2 | [03-fase-2-metodos-longos-em-services.md](./03-fase-2-metodos-longos-em-services.md) | Eixo B — métodos > 40 LOC nos services | ✅ Concluída | 6/6 tarefas |
 | 3 | [04-fase-3-finance-api-repositorios-e-modulos.md](./04-fase-3-finance-api-repositorios-e-modulos.md) | Eixo C — `finance_api`: repositories, imports tardios, utils, pacote `imports/` | ✅ Concluída | 7/7 tarefas |
-| 4 | [05-fase-4-telegram-api-modulos-e-handlers.md](./05-fase-4-telegram-api-modulos-e-handlers.md) | Eixo C — `telegram_api`: Regra 4, splits, handlers finos | ⬜ Não iniciada | 0/5 tarefas |
+| 4 | [05-fase-4-telegram-api-modulos-e-handlers.md](./05-fase-4-telegram-api-modulos-e-handlers.md) | Eixo C — `telegram_api`: Regra 4, splits, handlers finos | ✅ Concluída | 5/5 tarefas |
 | 5 | [06-fase-5-agent-api-e-verificacao-final.md](./06-fase-5-agent-api-e-verificacao-final.md) | Eixo C — `agent_api`, `__all__`, verificação final | ⬜ Não iniciada | 0/4 tarefas |
 | 6 | [07-fase-6-padronizacao-de-modulos.md](./07-fase-6-padronizacao-de-modulos.md) | Eixo C — padrão de módulos no repo inteiro + gate de arquitetura (política como código) | 🟨 Em andamento | 1/6 tarefas |
 
@@ -35,7 +35,7 @@
 - [x] Fase 1 — condicionais em services
 - [x] Fase 2 — métodos longos em services
 - [x] Fase 3 — `finance_api` modular
-- [ ] Fase 4 — `telegram_api` modular
+- [x] Fase 4 — `telegram_api` modular
 - [ ] Fase 5 — `agent_api` modular + verificação final
 - [ ] Fase 6 — padronização de módulos no repo + gate automático
 
@@ -73,6 +73,8 @@
 > **Atualização da Fase 3.3 (2026-11-02):** normalização de texto consolidada em `finance_api/utils/text.py` (`strip_diacritics` + `normalize_upper` + `normalize_lower`). Os três helpers locais (`_normalize_str` ×2, `_normalize`) e o alias `_normalize` foram removidos — o item "utilidade duplicada em vez de `utils.py`" de §2.3 está quitado.
 
 > **Atualização da Fase 3.4 (2026-11-02):** `staged_transactions.list_by_filter` 54 → 20 LOC com **0 condicionais** (as 6 `if`s viraram tabela declarativa de igualdades + 2 flags; `get_approved_for_commit` reusa o builder). O item "conditions + paginação inline" de §2.2 está quitado. Também foi corrigido um **bug pré-existente** fora do plano: `GET /payment-methods/` respondia 500 por `created_at=None` nos `PaymentMethod` sintéticos (adapters agora copiam `created_at` da origem).
+
+> **Atualização da Fase 4 (2026-11-02):** `telegram_api` sem nenhuma função top-level com `_`; retry centralizado em `post_with_retry`; `http_client.py` 422 → 71 LOC; `expense_handler.py` 409 → 243 com savers em `services/expense.py`; os 3 handlers de mídia passaram a compartilhar `services/agent_interaction.py`. Baseline do gate: 14 → **12** (regra B zerada no telegram_api).
 
 > **Atualização da Fase 3.5 (2026-11-02):** `import_strategies.py` (351 LOC, acima do teto da Regra 6) foi dividido em `import_bulk_strategies.py` + `import_commit_strategies.py`. `DuplicateDetectorStrategy` subiu para `services/protocols.py` (Regra 2) e `resolve_salary_competence_date` foi para o seu único consumidor (`import_staging.py`). No gate de arquitetura, a regra B caiu de 3 → 2 violações e o baseline de 17 → 16, sem entradas obsoletas — primeira prova real do burn-down.
 
@@ -124,14 +126,14 @@ Nenhuma delas viola `C90`/`PLR0912`/`PLR0915`; por isso não houve `# noqa`.
 
 | Violação | Regra | Onde | Fase |
 |---|---|---|---|
-| **56 funções top-level com `_`** | Regra 4 | `telegram_api/core/formatter.py` (11), `handlers/balance_handler.py` (8), `handlers/expense_handler.py` (8), `telegram_api/main.py` (8), `core/middleware.py` (5), `agent_api/core/callbacks.py` (5), `agent_api/services/classify.py` (2), + 9 arquivos com 1 cada | 4.1–4.5, 5.1–5.2 |
+| **56 funções top-level com `_`** | Regra 4 | ✅ `telegram_api` zerado na 4.5 (formatter, balance/expense handlers, main, middleware); restam `agent_api/core/callbacks.py` (5), `agent_api/services/classify.py` (2) e +9 arquivos com 1 cada | 4.5 ✅, 5.1–5.2 |
 | **Imports tardios em funções** | `AGENTS.md` §3.4 | `finance_api/repositories/payment_methods.py` (5×), `categories.py` (1×: linha 35) | 3.1–3.2 ✅ |
 | **`__all__` em módulos internos** | Regra 5 | `finance_api/models/__init__.py` ✅ (3.6), `agent_api/services/tools/__init__.py`, `telegram_api/services/__init__.py` | 3.6 ✅, 5.3 |
 | **Utilidade duplicada em vez de `utils.py`** | Regra 3 | `_normalize_str`/`_normalize` em 3 repositories — já existe `finance_api/utils/text.py` (repos usam `.lower()`, utils `.upper()` — preservar call-site) + alias `_normalize` em `utils/text.py:13` | 3.3 ✅ |
-| **Módulo com SRP misto (formatação pura + I/O)** | Regra 3/SRP | `telegram_api/core/formatter.py` (238 linhas) | 4.1 |
-| **Retry loop duplicado 3×** | `python-anti-patterns` | `telegram_api/core/http_client.py`: mesmo `for attempt in range(3)` + backoff em 3 funções (prof. 4) | 4.2 |
-| **Lógica de negócio no handler** | Camadas | `telegram_api/handlers/expense_handler.py` (409 linhas): builders e savers deveriam estar em `services/` | 4.3 |
-| **Arquivos acima do teto (~300 linhas, Regra 6)** | Regra 6 | `http_client.py` (421 → 4.2), `expense_handler.py` (408 → 4.3), `import_strategies.py` (351 → ✅ 3.5), `core/dependencies.py` (295, sob o teto) | 3.5 ✅, 4.2–4.3 |
+| **Módulo com SRP misto (formatação pura + I/O)** | Regra 3/SRP | `telegram_api/core/formatter.py` (238 linhas) | 4.1 ✅ |
+| **Retry loop duplicado 3×** | `python-anti-patterns` | `telegram_api/core/http_client.py`: mesmo `for attempt in range(3)` + backoff em 3 funções (prof. 4) | 4.2 ✅ |
+| **Lógica de negócio no handler** | Camadas | `telegram_api/handlers/expense_handler.py` (409 linhas): builders e savers deveriam estar em `services/` | 4.3 ✅ |
+| **Arquivos acima do teto (~300 linhas, Regra 6)** | Regra 6 | `http_client.py` (421 → 71 ✅ 4.2), `expense_handler.py` (408 → 243 ✅ 4.3), `import_strategies.py` (351 → ✅ 3.5), `core/dependencies.py` (295, sob o teto) | 3.5 ✅, 4.2 ✅, 4.3 ✅ |
 | **Instanciação de dependência dentro de método** | DI (`AGENTS.md` §3.4) | `finance_api/services/subscriptions.py:84` | 1.3 |
 | **`getattr` defensivo contra mocks em produção** | `python-anti-patterns` | `payment_methods.py:48,68`, `spents.py:230` | 1.3, 3.1 |
 | **Cluster de feature espalhado por prefixo (pasta escrita por extenso)** | Regra 6 | `finance_api/services/import_*.py` + `imports.py`: **14 arquivos / 1.718 LOC = 40% de `services/`** (35 arquivos / 4.290 LOC); grafo é DAG, mas o prefixo `import_` faz o papel de diretório | 3.7 ✅ |
