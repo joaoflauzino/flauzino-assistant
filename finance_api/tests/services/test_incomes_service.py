@@ -12,6 +12,7 @@ from finance_api.models.payment_methods import PaymentMethod
 from finance_api.models.spents import Spent
 from finance_api.schemas.incomes import IncomeCreate
 from finance_api.services.incomes import IncomeService
+from finance_api.tests.fakes.fake_payment_resolver import FakePaymentResolver
 
 
 @pytest.fixture
@@ -41,6 +42,7 @@ def income_service(mock_income_repo, mock_cat_repo, mock_pm_repo, mock_spent_rep
         category_repo=mock_cat_repo,
         pm_repo=mock_pm_repo,
         spent_repo=mock_spent_repo,
+        payment_resolver=FakePaymentResolver(),
     )
 
 

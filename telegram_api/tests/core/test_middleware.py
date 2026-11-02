@@ -26,7 +26,7 @@ def _update(
     callback_query: SimpleNamespace | None = None,
     username: str | None = "joao",
 ) -> SimpleNamespace:
-    user = SimpleNamespace(id=1, username=username) if username is not None else None
+    user = SimpleNamespace(id=1, username=username)
     return SimpleNamespace(message=message, callback_query=callback_query, effective_user=user)
 
 

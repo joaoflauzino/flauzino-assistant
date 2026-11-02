@@ -9,6 +9,7 @@ from httpx import ASGITransport, AsyncClient
 from finance_api.core.database import get_db
 from finance_api.main import app
 from finance_api.repositories.spents import SpentRepository
+from finance_api.tests.fakes.fake_payment_resolver import FakePaymentResolver
 
 # Mark all tests in this file as async
 pytestmark = pytest.mark.asyncio
@@ -34,6 +35,14 @@ def mock_payment_method_repo(mocker):
         AsyncMock(return_value=mock_pm)
     )
     return mock_pm
+
+
+@pytest.fixture(autouse=True)
+def mock_payment_resolver(mocker):
+    """Auto-use fixture that replaces payment resolution with a deterministic fake."""
+    resolver = FakePaymentResolver()
+    mocker.patch("finance_api.services.spents.PaymentResolutionService", return_value=resolver)
+    return resolver
 
 
 @pytest.fixture

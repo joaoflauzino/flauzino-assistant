@@ -6,6 +6,14 @@ from finance_api.core.exceptions import ValidationError
 from finance_api.repositories.spents import SpentRepository
 from finance_api.schemas.spents import SpentCreate
 from finance_api.services.spents import SpentService
+from finance_api.tests.fakes.fake_payment_resolver import FakePaymentResolver
+
+
+@pytest.fixture(autouse=True)
+def mock_payment_resolver(mocker):
+    resolver = FakePaymentResolver()
+    mocker.patch("finance_api.services.spents.PaymentResolutionService", return_value=resolver)
+    return resolver
 
 
 @pytest.mark.asyncio
