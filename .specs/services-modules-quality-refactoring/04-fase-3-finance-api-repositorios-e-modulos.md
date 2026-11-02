@@ -51,15 +51,15 @@ Hoje: `_normalize_str` em `repositories/categories.py:14` e `income_categories.p
 - [x] Commit: `refactor(repositories): staged_transactions conditions/pagination`
 
 ### 3.5 `finance_api/services/import_strategies.py` (349 linhas — acima do teto ~300 da Regra 6)
-> **Entre 3.4 e 3.5 roda a Fase 6.1** (gate de arquitetura): o split abaixo deve fazer a regra B (arquivo > 300 LOC) cair de 3 → 2 violações e a 3.7 deve zerar a regra A.
+> **Entre 3.4 e 3.5 rodou a Fase 6.1** (gate de arquitetura): o split abaixo fez a regra B cair de 3 → 2 violações e o item correspondente saiu do baseline (17 → 16). A 3.7 deve zerar a regra A.
 
 Dividir em **arquivos planos e coesos** (sem subpacotes — Regra 6):
 
-- [ ] `import_bulk_strategies.py` (bulk actions + `build_default_bulk_strategies`)
-- [ ] `import_commit_strategies.py` (commit strategies + duplicate detectors + builders)
-- [ ] Atualizar imports em `imports.py`, `import_bulk.py`, `import_commit.py` e testes
-- [ ] Testes: `test_import_strategies.py`, `test_import_bulk.py`, `test_import_commit.py`
-- [ ] Commit: `refactor(imports): split import_strategies into bulk/commit modules`
+- [x] `import_bulk_strategies.py` (bulk actions + `build_default_bulk_strategies`)
+- [x] `import_commit_strategies.py` (commit strategies + duplicate detectors + builders)
+- [x] Atualizar imports em `imports.py`, `import_bulk.py`, `import_commit.py` e testes
+- [x] Testes: `test_import_strategies.py`, `test_import_bulk.py`, `test_import_commit.py`
+- [x] Commit: `refactor(imports): split import_strategies into bulk/commit modules`
 
 > ⚠️ **Ordem:** a 3.7 (empacotamento) **depende** desta tarefa — o split acontece primeiro, ainda em `services/` plano, e depois 3.7 apenas relocaliza os arquivos resultantes. Fazer as duas juntas num commit só é aceitável, mas o diff perde a legibilidade de rename.
 
@@ -161,6 +161,7 @@ finance_api/services/imports/
 | 2026-11-02 | — (aguardando autorização) | 3.3 `utils/text.py` como fonte única (`strip_diacritics`, `normalize_upper`, `normalize_lower`); removidos 3 helpers locais e o alias `_normalize` | 599 passed (+8 de `utils/text`) |
 | 2026-11-02 | — | **fora do plano (bug pré-existente)**: `GET /payment-methods/` retornava 500 (`ResponseValidationError`) porque os `PaymentMethod` sintéticos não carregavam `created_at`; adapters agora copiam `created_at` do cartão/conta | 607 passed (+1 regressão de router) |
 | 2026-11-02 | — (aguardando autorização) | 3.4 `list_by_filter` 54 → **20 LOC / 0 `if`s**; `_build_conditions` declarativo (2 `if`s) + `_with_conditions` + `_apply_pagination`; `get_approved_for_commit` reusa o builder | 607 passed (+7 do repositório) |
+| 2026-11-02 | — (aguardando autorização) | 3.5 split de `import_strategies.py` (351 LOC) em `import_bulk_strategies.py` + `import_commit_strategies.py`; `DuplicateDetectorStrategy` movido para `services/protocols.py` (Regra 2); `resolve_salary_competence_date` movido para `import_staging.py` (único consumidor); `NullDuplicateDetector` morto removido; baseline do gate 17 → 16 | 623 passed (+10: 12 testes dos strategies splitados e 4 do salário, −6 do arquivo antigo) |
 
 ### Notas de execução
 
@@ -169,3 +170,4 @@ finance_api/services/imports/
 - **3.3** — `utils/text.py` passou a ter `strip_diacritics` (compartilhado), `normalize_upper` e `normalize_lower`; `normalize_text` e o alias `_normalize` foram removidos (o único consumidor do alias eram os call-sites migrados). Case preservado por call-site: repositórios de **categorias** usam `normalize_lower` (comparação de chaves), `category_rules`, `classification` e `classification_chain` usam `normalize_upper`. Nenhum `_normalize*` local remanescente em produção.
 - **3.4** — `list_by_filter` caiu de 54 → 20 LOC com **0 condicionais**; as condições viraram uma tabela declarativa de igualdades (`(valor, coluna)`) + 2 flags explícitas (`only_duplicates`, `only_unclassified`), mantendo o comportamento de não emitir `WHERE` quando não há filtro (`and_()` vazio é evitado em `_with_conditions`). Ordenação e janela ficaram em `_apply_pagination`. `get_approved_for_commit` reusa `_build_conditions(batch_id=..., status="APPROVED")`.
 - **Bug pré-existente (fora do plano, commit separado)** — `GET /payment-methods/` respondia 500: os `PaymentMethod` sintéticos (montados a partir de `CreditCard`/`Account`) não tinham `created_at`, e `PaymentMethodResponse.created_at` é obrigatório. Correção: os adapters copiam `created_at` da entidade de origem (sem afrouxar o contrato do schema). Regressão coberta por teste de router que exercita o repositório real com DB mockado.
+- **3.5** — `import_strategies.py` (351 LOC) dividido em `import_bulk_strategies.py` (4 estratégias + builder) e `import_commit_strategies.py` (3 estratégias de commit + 3 detectores + builders). Decisões do split: (a) `DuplicateDetectorStrategy` foi para `services/protocols.py` (Regra 2) — assim `import_staging.py` depende do contrato, não do módulo de commit; (b) `SALARY_KEYWORDS` + `resolve_salary_competence_date` foram para `import_staging.py`, seu único consumidor (era a única parte do arquivo sem relação com Strategy); (c) `NullDuplicateDetector`, sem nenhum uso, foi removido. Testes espelham os módulos (`test_import_bulk_strategies.py`, `test_import_commit_strategies.py`) e o gate registrou a queda da regra B (baseline 17 → 16, **0 entradas obsoletas**).

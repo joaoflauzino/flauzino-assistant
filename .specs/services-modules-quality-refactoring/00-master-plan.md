@@ -24,7 +24,7 @@
 | 0 | [01-fase-0-gates-e-rede-de-seguranca.md](./01-fase-0-gates-e-rede-de-seguranca.md) | WIP atual, gates de lint, testes de caracterização | ✅ Concluída | 4/4 tarefas |
 | 1 | [02-fase-1-condicionais-em-services.md](./02-fase-1-condicionais-em-services.md) | Eixo A — cascatas de `if` nos services | ✅ Concluída | 6/6 tarefas |
 | 2 | [03-fase-2-metodos-longos-em-services.md](./03-fase-2-metodos-longos-em-services.md) | Eixo B — métodos > 40 LOC nos services | ✅ Concluída | 6/6 tarefas |
-| 3 | [04-fase-3-finance-api-repositorios-e-modulos.md](./04-fase-3-finance-api-repositorios-e-modulos.md) | Eixo C — `finance_api`: repositories, imports tardios, utils, pacote `imports/` | 🟨 Em andamento | 4/7 tarefas |
+| 3 | [04-fase-3-finance-api-repositorios-e-modulos.md](./04-fase-3-finance-api-repositorios-e-modulos.md) | Eixo C — `finance_api`: repositories, imports tardios, utils, pacote `imports/` | 🟨 Em andamento | 5/7 tarefas |
 | 4 | [05-fase-4-telegram-api-modulos-e-handlers.md](./05-fase-4-telegram-api-modulos-e-handlers.md) | Eixo C — `telegram_api`: Regra 4, splits, handlers finos | ⬜ Não iniciada | 0/5 tarefas |
 | 5 | [06-fase-5-agent-api-e-verificacao-final.md](./06-fase-5-agent-api-e-verificacao-final.md) | Eixo C — `agent_api`, `__all__`, verificação final | ⬜ Não iniciada | 0/4 tarefas |
 | 6 | [07-fase-6-padronizacao-de-modulos.md](./07-fase-6-padronizacao-de-modulos.md) | Eixo C — padrão de módulos no repo inteiro + gate de arquitetura (política como código) | 🟨 Em andamento | 1/6 tarefas |
@@ -73,6 +73,8 @@
 > **Atualização da Fase 3.3 (2026-11-02):** normalização de texto consolidada em `finance_api/utils/text.py` (`strip_diacritics` + `normalize_upper` + `normalize_lower`). Os três helpers locais (`_normalize_str` ×2, `_normalize`) e o alias `_normalize` foram removidos — o item "utilidade duplicada em vez de `utils.py`" de §2.3 está quitado.
 
 > **Atualização da Fase 3.4 (2026-11-02):** `staged_transactions.list_by_filter` 54 → 20 LOC com **0 condicionais** (as 6 `if`s viraram tabela declarativa de igualdades + 2 flags; `get_approved_for_commit` reusa o builder). O item "conditions + paginação inline" de §2.2 está quitado. Também foi corrigido um **bug pré-existente** fora do plano: `GET /payment-methods/` respondia 500 por `created_at=None` nos `PaymentMethod` sintéticos (adapters agora copiam `created_at` da origem).
+
+> **Atualização da Fase 3.5 (2026-11-02):** `import_strategies.py` (351 LOC, acima do teto da Regra 6) foi dividido em `import_bulk_strategies.py` + `import_commit_strategies.py`. `DuplicateDetectorStrategy` subiu para `services/protocols.py` (Regra 2) e `resolve_salary_competence_date` foi para o seu único consumidor (`import_staging.py`). No gate de arquitetura, a regra B caiu de 3 → 2 violações e o baseline de 17 → 16, sem entradas obsoletas — primeira prova real do burn-down.
 
 ### 2.1 Piores funções por densidade de condicionais (Eixo A)
 
