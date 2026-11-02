@@ -28,6 +28,7 @@ package = false
 asyncio_mode = "auto"
 pythonpath = "."
 testpaths = [
+    "tests",
     "agent_api/tests",
     "finance_api/tests",
     "telegram_api/tests",

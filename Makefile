@@ -54,4 +54,4 @@ test-graph:
 	uv run pytest graph_api/tests
 
 test-mcp:
-	uv run pytest tests/finance_api/test_mcp_tools.py
+	uv run pytest finance_api/tests/test_mcp_tools.py
