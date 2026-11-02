@@ -2,7 +2,7 @@ import httpx
 
 from agent_api.core.exceptions import GraphServiceError
 from agent_api.core.logger import get_logger
-from agent_api.services.base import BaseHttpService
+from agent_api.services.clients.base import BaseHttpService
 from agent_api.settings import settings
 
 logger = get_logger(__name__)

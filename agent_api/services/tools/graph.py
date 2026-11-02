@@ -9,8 +9,8 @@ from langgraph.types import Command
 
 from agent_api.core.decorators import handle_tool_errors
 from agent_api.core.logger import get_logger
-from agent_api.services.finance import FinanceService
-from agent_api.services.graph import GraphService
+from agent_api.services.clients.finance import FinanceService
+from agent_api.services.clients.graph import GraphService
 
 logger = get_logger(__name__)
 

@@ -7,7 +7,7 @@ from typing import Any
 from finance_api.models.staged_transactions import StagedTransaction
 from finance_api.repositories.categories import CategoryRepository
 from finance_api.repositories.income_categories import IncomeCategoryRepository
-from finance_api.services.ai_classifier import AIClassifierClient
+from finance_api.services.classification.ai_classifier import AIClassifierClient
 
 DEFAULT_CONFIDENCE = Decimal("0.750")
 CANDIDATE_KINDS = ("EXPENSE", "INCOME")

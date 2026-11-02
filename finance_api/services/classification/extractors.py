@@ -3,7 +3,7 @@
 import re
 
 from finance_api.schemas.classification import ExtractedMerchantInfo, RawTransactionText
-from finance_api.services.classification_protocols import (
+from finance_api.services.classification.protocols import (
     MerchantExtractorPipeline,
     MerchantExtractorStep,
 )

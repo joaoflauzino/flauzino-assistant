@@ -3,7 +3,7 @@ from finance_api.schemas.classification import (
     ExtractedMerchantInfo,
     RawTransactionText,
 )
-from finance_api.services.extractors import (
+from finance_api.services.classification.extractors import (
     build_extractor_pipeline,
     extract_card_fees_and_invoice,
     extract_paygo_card,

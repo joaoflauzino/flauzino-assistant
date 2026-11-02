@@ -4,7 +4,7 @@ from finance_api.importers.registry import (
     build_default_parser_factory,
     build_default_target_resolvers,
 )
-from finance_api.services.ai_classifier import AIClassifierClient
+from finance_api.services.classification.ai_classifier import AIClassifierClient
 from finance_api.services.imports.bulk import ImportBulkService
 from finance_api.services.imports.bulk_strategies import build_default_bulk_strategies
 from finance_api.services.imports.commit import CommitContextResolver, ImportCommitService

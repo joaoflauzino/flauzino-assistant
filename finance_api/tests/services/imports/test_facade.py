@@ -18,8 +18,8 @@ from finance_api.repositories.imports import ImportBatchRepository
 from finance_api.repositories.income_categories import IncomeCategoryRepository
 from finance_api.repositories.staged_transactions import StagedTransactionRepository
 from finance_api.schemas.imports import BulkActionRequest, CommitRequest
-from finance_api.services.ai_classifier import AIClassifierClient
-from finance_api.services.classification import ClassificationService
+from finance_api.services.classification.ai_classifier import AIClassifierClient
+from finance_api.services.classification.service import ClassificationService
 from finance_api.services.imports.factory import build_default_import_service
 from finance_api.services.imports.wiring import ImportOverrides, ImportServiceDeps
 from finance_api.services.incomes import IncomeService

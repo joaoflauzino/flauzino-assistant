@@ -12,8 +12,8 @@ from finance_api.repositories.credit_cards import CreditCardRepositoryProtocol
 from finance_api.repositories.imports import ImportBatchRepositoryProtocol
 from finance_api.repositories.income_categories import IncomeCategoryRepository
 from finance_api.repositories.staged_transactions import StagedTransactionRepository
-from finance_api.services.ai_classifier import AIClassifierClient
-from finance_api.services.classification import ClassificationService
+from finance_api.services.classification.ai_classifier import AIClassifierClient
+from finance_api.services.classification.service import ClassificationService
 from finance_api.services.imports.bulk import ImportBulkService
 from finance_api.services.imports.commit import ImportCommitService
 from finance_api.services.imports.presenter import ImportBatchPresenter

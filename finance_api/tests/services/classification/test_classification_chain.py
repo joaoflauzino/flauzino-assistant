@@ -11,7 +11,7 @@ from finance_api.schemas.classification import (
     ClassificationContext,
     ClassificationResult,
 )
-from finance_api.services.classification_chain import (
+from finance_api.services.classification.chain import (
     BankCategoryHandler,
     BaseClassificationHandler,
     BonusIncomeHandler,

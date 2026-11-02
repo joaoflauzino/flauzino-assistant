@@ -10,8 +10,8 @@ from openai import OpenAIError
 from agent_api.core.exceptions import LLMParsingError, LLMProviderError, ServiceError
 from agent_api.schemas.assistant import AssistantResponse
 from agent_api.services.agent import AgentService
-from agent_api.services.finance import FinanceService
-from agent_api.services.graph import GraphService
+from agent_api.services.clients.finance import FinanceService
+from agent_api.services.clients.graph import GraphService
 
 
 @pytest.fixture

@@ -17,7 +17,7 @@ from agent_api.schemas.finance import (
 )
 from agent_api.schemas.limit import LimitDetails
 from agent_api.schemas.spending import SpendingDetails
-from agent_api.services.finance import FinanceService
+from agent_api.services.clients.finance import FinanceService
 from agent_api.services.protocols import FinanceServiceProtocol
 
 

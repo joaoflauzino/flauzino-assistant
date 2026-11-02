@@ -17,7 +17,7 @@ from agent_api.schemas.finance import (
 from agent_api.schemas.income import IncomeDetails
 from agent_api.schemas.limit import LimitDetails
 from agent_api.schemas.spending import SpendingDetails
-from agent_api.services.base import BaseHttpService
+from agent_api.services.clients.base import BaseHttpService
 from agent_api.settings import settings
 
 logger = get_logger(__name__)

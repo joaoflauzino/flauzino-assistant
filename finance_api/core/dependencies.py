@@ -34,7 +34,7 @@ from finance_api.repositories.spents import SpentRepository
 from finance_api.repositories.staged_transactions import StagedTransactionRepository
 from finance_api.services.accounts import AccountService
 from finance_api.services.balances import BalanceService
-from finance_api.services.classification import ClassificationService
+from finance_api.services.classification.service import ClassificationService
 from finance_api.services.credit_cards import CreditCardService
 from finance_api.services.imports.facade import ImportService
 from finance_api.services.imports.factory import build_default_import_service

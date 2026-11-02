@@ -14,7 +14,7 @@ from finance_api.schemas.classification import (
     SuggestionSource,
     TransactionKind,
 )
-from finance_api.services.classification_protocols import ClassificationHandlerProtocol
+from finance_api.services.classification.protocols import ClassificationHandlerProtocol
 
 
 class BaseClassificationHandler(ABC):

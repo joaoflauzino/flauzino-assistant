@@ -40,7 +40,7 @@ Este documento é a referência para decidir **onde** cada arquivo novo mora. El
 
 ### 1.3 Feature package (Regra 8)
 
-Quando um grupo de módulos no mesmo diretório compartilha prefixo/domínio e atinge **≥ 5 arquivos** ou **≥ 800 LOC**, ele vira um **pacote plano**:
+Quando um grupo de módulos no mesmo diretório compartilha prefixo/domínio e atinge **≥ 5 arquivos** ou **≥ 800 LOC**, ele vira um **pacote plano**. Esse é o gatilho automático do gate; um pacote menor só pode ser criado quando uma exceção semântica estiver registrada na seção 3 e aprovada explicitamente:
 
 ```text
 finance_api/services/imports/     # não "import" (keyword) e não "import_*" espalhado
@@ -94,6 +94,7 @@ subclasses (`classification_chain.py`) e importa apenas o `Protocol` do módulo 
 | `importers/` e `mcp/` | `finance_api` | Bounded contexts legítimos (parsing de extratos e tools MCP). |
 | Ausência de `models/`/`repositories/` | `graph_api` | Renderer stateless — não persiste nada. |
 | `dependencies.py` na raiz | `agent_api` | Composition root do agente (LLM + clients + services); não é "utils". |
+| Pacotes semânticos abaixo do limiar estrutural | `finance_api/services/classification/`, `agent_api/services/clients/` | F1/A1 da reavaliação `.specs/services-module-organization-review/03-reavaliacao-navegabilidade-e-dominios.md`: coesão de feature e fronteira de integração explícitas; aprovados pelo desenvolvedor em 2026-11-02. Esta exceção não autoriza criar pacotes pequenos por prefixo ou simetria. |
 | Funções > 40 LOC | `imports/staging.py::_to_staged`, `importers/c6_credit_card_csv.py::_parse_row`, `services/tools/graph.py::build_gerar_grafico` | Mapping campo-a-campo / parser de CSV / docstring-contrato do LLM — ver master plan §2.2-B. |
 | `except Exception` de fronteira | `telegram_api/repositories/session_repository.py` (4) | Cache de sessão best-effort: log + rollback + degradação; comportamento fixado em teste. Requer decisão de produto para propagar. |
 
@@ -112,7 +113,7 @@ Qualquer nova exceção precisa entrar **nesta tabela** e, quando aplicável, na
 
 ## 5. Onde este padrão é verificado
 
-`tests/architecture/test_module_organization.py` roda no `uv run pytest` e falha em violação **nova** das regras A–E:
+`tests/architecture/test_module_organization.py` roda no `uv run pytest` e falha em violação **nova** das regras A–F:
 
 | Regra | Verifica |
 |---|---|
@@ -121,5 +122,6 @@ Qualquer nova exceção precisa entrar **nesta tabela** e, quando aplicável, na
 | **C** | pacote com nome de keyword Python |
 | **D** | módulo repetindo o nome do pacote (inclui sufixos `_handler`/`_service`) |
 | **E** | `__all__` em `__init__.py` interno |
+| **F** | contrato/helper transversal importa `httpx`, `models` ou `repositories` |
 
 A allowlist de dívida é temporária e é apagada na 6.6; a partir daí o gate é estrito.

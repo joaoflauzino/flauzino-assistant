@@ -5,7 +5,7 @@ from typing import Any
 import httpx
 import pytest
 
-from finance_api.services.ai_classifier import (
+from finance_api.services.classification.ai_classifier import (
     AIClassifierClient,
     build_classify_payload,
     extract_suggestions,

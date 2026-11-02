@@ -5,7 +5,7 @@ import pytest
 
 from agent_api.schemas.assistant import AssistantResponse
 from agent_api.schemas.income import IncomeDetails
-from agent_api.services.finance import FinanceService
+from agent_api.services.clients.finance import FinanceService
 
 
 @pytest.fixture

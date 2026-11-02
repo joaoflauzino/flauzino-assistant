@@ -14,13 +14,13 @@ from finance_api.schemas.classification import (
     RawTransactionText,
     TransactionKind,
 )
-from finance_api.services.ai_classifier import AIClassifierClient
-from finance_api.services.classification_chain import build_default_classification_chain
-from finance_api.services.classification_protocols import (
+from finance_api.services.classification.ai_classifier import AIClassifierClient
+from finance_api.services.classification.chain import build_default_classification_chain
+from finance_api.services.classification.extractors import get_default_extractor_pipeline
+from finance_api.services.classification.protocols import (
     ClassificationHandlerProtocol,
     MerchantExtractorPipeline,
 )
-from finance_api.services.extractors import get_default_extractor_pipeline
 from finance_api.settings import settings
 
 _PAYMENT_TYPE_PATTERNS: tuple[tuple[tuple[str, ...], PaymentType], ...] = (

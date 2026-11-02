@@ -4,7 +4,7 @@ import httpx
 import pytest
 
 from agent_api.core.exceptions import GraphServiceError
-from agent_api.services.graph import GraphService
+from agent_api.services.clients.graph import GraphService
 
 
 @pytest.mark.asyncio

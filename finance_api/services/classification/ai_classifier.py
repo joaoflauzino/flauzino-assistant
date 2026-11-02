@@ -4,7 +4,7 @@ import httpx
 
 from finance_api.core.http_client import get_http_client
 from finance_api.core.logger import get_logger
-from finance_api.services.ai_classifier_protocols import AIClassifierHttpClientProtocol
+from finance_api.services.classification.ai_client_protocols import AIClassifierHttpClientProtocol
 from finance_api.settings import settings
 
 logger = get_logger(__name__)
