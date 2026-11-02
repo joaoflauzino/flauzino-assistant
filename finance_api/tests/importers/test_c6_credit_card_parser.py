@@ -84,3 +84,44 @@ def test_parse_empty_card_csv_raises_error():
     parser = C6CreditCardInvoiceCsvParser()
     with pytest.raises(ValidationError):
         parser.parse(b"", "empty.csv")
+
+
+def test_parse_missing_card_header_raises_error():
+    parser = C6CreditCardInvoiceCsvParser()
+    content = "Nome no Cartão;Final do Cartão\nJOAO;1141\n".encode()
+
+    with pytest.raises(ValidationError):
+        parser.parse(content, "Fatura_2026-10-05.csv")
+
+
+def test_parse_brazilian_thousand_separator_and_zero_padded_installment():
+    parser = C6CreditCardInvoiceCsvParser()
+    content = (
+        "Data de Compra;Nome no Cartão;Final do Cartão;Categoria;Descrição;Parcela;"
+        "Valor (em US$);Cotação (em R$);Valor (em R$)\n"
+        '26/05/2026;JOAO;1141;Empresa;DELL;01/12;0;0;"1.235,25"\n'
+        "27/05/2026;JOAO;1141;-;Zerada;Única;0;0;0\n"
+    ).encode()
+
+    statement = parser.parse(content, "Fatura.csv")
+
+    assert len(statement.transactions) == 1
+    transaction = statement.transactions[0]
+    assert transaction.amount == Decimal("1235.25")
+    assert transaction.current_installment == 1
+    assert transaction.total_installments == 12
+    assert transaction.bank_category == "Empresa"
+
+
+def test_parse_blank_description_falls_back_to_default_title():
+    parser = C6CreditCardInvoiceCsvParser()
+    content = (
+        "Data de Compra;Nome no Cartão;Final do Cartão;Categoria;Descrição;Parcela;"
+        "Valor (em US$);Cotação (em R$);Valor (em R$)\n"
+        "26/05/2026;JOAO;1141;-;   ;Única;0;0;10.00\n"
+    ).encode()
+
+    statement = parser.parse(content, "Fatura.csv")
+
+    assert statement.transactions[0].raw_title == "Compra Cartão C6"
+    assert statement.metadata.card_name == "JOAO"

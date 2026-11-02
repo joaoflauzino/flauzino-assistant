@@ -8,11 +8,15 @@ from agent_api.core.logger import get_logger
 from agent_api.schemas.classify import (
     ClassifyBatchRequest,
     ClassifyBatchResponse,
+    ClassifyItemInput,
     ClassifySuggestion,
     LLMBatchClassificationResult,
+    LLMItemClassification,
 )
 
 logger = get_logger(__name__)
+
+DEFAULT_CONFIDENCE = 0.75
 
 SYSTEM_PROMPT = """Você é um especialista em classificação financeira e categorização de extratos bancários brasileiros.
 Sua missão é classificar cada transação na categoria mais adequada, usando ESTRITAMENTE as chaves fornecidas.
@@ -37,25 +41,26 @@ class ClassifyService:
         expense_keys = {cat.key: cat.display_name for cat in request.expense_categories}
         income_keys = {cat.key: cat.display_name for cat in request.income_categories}
 
-        # Prepara payload simplificado para o prompt
-        tx_payload = [
-            {
-                "id": t.id,
-                "merchant": t.merchant,
-                "raw_title": t.raw_title,
-                "raw_description": t.raw_description,
-                "direction": t.direction,
-                "amount": t.amount,
-            }
-            for t in request.transactions
-        ]
-
-        user_content = (
-            f"Categorias de Despesa permitidas (OUT):\n{json.dumps(expense_keys, ensure_ascii=False, indent=2)}\n\n"
-            f"Categorias de Receita permitidas (IN):\n{json.dumps(income_keys, ensure_ascii=False, indent=2)}\n\n"
-            f"Transações para classificar:\n{json.dumps(tx_payload, ensure_ascii=False, indent=2)}"
+        result = await self._invoke_llm(request, expense_keys, income_keys)
+        result_map = self._sanitize_suggestions(
+            result,
+            request.transactions,
+            expense_keys,
+            income_keys,
         )
+        return self._assemble_response(request.transactions, result_map)
 
+    async def _invoke_llm(
+        self,
+        request: ClassifyBatchRequest,
+        expense_keys: dict[str, str],
+        income_keys: dict[str, str],
+    ) -> LLMBatchClassificationResult | None:
+        user_content = self._build_user_content(
+            expense_keys,
+            income_keys,
+            request.transactions,
+        )
         try:
             structured_llm = self.llm.with_structured_output(LLMBatchClassificationResult)
             messages = [
@@ -63,35 +68,95 @@ class ClassifyService:
                 HumanMessage(content=user_content),
             ]
             logger.info(f"Classifying {len(request.transactions)} transactions with LLM")
-            result: LLMBatchClassificationResult = await structured_llm.ainvoke(messages)
-        except Exception as e:
-            logger.error(f"LLM classification failed: {e}", exc_info=True)
-            raise LLMProviderError(f"Falha ao consultar provedor de LLM para classificação: {e}")
+            return await structured_llm.ainvoke(messages)
+        except Exception as error:
+            logger.error(f"LLM classification failed: {error}", exc_info=True)
+            raise LLMProviderError(
+                f"Falha ao consultar provedor de LLM para classificação: {error}"
+            )
 
-        # Validação Server-side rigorosa contra as categorias permitidas
-        tx_dict = {t.id: t for t in request.transactions}
+    def _build_user_content(
+        self,
+        expense_keys: dict[str, str],
+        income_keys: dict[str, str],
+        transactions: list[ClassifyItemInput],
+    ) -> str:
+        tx_payload = _build_tx_payload(transactions)
+        return (
+            "Categorias de Despesa permitidas (OUT):\n"
+            f"{json.dumps(expense_keys, ensure_ascii=False, indent=2)}\n\n"
+            "Categorias de Receita permitidas (IN):\n"
+            f"{json.dumps(income_keys, ensure_ascii=False, indent=2)}\n\n"
+            f"Transações para classificar:\n{json.dumps(tx_payload, ensure_ascii=False, indent=2)}"
+        )
+
+    def _sanitize_suggestions(
+        self,
+        result: LLMBatchClassificationResult | None,
+        transactions: list[ClassifyItemInput],
+        expense_keys: dict[str, str],
+        income_keys: dict[str, str],
+    ) -> dict[str, tuple[str | None, float | None]]:
+        if not result or not getattr(result, "items", None):
+            return {}
+
+        transaction_map = {transaction.id: transaction for transaction in transactions}
         result_map: dict[str, tuple[str | None, float | None]] = {}
+        for item in result.items:
+            target = transaction_map.get(item.id)
+            if target is None:
+                continue
+            result_map[item.id] = self._sanitize_item(item, target, expense_keys, income_keys)
+        return result_map
 
-        if result and getattr(result, "items", None):
-            for item in result.items:
-                target_tx = tx_dict.get(item.id)
-                if not target_tx:
-                    continue
+    def _sanitize_item(
+        self,
+        item: LLMItemClassification,
+        target: ClassifyItemInput,
+        expense_keys: dict[str, str],
+        income_keys: dict[str, str],
+    ) -> tuple[str | None, float | None]:
+        allowed = expense_keys if target.direction == "OUT" else income_keys
+        candidate = item.category.strip().lower() if item.category else None
+        if candidate and candidate in allowed:
+            return candidate, _normalize_confidence(item.confidence)
+        return None, None
 
-                allowed = expense_keys if target_tx.direction == "OUT" else income_keys
-                cat_candidate = item.category.strip().lower() if item.category else None
-                if cat_candidate and cat_candidate in allowed:
-                    result_map[item.id] = (
-                        cat_candidate,
-                        round(float(item.confidence), 2) if item.confidence is not None else 0.75,
-                    )
-                else:
-                    result_map[item.id] = (None, None)
-
-        # Monta resposta garantindo uma entrada para cada transação enviada
+    def _assemble_response(
+        self,
+        transactions: list[ClassifyItemInput],
+        result_map: dict[str, tuple[str | None, float | None]],
+    ) -> ClassifyBatchResponse:
         suggestions: list[ClassifySuggestion] = []
-        for t in request.transactions:
-            cat, conf = result_map.get(t.id, (None, None))
-            suggestions.append(ClassifySuggestion(id=t.id, category=cat, confidence=conf))
-
+        for transaction in transactions:
+            category, confidence = result_map.get(transaction.id, (None, None))
+            suggestions.append(
+                ClassifySuggestion(
+                    id=transaction.id,
+                    category=category,
+                    confidence=confidence,
+                )
+            )
         return ClassifyBatchResponse(suggestions=suggestions)
+
+
+def _build_tx_payload(
+    transactions: list[ClassifyItemInput],
+) -> list[dict[str, object]]:
+    return [
+        {
+            "id": transaction.id,
+            "merchant": transaction.merchant,
+            "raw_title": transaction.raw_title,
+            "raw_description": transaction.raw_description,
+            "direction": transaction.direction,
+            "amount": transaction.amount,
+        }
+        for transaction in transactions
+    ]
+
+
+def _normalize_confidence(confidence: float | None) -> float:
+    if confidence is None:
+        return DEFAULT_CONFIDENCE
+    return round(float(confidence), 2)

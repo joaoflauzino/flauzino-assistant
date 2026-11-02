@@ -46,8 +46,11 @@ line-length = 100
 exclude = ["*.ipynb"]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "UP"]
+select = ["E", "F", "W", "I", "UP", "C90"]
 ignore = ["E501"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
 
 [tool.ruff.lint.isort]
 known-first-party = ["finance_api", "agent_api", "graph_api", "telegram_api"]
