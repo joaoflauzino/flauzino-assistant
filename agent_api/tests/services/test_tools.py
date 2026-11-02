@@ -7,12 +7,12 @@ from agent_api.schemas.limit import LimitDetails
 from agent_api.schemas.spending import SpendingDetails
 from agent_api.services.finance import FinanceService
 from agent_api.services.graph import GraphService
-from agent_api.services.tools import create_agent_tools
 from agent_api.services.tools.graph import (
     CHART_SUCCESS_MESSAGE,
     CHART_WITHOUT_DATA_MESSAGE,
     build_chart_command,
 )
+from agent_api.services.tools.registry import create_agent_tools
 
 
 @pytest.fixture

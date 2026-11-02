@@ -4,7 +4,7 @@ import pytest
 
 from agent_api.services.finance import FinanceService
 from agent_api.services.graph import GraphService
-from agent_api.services.tools import create_agent_tools
+from agent_api.services.tools.registry import create_agent_tools
 
 
 @pytest.fixture

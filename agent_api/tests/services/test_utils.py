@@ -1,7 +1,16 @@
 """Unit tests for the pure helpers shared by the agent services."""
 
 from agent_api.schemas.assistant import AssistantResponse
-from agent_api.services.utils import attach_image, average_confidence, clean_extracted_text
+from agent_api.schemas.classify import ClassifyItemInput
+from agent_api.services.utils import (
+    DEFAULT_CONFIDENCE,
+    attach_image,
+    average_confidence,
+    build_tx_payload,
+    clean_extracted_text,
+    normalize_confidence,
+    quote_join,
+)
 
 
 def _response(image_base64: str | None = None) -> AssistantResponse:
@@ -72,3 +81,62 @@ def test_average_confidence_returns_zero_when_no_values_are_usable():
     """A result set without usable confidences yields 0.0 instead of a division error."""
     assert average_confidence([]) == 0.0
     assert average_confidence(["-1", "-1"]) == 0.0
+
+
+def test_build_tx_payload_keeps_only_the_fields_the_llm_needs():
+    """The payload carries the transaction identity and hints, nothing else."""
+    transaction = ClassifyItemInput(
+        id="1",
+        merchant="PADARIA CENTRAL",
+        raw_title="Débito de Cartão",
+        raw_description="PADARIA CENTRAL Uberlandia",
+        direction="OUT",
+        amount=25.5,
+    )
+
+    assert build_tx_payload([transaction]) == [
+        {
+            "id": "1",
+            "merchant": "PADARIA CENTRAL",
+            "raw_title": "Débito de Cartão",
+            "raw_description": "PADARIA CENTRAL Uberlandia",
+            "direction": "OUT",
+            "amount": 25.5,
+        }
+    ]
+
+
+def test_build_tx_payload_accepts_transactions_without_description():
+    """A missing raw description is forwarded as ``None`` instead of being dropped."""
+    transaction = ClassifyItemInput(
+        id="2",
+        merchant="EMPRESA XYZ",
+        raw_title="Salário",
+        direction="IN",
+        amount=1000.0,
+    )
+
+    payload = build_tx_payload([transaction])
+
+    assert payload[0]["raw_description"] is None
+
+
+def test_normalize_confidence_rounds_to_two_decimals():
+    """LLM confidences are rounded before reaching the caller."""
+    assert normalize_confidence(0.8349) == 0.83
+    assert normalize_confidence(0.5) == 0.5
+
+
+def test_normalize_confidence_falls_back_to_the_default_when_missing():
+    """A provider that omits the confidence yields the documented default."""
+    assert normalize_confidence(None) == DEFAULT_CONFIDENCE
+
+
+def test_quote_join_wraps_every_value_in_single_quotes():
+    """Prompt placeholders list the keys as quoted, comma-separated values."""
+    assert quote_join(["mercado", "lazer"]) == "'mercado', 'lazer'"
+
+
+def test_quote_join_empty_collection_renders_an_empty_string():
+    """An empty collection must not produce stray quotes or separators."""
+    assert quote_join([]) == ""
