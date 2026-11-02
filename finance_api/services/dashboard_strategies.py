@@ -57,7 +57,7 @@ class InvoicesDashboardStrategy:
 
         for pm in payment_methods:
             if pm.is_credit_card:
-                start_d, end_d = await self._inv_service.get_invoice_dates(pm, reference_month)
+                start_d, end_d = await self._inv_service.get_billing_period(pm, reference_month)
             else:
                 start_d, end_d = civil_period.start, civil_period.end
             periods.append((pm.key, start_d, end_d))

@@ -1,11 +1,22 @@
-import csv
-import io
+"""Parser for C6 Bank checking account CSV statements."""
+
 import re
-from datetime import date, datetime
-from decimal import Decimal, InvalidOperation
-from zoneinfo import ZoneInfo
+from datetime import date
+from decimal import Decimal
 
 from finance_api.core.exceptions import ValidationError
+from finance_api.importers.c6_common import (
+    ZERO,
+    OccurrenceTracker,
+    build_csv_reader,
+    cell,
+    cell_or_none,
+    decode_with_fallback,
+    find_header_index,
+    parse_brl_decimal,
+    parse_statement_date,
+    parse_statement_datetime,
+)
 from finance_api.importers.schemas import (
     ParsedStatement,
     ParsedTransaction,
@@ -13,7 +24,15 @@ from finance_api.importers.schemas import (
     StatementType,
 )
 
-SP_TZ = ZoneInfo("America/Sao_Paulo")
+TITLE_MARKER = "EXTRATO DE CONTA CORRENTE C6 BANK"
+HEADER_PREFIX = "Data Lançamento,Data Contábil"
+HEADER_ERROR = (
+    "Cabeçalho do extrato C6 não encontrado. "
+    "Verifique se o arquivo é um CSV de conta corrente C6."
+)
+DECODE_ERROR = "Não foi possível decodificar o arquivo de extrato."
+AGENCY_PATTERN = re.compile(r"Agência:\s*([^\s/]+)\s*/\s*Conta:\s*([^\s/]+)")
+PERIOD_PATTERN = re.compile(r"Extrato de\s*(\d{2}/\d{2}/\d{4})\s*a\s*(\d{2}/\d{2}/\d{4})")
 
 
 class C6CheckingCsvParser:
@@ -21,134 +40,28 @@ class C6CheckingCsvParser:
     statement_type: StatementType = StatementType.ACCOUNT
 
     def can_parse(self, content: bytes, filename: str) -> bool:
-        try:
-            head = content[:1024].decode("utf-8-sig", errors="ignore")
-        except Exception:
-            return False
-        return "EXTRATO DE CONTA CORRENTE C6 BANK" in head or (
-            "Data Lançamento" in head and "Saldo do Dia" in head
-        )
+        head = content[:1024].decode("utf-8-sig", errors="ignore")
+        return TITLE_MARKER in head or ("Data Lançamento" in head and "Saldo do Dia" in head)
 
     def parse(self, content: bytes, filename: str) -> ParsedStatement:
-        # Decode content with BOM handling
-        text = None
-        for enc in ("utf-8-sig", "utf-8", "latin-1"):
-            try:
-                text = content.decode(enc)
-                break
-            except UnicodeDecodeError:
-                continue
-
-        if text is None:
-            raise ValidationError("Não foi possível decodificar o arquivo de extrato.")
-
+        text = decode_with_fallback(content, DECODE_ERROR)
         lines = [line.strip() for line in text.splitlines()]
 
-        # Metadata extraction
-        agency = None
-        account_number = None
-        period_start: date | None = None
-        period_end: date | None = None
+        header_index = find_header_index(lines, self._is_header)
+        if header_index is None:
+            raise ValidationError(HEADER_ERROR)
 
-        header_idx = -1
-        for idx, line in enumerate(lines):
-            if "Agência:" in line and "Conta:" in line:
-                m = re.search(r"Agência:\s*([^\s/]+)\s*/\s*Conta:\s*([^\s/]+)", line)
-                if m:
-                    agency = m.group(1)
-                    account_number = m.group(2)
-            if "Extrato de" in line and " a " in line:
-                m = re.search(r"Extrato de\s*(\d{2}/\d{2}/\d{4})\s*a\s*(\d{2}/\d{2}/\d{4})", line)
-                if m:
-                    try:
-                        period_start = datetime.strptime(m.group(1), "%d/%m/%Y").date()
-                        period_end = datetime.strptime(m.group(2), "%d/%m/%Y").date()
-                    except ValueError:
-                        pass
-            if line.startswith("Data Lançamento,Data Contábil"):
-                header_idx = idx
-                break
+        metadata = self._build_metadata(lines[:header_index], filename)
+        transactions = self._read_transactions(lines, header_index)
+        return ParsedStatement(metadata=metadata, transactions=transactions)
 
-        if header_idx == -1:
-            raise ValidationError(
-                "Cabeçalho do extrato C6 não encontrado. Verifique se o arquivo é um CSV de conta corrente C6."
-            )
+    def _is_header(self, line: str) -> bool:
+        return line.startswith(HEADER_PREFIX)
 
-        # Parse CSV rows starting from header_idx
-        csv_content = "\n".join(lines[header_idx:])
-        reader = csv.DictReader(io.StringIO(csv_content))
-
-        transactions: list[ParsedTransaction] = []
-        occurrence_tracker: dict[tuple[date, Decimal, str, str], int] = {}
-
-        for row in reader:
-            raw_lanc = (row.get("Data Lançamento") or "").strip()
-            if not raw_lanc:
-                continue
-
-            try:
-                dt_lanc = datetime.strptime(raw_lanc, "%d/%m/%Y").replace(
-                    hour=12, minute=0, second=0, tzinfo=SP_TZ
-                )
-            except ValueError:
-                continue
-
-            raw_cont = (row.get("Data Contábil") or "").strip()
-            dt_cont = None
-            if raw_cont:
-                try:
-                    dt_cont = datetime.strptime(raw_cont, "%d/%m/%Y").replace(
-                        hour=12, minute=0, second=0, tzinfo=SP_TZ
-                    )
-                except ValueError:
-                    pass
-
-            raw_title = (row.get("Título") or "").strip()
-            raw_desc = (row.get("Descrição") or "").strip() or None
-
-            def parse_dec(val: str | None) -> Decimal:
-                if not val:
-                    return Decimal("0.00")
-                cleaned = val.strip().replace("R$", "").replace(" ", "").replace(",", ".")
-                try:
-                    return Decimal(cleaned)
-                except InvalidOperation:
-                    return Decimal("0.00")
-
-            entrada = parse_dec(row.get("Entrada(R$)"))
-            saida = parse_dec(row.get("Saída(R$)"))
-            saldo = parse_dec(row.get("Saldo do Dia(R$)"))
-
-            if entrada > Decimal("0.00"):
-                direction = "IN"
-                amount = entrada
-            elif saida > Decimal("0.00"):
-                direction = "OUT"
-                amount = saida
-            else:
-                # Transação com valor zero (informativa), ignorar
-                continue
-
-            # Track duplicate occurrences on the same day
-            norm_title = raw_title.upper().strip()
-            dup_key = (dt_lanc.date(), amount, direction, norm_title)
-            curr_occ = occurrence_tracker.get(dup_key, 0) + 1
-            occurrence_tracker[dup_key] = curr_occ
-
-            tx = ParsedTransaction(
-                occurred_at=dt_lanc,
-                posted_at=dt_cont,
-                raw_title=raw_title,
-                raw_description=raw_desc,
-                raw_row=dict(row),
-                amount=amount,
-                direction=direction,
-                balance=saldo,
-                occurrence_index=curr_occ,
-            )
-            transactions.append(tx)
-
-        metadata = StatementMetadata(
+    def _build_metadata(self, header_lines: list[str], filename: str) -> StatementMetadata:
+        agency, account_number = self._extract_agency_account(header_lines)
+        period_start, period_end = self._extract_period(header_lines)
+        return StatementMetadata(
             parser_name=self.name,
             bank_name="c6",
             statement_type=self.statement_type,
@@ -159,4 +72,79 @@ class C6CheckingCsvParser:
             extra={"filename": filename},
         )
 
-        return ParsedStatement(metadata=metadata, transactions=transactions)
+    def _extract_agency_account(
+        self,
+        header_lines: list[str],
+    ) -> tuple[str | None, str | None]:
+        for line in header_lines:
+            match = AGENCY_PATTERN.search(line)
+            if match:
+                return match.group(1), match.group(2)
+        return None, None
+
+    def _extract_period(self, header_lines: list[str]) -> tuple[date | None, date | None]:
+        for line in header_lines:
+            match = PERIOD_PATTERN.search(line)
+            if not match:
+                continue
+            start = parse_statement_date(match.group(1))
+            end = parse_statement_date(match.group(2))
+            if start and end:
+                return start, end
+        return None, None
+
+    def _read_transactions(
+        self,
+        lines: list[str],
+        header_index: int,
+    ) -> list[ParsedTransaction]:
+        reader = build_csv_reader(lines, header_index)
+        tracker = OccurrenceTracker()
+        transactions: list[ParsedTransaction] = []
+        for row in reader:
+            transaction = self._parse_row(row, tracker)
+            if transaction is not None:
+                transactions.append(transaction)
+        return transactions
+
+    def _parse_row(
+        self,
+        row: dict[str, str | None],
+        tracker: OccurrenceTracker,
+    ) -> ParsedTransaction | None:
+        occurred_at = parse_statement_datetime(cell(row, "Data Lançamento"))
+        if occurred_at is None:
+            return None
+
+        direction_amount = self._resolve_direction(row)
+        if direction_amount is None:
+            return None
+        direction, amount = direction_amount
+
+        title = cell(row, "Título")
+        occurrence_index = tracker.next_index(
+            (occurred_at.date(), amount, direction, title.upper())
+        )
+        return ParsedTransaction(
+            occurred_at=occurred_at,
+            posted_at=parse_statement_datetime(cell(row, "Data Contábil")),
+            raw_title=title,
+            raw_description=cell_or_none(row, "Descrição"),
+            raw_row=dict(row),
+            amount=amount,
+            direction=direction,
+            balance=parse_brl_decimal(row.get("Saldo do Dia(R$)")),
+            occurrence_index=occurrence_index,
+        )
+
+    def _resolve_direction(
+        self,
+        row: dict[str, str | None],
+    ) -> tuple[str, Decimal] | None:
+        entrada = parse_brl_decimal(row.get("Entrada(R$)"))
+        saida = parse_brl_decimal(row.get("Saída(R$)"))
+        if entrada > ZERO:
+            return "IN", entrada
+        if saida > ZERO:
+            return "OUT", saida
+        return None

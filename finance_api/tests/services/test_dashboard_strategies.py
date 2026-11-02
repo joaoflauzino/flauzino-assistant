@@ -39,7 +39,7 @@ async def test_invoices_dashboard_strategy():
     acc = PaymentMethod(id=uuid4(), key="itau", display_name="Itaú", is_credit_card=False)
     pm_repo.list.return_value = ([cc, acc], 2)
 
-    inv_service.get_invoice_dates.return_value = (date(2026, 9, 28), date(2026, 10, 5))
+    inv_service.get_billing_period.return_value = (date(2026, 9, 29), date(2026, 10, 28))
 
     strategy = InvoicesDashboardStrategy(
         spent_repo=spent_repo,
@@ -49,5 +49,34 @@ async def test_invoices_dashboard_strategy():
     periods = await strategy._resolve_invoice_periods("2026-10")
 
     assert len(periods) == 2
-    assert periods[0] == ("c6_card", date(2026, 9, 28), date(2026, 10, 5))
+    assert periods[0] == ("c6_card", date(2026, 9, 29), date(2026, 10, 28))
     assert periods[1] == ("itau", date(2026, 10, 1), date(2026, 10, 31))
+    inv_service.get_billing_period.assert_awaited_once_with(cc, "2026-10")
+
+
+@pytest.mark.asyncio
+async def test_invoices_dashboard_strategy_fetches_spents_inside_billing_cycle():
+    spent_repo = AsyncMock(spec=SpentRepository)
+    inv_service = AsyncMock(spec=InvoiceService)
+    pm_repo = AsyncMock(spec=PaymentMethodRepository)
+
+    cc = PaymentMethod(id=uuid4(), key="nubank", display_name="Nubank", is_credit_card=True)
+    pm_repo.list.return_value = ([cc], 1)
+    inv_service.get_billing_period.return_value = (date(2026, 9, 26), date(2026, 10, 26))
+
+    spent = Spent(id=uuid4(), amount=100.0, category="mercado")
+    spent_repo.list_by_multiple_periods.return_value = ([spent], 1)
+
+    strategy = InvoicesDashboardStrategy(
+        spent_repo=spent_repo,
+        inv_service=inv_service,
+        pm_repo=pm_repo,
+    )
+
+    items, total = await strategy.fetch_spents("2026-10", skip=0, size=10)
+
+    assert total == 1
+    assert items == [spent]
+    spent_repo.list_by_multiple_periods.assert_awaited_once_with(
+        [("nubank", date(2026, 9, 26), date(2026, 10, 26))], 0, 10
+    )

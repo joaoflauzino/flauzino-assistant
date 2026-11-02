@@ -66,3 +66,35 @@ def test_parse_invalid_csv_raises_validation_error():
     parser = C6CheckingCsvParser()
     with pytest.raises(ValidationError):
         parser.parse(b"Col1,Col2\nVal1,Val2", "test.csv")
+
+
+def test_parse_latin1_encoded_statement():
+    parser = C6CheckingCsvParser()
+    content = SAMPLE_CSV.decode("utf-8-sig").encode("latin-1")
+
+    statement = parser.parse(content, "extrato.csv")
+
+    assert len(statement.transactions) == 7
+    assert statement.metadata.account_number == "145118436"
+
+
+def test_parse_brazilian_thousand_separator_and_invalid_dates():
+    parser = C6CheckingCsvParser()
+    content = (
+        "Data Lançamento,Data Contábil,Título,Descrição,Entrada(R$),Saída(R$),Saldo do Dia(R$)\n"
+        '05/08/2026,05/08/2026,Mercado,Compra,0.00,"1.235,25",0.00\n'
+        "data-invalida,05/08/2026,Ignorar,Linha inválida,0.00,10.00,0.00\n"
+    ).encode()
+
+    statement = parser.parse(content, "extrato.csv")
+
+    assert len(statement.transactions) == 1
+    assert statement.transactions[0].amount == Decimal("1235.25")
+
+
+def test_parse_missing_header_raises_validation_error():
+    parser = C6CheckingCsvParser()
+    content = "Agência: 1 / Conta: 145118436\nExtrato de 04/08/2026 a 03/10/2026\n".encode()
+
+    with pytest.raises(ValidationError):
+        parser.parse(content, "extrato.csv")

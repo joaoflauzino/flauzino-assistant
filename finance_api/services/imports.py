@@ -1,22 +1,15 @@
-import hashlib
-from decimal import Decimal
-from typing import Any
+"""Import facade: coordinates upload, listing, editing, bulk actions and commits."""
+
 from uuid import UUID
-from zoneinfo import ZoneInfo
 
 from finance_api.core.decorators import handle_service_errors
-from finance_api.core.exceptions import EntityConflictError, EntityNotFoundError, ValidationError
-from finance_api.core.logger import get_logger
 from finance_api.importers.protocols import ImportTargetResolver
 from finance_api.importers.registry import (
     StatementParserFactory,
     build_default_parser_factory,
     build_default_target_resolvers,
 )
-from finance_api.importers.schemas import ParsedTransaction, ResolvedImportTarget, StatementType
-from finance_api.models.accounts import Account
-from finance_api.models.import_batches import ImportBatch
-from finance_api.models.staged_transactions import StagedTransaction
+from finance_api.importers.schemas import StatementType
 from finance_api.repositories.accounts import AccountRepositoryProtocol
 from finance_api.repositories.categories import CategoryRepository
 from finance_api.repositories.category_rules import CategoryRuleRepositoryProtocol
@@ -24,17 +17,12 @@ from finance_api.repositories.credit_cards import CreditCardRepositoryProtocol
 from finance_api.repositories.imports import ImportBatchRepositoryProtocol
 from finance_api.repositories.income_categories import IncomeCategoryRepository
 from finance_api.repositories.staged_transactions import StagedTransactionRepository
-from finance_api.schemas.enums import CommitOutcomeStatus, StepOutcomeStatus
 from finance_api.schemas.imports import (
-    BulkActionError,
     BulkActionRequest,
     BulkActionResult,
-    CommitContext,
-    CommitFailure,
     CommitRequest,
     CommitResult,
     ImportBatchResponse,
-    PossibleDuplicateInfo,
     ReclassifyResult,
     StagedTransactionResponse,
     StagedTransactionUpdate,
@@ -42,23 +30,30 @@ from finance_api.schemas.imports import (
 )
 from finance_api.schemas.pagination import PaginatedResponse
 from finance_api.services.ai_classifier import AIClassifierClient
-from finance_api.services.classification import ClassificationResult, ClassificationService
+from finance_api.services.classification import ClassificationService
+from finance_api.services.import_bulk import ImportBulkService
+from finance_api.services.import_commit import CommitContextResolver, ImportCommitService
+from finance_api.services.import_enrichment import BatchEnrichmentService
+from finance_api.services.import_fingerprint import ImportFingerprintService
+from finance_api.services.import_presenter import ImportBatchPresenter
+from finance_api.services.import_reclassify import ImportReclassifyService
+from finance_api.services.import_staging import StagingBuilder
 from finance_api.services.import_strategies import (
     DuplicateDetectorStrategy,
     build_default_bulk_strategies,
     build_default_commit_strategies,
     build_default_duplicate_detectors,
-    resolve_salary_competence_date,
 )
+from finance_api.services.import_transaction_editor import StagedTransactionEditor
+from finance_api.services.import_upload import ImportUploadService
 from finance_api.services.incomes import IncomeService
 from finance_api.services.protocols import BulkActionStrategy, TransactionCommitStrategy
 from finance_api.services.spents import SpentService
 
-logger = get_logger(__name__)
-SP_TZ = ZoneInfo("America/Sao_Paulo")
-
 
 class ImportService:
+    """Thin coordinator that delegates each import use case to a collaborator."""
+
     def __init__(
         self,
         batch_repo: ImportBatchRepositoryProtocol,
@@ -89,6 +84,7 @@ class ImportService:
         self.category_repo = category_repo
         self.income_category_repo = income_category_repo
         self.ai_client = ai_client or AIClassifierClient()
+
         self._bulk_strategies = bulk_strategies or build_default_bulk_strategies(
             rule_repo=self.rule_repo,
             category_repo=self.category_repo,
@@ -105,166 +101,56 @@ class ImportService:
         )
         self._duplicate_detectors = duplicate_detectors or build_default_duplicate_detectors()
 
-    def _calc_sha256(self, content: bytes) -> str:
-        return hashlib.sha256(content).hexdigest()
-
-    def _calc_fingerprint(
-        self,
-        target_key: str,
-        tx: ParsedTransaction,
-    ) -> str:
-        date_str = tx.occurred_at.date().isoformat()
-        amt_str = f"{tx.amount:.2f}"
-        installment_str = (
-            f"{tx.current_installment}/{tx.total_installments}" if tx.current_installment else "1"
+        self._presenter = ImportBatchPresenter(
+            batch_repo=self.batch_repo,
+            account_repo=self.account_repo,
+            credit_card_repo=self.credit_card_repo,
+            spent_service=self.spent_service,
+            income_service=self.income_service,
         )
-        raw = f"{target_key}|{date_str}|{amt_str}|{tx.direction}|{tx.raw_title.upper().strip()}|{installment_str}|{tx.occurrence_index}"
-        return hashlib.sha256(raw.encode("utf-8")).hexdigest()
-
-    def _build_fingerprint_map(
-        self,
-        target_key: str,
-        transactions: list[ParsedTransaction],
-    ) -> list[tuple[ParsedTransaction, str]]:
-        return [(tx, self._calc_fingerprint(target_key, tx)) for tx in transactions]
-
-    def _build_batch_response(
-        self,
-        batch: ImportBatch,
-        target: ResolvedImportTarget,
-        counts: dict[str, int],
-    ) -> ImportBatchResponse:
-        res = ImportBatchResponse.model_validate(batch)
-        res.account_name = target.target_name
-        if target.credit_card_id:
-            res.credit_card_id = target.credit_card_id
-            res.credit_card_name = target.target_name
-        res.counts = counts
-        return res
-
-    async def _build_staged_transactions(
-        self,
-        batch_id: UUID,
-        target: ResolvedImportTarget,
-        new_pairs: list[tuple[ParsedTransaction, str]],
-        is_credit_card: bool,
-    ) -> tuple[list[StagedTransaction], int]:
-        staged_list: list[StagedTransaction] = []
-        possible_duplicates_count = 0
-
-        for tx, fp in new_pairs:
-            clf: ClassificationResult = await self.classification_service.classify_transaction(
-                tx.raw_title,
-                tx.raw_description,
-                tx.direction,
-                tx.amount,
-                bank_category=getattr(tx, "bank_category", None),
-                is_credit_card=is_credit_card,
-            )
-
-            # Detecção de duplicata via Strategy Pattern
-            dup_spent_id, dup_income_id = None, None
-            detector = self._duplicate_detectors.get(clf.kind)
-            if detector:
-                dup_spent_id, dup_income_id = await detector.detect(
-                    tx_repo=self.tx_repo,
-                    account_id=target.account_id,
-                    credit_card_id=target.credit_card_id,
-                    amount=tx.amount,
-                    tx_date=tx.occurred_at.date(),
-                )
-                if dup_spent_id or dup_income_id:
-                    possible_duplicates_count += 1
-
-            # Resolução de competência para salários
-            comp_date = resolve_salary_competence_date(
-                kind=clf.kind,
-                occurred_at=tx.occurred_at,
-                raw_title=tx.raw_title,
-                raw_description=tx.raw_description,
-            )
-
-            staged = StagedTransaction(
-                batch_id=batch_id,
-                account_id=target.account_id,
-                credit_card_id=target.credit_card_id,
-                occurred_at=tx.occurred_at,
-                posted_at=tx.posted_at,
-                raw_title=tx.raw_title,
-                raw_description=tx.raw_description,
-                raw_row=tx.raw_row,
-                merchant=clf.merchant,
-                amount=tx.amount,
-                direction=tx.direction,
-                kind=clf.kind,
-                payment_type=clf.payment_type,
-                suggested_category=clf.suggested_category,
-                suggestion_source=clf.suggestion_source,
-                confidence=clf.confidence,
-                category=clf.suggested_category,
-                description=clf.description[:50],
-                location=clf.location,
-                status="PENDING",
-                fingerprint=fp,
-                current_installment=getattr(tx, "current_installment", None),
-                total_installments=getattr(tx, "total_installments", None),
-                card_last_digits=getattr(tx, "card_last_digits", None),
-                competence_date=comp_date,
-                possible_duplicate_of_spent_id=dup_spent_id,
-                possible_duplicate_of_income_id=dup_income_id,
-            )
-            staged_list.append(staged)
-
-        return staged_list, possible_duplicates_count
-
-    async def _enrich_with_batch_ai(self, staged_list: list[StagedTransaction]) -> bool:
-        ai_candidates = [
-            st
-            for st in staged_list
-            if st.kind in ("EXPENSE", "INCOME") and not st.suggested_category
-        ]
-        if not ai_candidates:
-            return False
-
-        try:
-            exp_cats, _ = await self.category_repo.list(page=1, size=200)
-            inc_cats, _ = await self.income_category_repo.list(page=1, size=200)
-
-            exp_list = [{"key": c.key, "display_name": c.display_name} for c in exp_cats]
-            inc_list = [{"key": c.key, "display_name": c.display_name} for c in inc_cats]
-
-            payload_items = [
-                {
-                    "id": str(idx),
-                    "merchant": st.merchant,
-                    "raw_title": st.raw_title,
-                    "raw_description": st.raw_description,
-                    "direction": st.direction,
-                    "amount": float(st.amount),
-                }
-                for idx, st in enumerate(ai_candidates)
-            ]
-
-            suggestions_map, ai_success = await self.ai_client.classify_batch(
-                transactions=payload_items,
-                expense_categories=exp_list,
-                income_categories=inc_list,
-            )
-            if ai_success:
-                for idx, cand in enumerate(ai_candidates):
-                    sug = suggestions_map.get(str(idx))
-                    if sug:
-                        sug_cat = sug.get("category")
-                        conf = sug.get("confidence")
-                        cand.suggested_category = sug_cat
-                        cand.category = sug_cat
-                        cand.suggestion_source = "LLM"
-                        cand.confidence = Decimal(str(conf)) if conf else Decimal("0.750")
-                return True
-        except Exception as e:
-            logger.warning(f"Failed to run AI classification on import batch: {e}")
-
-        return False
+        self._enrichment = BatchEnrichmentService(
+            category_repo=self.category_repo,
+            income_category_repo=self.income_category_repo,
+            ai_client=self.ai_client,
+        )
+        self._upload = ImportUploadService(
+            batch_repo=self.batch_repo,
+            tx_repo=self.tx_repo,
+            parser_factory=self._parser_factory,
+            target_resolvers=self._target_resolvers,
+            fingerprints=ImportFingerprintService(),
+            staging_builder=StagingBuilder(
+                tx_repo=self.tx_repo,
+                classification_service=self.classification_service,
+                duplicate_detectors=self._duplicate_detectors,
+            ),
+            enrichment_service=self._enrichment,
+            presenter=self._presenter,
+        )
+        self._editor = StagedTransactionEditor(
+            tx_repo=self.tx_repo,
+            rule_repo=self.rule_repo,
+            category_repo=self.category_repo,
+            income_category_repo=self.income_category_repo,
+            presenter=self._presenter,
+        )
+        self._bulk = ImportBulkService(
+            tx_repo=self.tx_repo,
+            bulk_strategies=self._bulk_strategies,
+        )
+        self._commit = ImportCommitService(
+            tx_repo=self.tx_repo,
+            context_resolver=CommitContextResolver(
+                account_repo=self.account_repo,
+                credit_card_repo=self.credit_card_repo,
+            ),
+            commit_strategies=self._commit_strategies,
+        )
+        self._reclassifier = ImportReclassifyService(
+            tx_repo=self.tx_repo,
+            rule_repo=self.rule_repo,
+            enrichment_service=self._enrichment,
+        )
 
     @handle_service_errors
     async def create_batch_from_upload(
@@ -274,120 +160,17 @@ class ImportService:
         account_id: UUID | None = None,
         credit_card_id: UUID | None = None,
     ) -> ImportBatchResponse:
-        parser = self._parser_factory.detect_and_create(file_bytes, filename)
-        resolver = self._target_resolvers.get(parser.statement_type)
-        if resolver is None:
-            raise ValidationError(
-                f"Tipo de extrato '{parser.statement_type}' não suportado para importação."
-            )
-        target = await resolver.resolve(account_id, credit_card_id, bank_hint="c6")
-
-        file_sha256 = self._calc_sha256(file_bytes)
-        existing_batch = await self.batch_repo.get_by_sha256(file_sha256)
-        if existing_batch:
-            raise EntityConflictError(
-                f"Este arquivo ('{filename}') já foi importado anteriormente em {existing_batch.created_at.strftime('%d/%m/%Y %H:%M')}."
-            )
-
-        parsed = parser.parse(file_bytes, filename)
-        fp_map = self._build_fingerprint_map(target.target_key, parsed.transactions)
-        all_fps = [fp for _, fp in fp_map]
-        existing_fps = await self.tx_repo.get_existing_fingerprints(all_fps)
-
-        new_pairs = [(tx, fp) for tx, fp in fp_map if fp not in existing_fps]
-        duplicate_rows_count = len(parsed.transactions) - len(new_pairs)
-
-        # Cria lote no banco
-        batch = ImportBatch(
-            account_id=target.account_id,
-            credit_card_id=target.credit_card_id,
-            parser=parser.name,
+        return await self._upload.create_batch_from_upload(
+            file_bytes=file_bytes,
             filename=filename,
-            file_sha256=file_sha256,
-            period_start=parsed.metadata.period_start,
-            period_end=parsed.metadata.period_end,
-            total_rows=len(parsed.transactions),
-            new_rows=len(new_pairs),
-            duplicate_rows=duplicate_rows_count,
-            possible_duplicates=0,
-            ai_used=False,
+            account_id=account_id,
+            credit_card_id=credit_card_id,
         )
-        batch = await self.batch_repo.create(batch)
-
-        if not new_pairs:
-            counts = await self.batch_repo.get_counts_by_status(batch.id)
-            return self._build_batch_response(batch, target, counts)
-
-        is_credit_card = parser.statement_type == StatementType.CREDIT_CARD
-        staged_list, possible_duplicates_count = await self._build_staged_transactions(
-            batch_id=batch.id,
-            target=target,
-            new_pairs=new_pairs,
-            is_credit_card=is_credit_card,
-        )
-
-        ai_used = await self._enrich_with_batch_ai(staged_list)
-        await self.tx_repo.create_many(staged_list)
-
-        batch = await self.batch_repo.update_batch_stats(
-            batch=batch,
-            possible_duplicates=possible_duplicates_count,
-            ai_used=ai_used,
-        )
-
-        counts = await self.batch_repo.get_counts_by_status(batch.id)
-        return self._build_batch_response(batch, target, counts)
 
     @handle_service_errors
     async def list_batches(self) -> list[ImportBatchResponse]:
         batches = await self.batch_repo.list_all()
-        results = []
-        for b in batches:
-            res = ImportBatchResponse.model_validate(b)
-            if b.account_id:
-                acc = await self.account_repo.get_by_id(b.account_id)
-                res.account_name = acc.name if acc else None
-            if b.credit_card_id:
-                card = await self.credit_card_repo.get_by_id(b.credit_card_id)
-                if card:
-                    res.credit_card_id = card.id
-                    res.credit_card_name = card.name
-                    if not res.account_name:
-                        res.account_name = card.name
-            res.counts = await self.batch_repo.get_counts_by_status(b.id)
-            results.append(res)
-        return results
-
-    async def _to_tx_response(self, tx: StagedTransaction) -> StagedTransactionResponse:
-        res = StagedTransactionResponse.model_validate(tx)
-        res.amount = tx.amount
-        res.confidence = float(tx.confidence) if tx.confidence is not None else None
-        res.current_installment = tx.current_installment
-        res.total_installments = tx.total_installments
-        res.card_last_digits = tx.card_last_digits
-
-        # Resolve possible duplicate info se houver
-        if tx.possible_duplicate_of_spent_id:
-            sp = await self.spent_service.repo.get_by_id(tx.possible_duplicate_of_spent_id)
-            if sp:
-                res.possible_duplicate = PossibleDuplicateInfo(
-                    type="spent",
-                    id=sp.id,
-                    label=sp.item_bought,
-                    amount=Decimal(str(sp.amount)),
-                    date=sp.created_at.date(),
-                )
-        elif tx.possible_duplicate_of_income_id:
-            inc = await self.income_service.repo.get_by_id(tx.possible_duplicate_of_income_id)
-            if inc:
-                res.possible_duplicate = PossibleDuplicateInfo(
-                    type="income",
-                    id=inc.id,
-                    label=inc.description,
-                    amount=Decimal(str(inc.amount)),
-                    date=inc.received_at.date(),
-                )
-        return res
+        return await self._presenter.build_batch_list(list(batches))
 
     @handle_service_errors
     async def list_transactions(
@@ -409,289 +192,32 @@ class ImportService:
             page=page,
             size=size,
         )
-        tx_responses = [await self._to_tx_response(tx) for tx in items]
+        tx_responses = [await self._presenter.to_tx_response(tx) for tx in items]
         return PaginatedResponse.create(tx_responses, total, page, size)
-
-    async def _validate_category_for_kind(self, kind: str, category_key: str) -> None:
-        """Validates category existence based on transaction kind."""
-        if kind == "EXPENSE":
-            c = await self.category_repo.get_by_key(category_key)
-            if not c:
-                raise ValidationError(f"Categoria de despesa '{category_key}' não existe.")
-        elif kind == "INCOME":
-            ic = await self.income_category_repo.get_by_key(category_key)
-            if not ic:
-                raise ValidationError(f"Categoria de receita '{category_key}' não existe.")
 
     @handle_service_errors
     async def update_transaction(
-        self, tx_id: UUID, data: StagedTransactionUpdate
+        self,
+        tx_id: UUID,
+        data: StagedTransactionUpdate,
     ) -> StagedTransactionResponse:
-        tx = await self.tx_repo.get_by_id(tx_id)
-        if not tx:
-            raise EntityNotFoundError(f"Transação {tx_id} não encontrada")
-
-        if tx.status == "COMMITTED":
-            raise ValidationError("Transação já foi efetivada e não pode ser alterada.")
-
-        if data.kind is not None:
-            if data.kind not in ("EXPENSE", "INCOME", "TRANSFER", "INVOICE_PAYMENT", "REFUND"):
-                raise ValidationError(f"Tipo '{data.kind}' inválido.")
-            tx.kind = data.kind
-            # Se mudou para TRANSFER ou INVOICE_PAYMENT, limpa categoria
-            if tx.kind in ("TRANSFER", "INVOICE_PAYMENT", "REFUND"):
-                tx.category = None
-
-        if data.description is not None:
-            tx.description = data.description.strip()[:50]
-
-        if data.location is not None:
-            tx.location = data.location.strip() or None
-
-        if data.competence_date is not None:
-            tx.competence_date = data.competence_date
-
-        if data.category is not None:
-            clean_cat = data.category.strip().lower() if data.category else None
-            if clean_cat:
-                await self._validate_category_for_kind(tx.kind, clean_cat)
-            tx.category = clean_cat
-
-        if data.status is not None:
-            if data.status not in ("PENDING", "APPROVED", "IGNORED"):
-                raise ValidationError(f"Status '{data.status}' inválido para transição direta.")
-            if data.status == "APPROVED":
-                if tx.kind in ("EXPENSE", "INCOME") and not tx.category:
-                    raise ValidationError(
-                        f"Selecione uma categoria para aprovar uma transação do tipo {tx.kind}."
-                    )
-            tx.status = data.status
-
-        # Aprendizado de regra se solicitado
-        if data.remember and tx.category and tx.merchant and tx.kind in ("EXPENSE", "INCOME"):
-            await self.rule_repo.upsert_rule(
-                pattern=tx.merchant,
-                direction=tx.direction,
-                kind=tx.kind,
-                category=tx.category,
-                source="LEARNED",
-            )
-
-        saved = await self.tx_repo.save(tx)
-        return await self._to_tx_response(saved)
+        return await self._editor.update(tx_id, data)
 
     @handle_service_errors
     async def bulk_action(self, req: BulkActionRequest) -> BulkActionResult:
-        updated = 0
-        skipped = 0
-        errors: list[BulkActionError] = []
-
-        strategy = self._bulk_strategies.get(str(req.action))
-
-        for tx_id in req.ids:
-            tx = await self.tx_repo.get_by_id(tx_id)
-            if not tx:
-                errors.append(BulkActionError(id=tx_id, error="Transação não encontrada"))
-                continue
-            if tx.status == "COMMITTED":
-                skipped += 1
-                continue
-            if strategy is None:
-                errors.append(BulkActionError(id=tx_id, error=f"Ação desconhecida: {req.action}"))
-                continue
-
-            try:
-                outcome = await strategy.execute(tx, req)
-                if outcome.status == StepOutcomeStatus.SKIPPED:
-                    skipped += 1
-                elif outcome.status == StepOutcomeStatus.ERROR:
-                    errors.append(
-                        BulkActionError(
-                            id=tx_id,
-                            error=outcome.error_message or "Erro na validação da ação",
-                        )
-                    )
-                else:
-                    await self.tx_repo.save(tx)
-                    updated += 1
-            except Exception as e:
-                errors.append(BulkActionError(id=tx_id, error=str(e)))
-
-        return BulkActionResult(updated=updated, skipped=skipped, errors=errors)
+        return await self._bulk.execute(req)
 
     @handle_service_errors
     async def link_transaction(self, tx_id: UUID) -> StagedTransactionResponse:
-        tx = await self.tx_repo.get_by_id(tx_id)
-        if not tx:
-            raise EntityNotFoundError(f"Transação {tx_id} não encontrada")
-
-        if not tx.possible_duplicate_of_spent_id and not tx.possible_duplicate_of_income_id:
-            raise ValidationError("Esta transação não possui duplicata identificada para vincular.")
-
-        if tx.possible_duplicate_of_spent_id:
-            tx.committed_spent_id = tx.possible_duplicate_of_spent_id
-        if tx.possible_duplicate_of_income_id:
-            tx.committed_income_id = tx.possible_duplicate_of_income_id
-
-        tx.status = "LINKED"
-        saved = await self.tx_repo.save(tx)
-        return await self._to_tx_response(saved)
-
-    async def _resolve_commit_context(
-        self,
-        tx: StagedTransaction,
-        account_cache: dict[UUID, Account],
-        card_cache: dict[UUID, Any],
-    ) -> CommitContext:
-        acc: Account | None = None
-        if tx.account_id:
-            if tx.account_id not in account_cache:
-                fetched_acc = await self.account_repo.get_by_id(tx.account_id)
-                if fetched_acc:
-                    account_cache[tx.account_id] = fetched_acc
-            acc = account_cache.get(tx.account_id)
-
-        card: Any = None
-        if tx.credit_card_id:
-            if tx.credit_card_id not in card_cache:
-                fetched_card = await self.credit_card_repo.get_by_id(tx.credit_card_id)
-                if fetched_card:
-                    card_cache[tx.credit_card_id] = fetched_card
-            card = card_cache.get(tx.credit_card_id)
-
-        if card:
-            return CommitContext(
-                payment_method_key=card.key,
-                payment_type_value="CREDIT",
-                account_id=tx.account_id or card.account_id,
-            )
-
-        valid_payment_types = ("PIX", "DEBIT", "CASH", "TRANSFER", "OTHER")
-        pt_val = tx.payment_type if tx.payment_type in valid_payment_types else "DEBIT"
-        return CommitContext(
-            payment_method_key=acc.key if acc else "outros",
-            payment_type_value=pt_val,
-            account_id=tx.account_id,
-        )
+        return await self._editor.link(tx_id)
 
     @handle_service_errors
     async def commit_approved(self, req: CommitRequest) -> CommitResult:
-        approved_items = await self.tx_repo.get_approved_for_commit(req.batch_id)
-        committed_spents = 0
-        committed_incomes = 0
-        processed_without_record = 0
-        failed: list[CommitFailure] = []
-
-        # Cache de contas e cartões para resolver payment_method
-        account_cache: dict[UUID, Account] = {}
-        card_cache: dict[UUID, Any] = {}
-
-        for tx in approved_items:
-            try:
-                strategy = self._commit_strategies.get(str(tx.kind))
-                if strategy is None:
-                    continue
-
-                ctx = await self._resolve_commit_context(tx, account_cache, card_cache)
-                outcome = await strategy.commit(tx, ctx)
-
-                if outcome.status == CommitOutcomeStatus.FAILED:
-                    failed.append(
-                        CommitFailure(
-                            id=tx.id,
-                            error=outcome.error_message or "Falha ao efetivar transação",
-                        )
-                    )
-                    continue
-
-                await self.tx_repo.save(tx)
-                if outcome.status == CommitOutcomeStatus.COMMITTED_SPENT:
-                    committed_spents += 1
-                elif outcome.status == CommitOutcomeStatus.COMMITTED_INCOME:
-                    committed_incomes += 1
-                elif outcome.status == CommitOutcomeStatus.PROCESSED_WITHOUT_RECORD:
-                    processed_without_record += 1
-
-            except Exception as e:
-                logger.error(f"Failed to commit tx {tx.id}: {e}", exc_info=True)
-                failed.append(CommitFailure(id=tx.id, error=str(e)))
-
-        return CommitResult(
-            committed_spents=committed_spents,
-            committed_incomes=committed_incomes,
-            processed_without_record=processed_without_record,
-            failed=failed,
-        )
+        return await self._commit.commit(req)
 
     @handle_service_errors
     async def reclassify_batch(self, batch_id: UUID | None = None) -> ReclassifyResult:
-        candidates = await self.tx_repo.list_for_reclassification(batch_id)
-        if not candidates:
-            return ReclassifyResult(total_reclassified=0, applied_rules=0, applied_ai=0)
-
-        applied_rules = 0
-        ai_candidates = []
-
-        for tx in candidates:
-            # 1. Tenta por regra
-            rule = await self.rule_repo.find_matching_rule(tx.merchant, tx.direction)
-            if rule and rule.category:
-                tx.category = rule.category
-                tx.suggested_category = rule.category
-                tx.suggestion_source = "RULE" if rule.source == "SEED" else "MEMORY"
-                tx.confidence = Decimal("0.950") if rule.hits >= 2 else Decimal("0.850")
-                await self.rule_repo.increment_hits(rule.id)
-                await self.tx_repo.save(tx)
-                applied_rules += 1
-            else:
-                ai_candidates.append(tx)
-
-        applied_ai = 0
-        if ai_candidates:
-            try:
-                exp_cats, _ = await self.category_repo.list(page=1, size=200)
-                inc_cats, _ = await self.income_category_repo.list(page=1, size=200)
-
-                exp_list = [{"key": c.key, "display_name": c.display_name} for c in exp_cats]
-                inc_list = [{"key": c.key, "display_name": c.display_name} for c in inc_cats]
-
-                payload_items = [
-                    {
-                        "id": str(tx.id),
-                        "merchant": tx.merchant,
-                        "raw_title": tx.raw_title,
-                        "raw_description": tx.raw_description,
-                        "direction": tx.direction,
-                        "amount": float(tx.amount),
-                    }
-                    for tx in ai_candidates
-                ]
-
-                suggestions_map, ai_success = await self.ai_client.classify_batch(
-                    transactions=payload_items,
-                    expense_categories=exp_list,
-                    income_categories=inc_list,
-                )
-                if ai_success:
-                    for tx in ai_candidates:
-                        sug = suggestions_map.get(str(tx.id))
-                        if sug and sug.get("category"):
-                            sug_cat = sug.get("category")
-                            conf = sug.get("confidence")
-                            tx.suggested_category = sug_cat
-                            tx.category = sug_cat
-                            tx.suggestion_source = "LLM"
-                            tx.confidence = Decimal(str(conf)) if conf else Decimal("0.750")
-                            await self.tx_repo.save(tx)
-                            applied_ai += 1
-            except Exception as e:
-                logger.warning(f"Reclassification AI step failed: {e}")
-
-        return ReclassifyResult(
-            total_reclassified=applied_rules + applied_ai,
-            applied_rules=applied_rules,
-            applied_ai=applied_ai,
-        )
+        return await self._reclassifier.reclassify(batch_id)
 
     @handle_service_errors
     async def get_summary(self) -> SummaryResponse:

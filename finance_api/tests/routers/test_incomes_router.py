@@ -13,6 +13,7 @@ from finance_api.models.income_categories import IncomeCategory
 from finance_api.models.incomes import Income
 from finance_api.models.payment_methods import PaymentMethod
 from finance_api.models.spents import Spent
+from finance_api.tests.fakes.fake_payment_resolver import FakePaymentResolver
 
 pytestmark = pytest.mark.asyncio
 
@@ -70,6 +71,13 @@ def mock_spent_repo(mocker):
     repo.list = AsyncMock()
     mocker.patch("finance_api.core.dependencies.SpentRepository", return_value=repo)
     return repo
+
+
+@pytest.fixture(autouse=True)
+def mock_payment_resolver(mocker):
+    resolver = FakePaymentResolver()
+    mocker.patch("finance_api.services.incomes.PaymentResolutionService", return_value=resolver)
+    return resolver
 
 
 async def test_create_income_api(test_client, mock_income_repo, mock_income_cat_repo, mock_pm_repo):

@@ -101,17 +101,17 @@ class BalanceService:
             return date(year, month, 1), date(year, month, last_day)
 
         if reference_month:
-            return await self.inv_service.get_invoice_dates(pm, reference_month)
+            return await self.inv_service.get_billing_period(pm, reference_month)
 
         current_month_str = today.strftime("%Y-%m")
-        start_d, end_d = await self.inv_service.get_invoice_dates(pm, current_month_str)
+        start_d, end_d = await self.inv_service.get_billing_period(pm, current_month_str)
         logger.info(
             f"[{pm.key}] Checking today {today} against start {start_d} end {end_d} for month {current_month_str}"
         )
 
         if today > end_d:
             next_month = today + relativedelta(months=1)
-            start_d, end_d = await self.inv_service.get_invoice_dates(
+            start_d, end_d = await self.inv_service.get_billing_period(
                 pm, next_month.strftime("%Y-%m")
             )
             logger.info(
@@ -119,7 +119,7 @@ class BalanceService:
             )
         elif today < start_d:
             prev_month = today - relativedelta(months=1)
-            start_d, end_d = await self.inv_service.get_invoice_dates(
+            start_d, end_d = await self.inv_service.get_billing_period(
                 pm, prev_month.strftime("%Y-%m")
             )
             logger.info(

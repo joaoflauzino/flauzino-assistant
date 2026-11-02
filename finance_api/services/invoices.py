@@ -1,9 +1,11 @@
 from datetime import date, datetime
 from uuid import UUID
 
-from finance_api.core.dates import compute_business_day, resolve_due_reference_month
+from dateutil.relativedelta import relativedelta
+
+from finance_api.core.dates import DateRange, compute_business_day, resolve_due_reference_month
 from finance_api.core.decorators import handle_service_errors
-from finance_api.core.exceptions import EntityNotFoundError
+from finance_api.core.exceptions import EntityNotFoundError, ValidationError
 from finance_api.core.logger import get_logger
 from finance_api.models.invoices import InvoiceStatus
 from finance_api.models.payment_methods import PaymentMethod
@@ -63,6 +65,48 @@ class InvoiceService:
         real_closing = compute_business_day(reference_month, closing_day)
         real_due = compute_business_day(due_reference_month, due_day)
         return real_closing, real_due
+
+    async def _resolve_closing_date(
+        self, payment_method: PaymentMethod, reference_month: str
+    ) -> date:
+        """Returns the real closing date, honoring a manual override when present."""
+        invoice = await self.repo.get_by_payment_method_and_month(
+            payment_method.key, reference_month
+        )
+        if invoice:
+            return invoice.real_closing_date
+
+        return compute_business_day(reference_month, payment_method.closing_day or 1)
+
+    @handle_service_errors
+    async def get_billing_period(
+        self, payment_method: PaymentMethod, reference_month: str
+    ) -> tuple[date, date]:
+        """Returns the purchase window (start, end) covered by an invoice.
+
+        The invoice of `reference_month` closes on its real closing date and
+        includes every purchase made after the previous month's closing date,
+        up to and including the current closing date.
+        """
+        if not payment_method.is_credit_card:
+            raise ValidationError(f"Payment method {payment_method.key} is not a credit card.")
+
+        end_date = await self._resolve_closing_date(payment_method, reference_month)
+        previous_month = (
+            datetime.strptime(reference_month, "%Y-%m") - relativedelta(months=1)
+        ).strftime("%Y-%m")
+        previous_closing = await self._resolve_closing_date(payment_method, previous_month)
+        start_date = previous_closing + relativedelta(days=1)
+
+        if start_date > end_date:
+            logger.warning(
+                f"Invalid billing period for {payment_method.key} ({reference_month}): "
+                f"start {start_date} is after end {end_date}. Falling back to civil month."
+            )
+            civil_month = DateRange.from_reference_month(reference_month)
+            return civil_month.start, civil_month.end
+
+        return start_date, end_date
 
     @handle_service_errors
     async def list_previews(self, reference_month: str) -> list[InvoiceResponse]:

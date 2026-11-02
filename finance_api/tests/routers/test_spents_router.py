@@ -9,6 +9,7 @@ from httpx import ASGITransport, AsyncClient
 from finance_api.core.database import get_db
 from finance_api.main import app
 from finance_api.repositories.spents import SpentRepository
+from finance_api.tests.fakes.fake_payment_resolver import FakePaymentResolver
 
 # Mark all tests in this file as async
 pytestmark = pytest.mark.asyncio
@@ -34,6 +35,14 @@ def mock_payment_method_repo(mocker):
         AsyncMock(return_value=mock_pm)
     )
     return mock_pm
+
+
+@pytest.fixture(autouse=True)
+def mock_payment_resolver(mocker):
+    """Auto-use fixture that replaces payment resolution with a deterministic fake."""
+    resolver = FakePaymentResolver()
+    mocker.patch("finance_api.services.spents.PaymentResolutionService", return_value=resolver)
+    return resolver
 
 
 @pytest.fixture
@@ -454,8 +463,8 @@ async def test_get_dashboard_invoices_mode_with_mixed_payment_methods(
     mocker.patch("finance_api.routers.spents.PaymentMethodRepository", return_value=mock_pm_repo)
 
     mock_inv_service = MagicMock()
-    mock_inv_service.get_invoice_dates = AsyncMock(
-        return_value=(date(2026, 8, 25), date(2026, 9, 24))
+    mock_inv_service.get_billing_period = AsyncMock(
+        return_value=(date(2026, 8, 26), date(2026, 9, 25))
     )
     mocker.patch("finance_api.routers.spents.InvoiceService", return_value=mock_inv_service)
 
@@ -502,7 +511,7 @@ async def test_get_dashboard_invoices_mode_with_mixed_payment_methods(
         mock_spent_repository.list_by_multiple_periods.assert_awaited_once()
         periods_arg = mock_spent_repository.list_by_multiple_periods.call_args[0][0]
         assert len(periods_arg) == 2
-        assert periods_arg[0] == ("nubank", date(2026, 8, 25), date(2026, 9, 24))
+        assert periods_arg[0] == ("nubank", date(2026, 8, 26), date(2026, 9, 25))
         assert periods_arg[1] == ("pix_joao", date(2026, 9, 1), date(2026, 9, 30))
     finally:
         app.dependency_overrides.clear()

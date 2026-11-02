@@ -1,8 +1,10 @@
 import warnings
+from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta
+from typing import Any
 from zoneinfo import ZoneInfo
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
     CallbackQueryHandler,
     CommandHandler,
@@ -290,49 +292,82 @@ async def type_current_installment(update: Update, context: ContextTypes.DEFAULT
     return await ask_for_date(update.message, context)
 
 
+ExpenseData = dict[str, Any]
+PurchaseSaver = Callable[[ExpenseData], Awaitable[None]]
+
+
+def _with_created_at(data: ExpenseData, expense: ExpenseData) -> ExpenseData:
+    if "created_at" in expense:
+        data["created_at"] = expense["created_at"].isoformat()
+    return data
+
+
+def _build_spent_data(expense: ExpenseData) -> ExpenseData:
+    spent_data: ExpenseData = {
+        "category": expense.get("category"),
+        "amount": expense.get("amount"),
+        "item_bought": expense.get("item_bought"),
+        "payment_method": expense.get("payment_method"),
+        "location": expense.get("location", "N/A"),
+    }
+    return _with_created_at(spent_data, expense)
+
+
+def _build_subscription_data(expense: ExpenseData) -> ExpenseData:
+    subscription_data: ExpenseData = {
+        "name": expense.get("item_bought"),
+        "category": expense.get("category"),
+        "amount": expense.get("amount"),
+        "payment_method": expense.get("payment_method"),
+    }
+    return _with_created_at(subscription_data, expense)
+
+
+async def _save_single_purchase(expense: ExpenseData) -> None:
+    await save_spent(_build_spent_data(expense))
+
+
+async def _save_installment(expense: ExpenseData) -> None:
+    spent_data = _build_spent_data(expense)
+    spent_data["is_installment"] = True
+    spent_data["current_installment"] = expense.get("current_installment", 1)
+    spent_data["total_installments"] = expense.get("total_installments", 1)
+    await save_spent(spent_data)
+
+
+async def _save_continuous_subscription(expense: ExpenseData) -> None:
+    await save_subscription(_build_subscription_data(expense))
+
+
+PURCHASE_SAVERS: dict[str, PurchaseSaver] = {
+    "a_vista": _save_single_purchase,
+    "parcelada": _save_installment,
+    "assinatura": _save_continuous_subscription,
+}
+
+
+def _resolve_saver(expense: ExpenseData) -> PurchaseSaver:
+    return PURCHASE_SAVERS.get(expense.get("purchase_type", "a_vista"), _save_single_purchase)
+
+
+async def _persist_expense(query: CallbackQuery, expense: ExpenseData) -> None:
+    try:
+        await _resolve_saver(expense)(expense)
+        await query.edit_message_text(text="✅ Registro salvo com sucesso!")
+        logger.info("Saved successfully.")
+    except Exception as e:  # Boundary: report save failures back to the user.
+        logger.error(f"Failed to save: {e}")
+        await query.edit_message_text(
+            text="❌ Ocorreu um erro ao salvar. Tente novamente mais tarde."
+        )
+
+
 async def confirm_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     await query.answer()
 
     if query.data == "confirm":
-        expense = context.user_data.get("expense", {})
-        try:
-            ptype = expense.get("purchase_type", "a_vista")
-
-            if ptype == "assinatura":
-                sub_data = {
-                    "name": expense.get("item_bought"),
-                    "category": expense.get("category"),
-                    "amount": expense.get("amount"),
-                    "payment_method": expense.get("payment_method"),
-                }
-                if "created_at" in expense:
-                    sub_data["created_at"] = expense["created_at"].isoformat()
-                await save_subscription(sub_data)
-            else:
-                spent_data = {
-                    "category": expense.get("category"),
-                    "amount": expense.get("amount"),
-                    "item_bought": expense.get("item_bought"),
-                    "payment_method": expense.get("payment_method"),
-                    "location": expense.get("location", "N/A"),
-                }
-                if "created_at" in expense:
-                    spent_data["created_at"] = expense["created_at"].isoformat()
-                if ptype == "parcelada":
-                    spent_data["is_installment"] = True
-                    spent_data["current_installment"] = expense.get("current_installment", 1)
-                    spent_data["total_installments"] = expense.get("total_installments", 1)
-
-                await save_spent(spent_data)
-
-            await query.edit_message_text(text="✅ Registro salvo com sucesso!")
-            logger.info("Saved successfully.")
-        except Exception as e:
-            logger.error(f"Failed to save: {e}")
-            await query.edit_message_text(
-                text="❌ Ocorreu um erro ao salvar. Tente novamente mais tarde."
-            )
+        await _persist_expense(query, context.user_data.get("expense", {}))
     else:
         await query.edit_message_text(text="❌ Registro cancelado.")
         logger.info("Registration cancelled.")
