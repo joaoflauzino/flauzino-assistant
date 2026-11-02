@@ -15,7 +15,7 @@ from finance_api.importers.schemas import (
     StatementType,
 )
 from finance_api.models.import_batches import ImportBatch
-from finance_api.services.import_upload import ImportUploadService
+from finance_api.services.imports.upload import ImportUploadService
 
 SP_TZ = ZoneInfo("America/Sao_Paulo")
 

@@ -36,9 +36,9 @@ from finance_api.services.accounts import AccountService
 from finance_api.services.balances import BalanceService
 from finance_api.services.classification import ClassificationService
 from finance_api.services.credit_cards import CreditCardService
-from finance_api.services.import_factory import build_default_import_service
-from finance_api.services.import_wiring import ImportOverrides, ImportServiceDeps
-from finance_api.services.imports import ImportService
+from finance_api.services.imports.facade import ImportService
+from finance_api.services.imports.factory import build_default_import_service
+from finance_api.services.imports.wiring import ImportOverrides, ImportServiceDeps
 from finance_api.services.income_categories import IncomeCategoryService
 from finance_api.services.incomes import IncomeService
 from finance_api.services.invoices import InvoiceService

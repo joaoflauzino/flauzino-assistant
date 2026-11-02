@@ -8,7 +8,7 @@ import pytest
 
 from finance_api.importers.schemas import ParsedTransaction, ResolvedImportTarget
 from finance_api.schemas.classification import ClassificationResult
-from finance_api.services.import_staging import (
+from finance_api.services.imports.staging import (
     StagingBuilder,
     resolve_salary_competence_date,
 )

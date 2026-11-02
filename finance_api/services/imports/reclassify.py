@@ -8,7 +8,7 @@ from finance_api.models.staged_transactions import StagedTransaction
 from finance_api.repositories.category_rules import CategoryRuleRepositoryProtocol
 from finance_api.repositories.staged_transactions import StagedTransactionRepository
 from finance_api.schemas.imports import ReclassifyResult
-from finance_api.services.import_enrichment import BatchEnrichmentService
+from finance_api.services.imports.enrichment import BatchEnrichmentService
 
 RULE_CONFIDENCE_EXACT = Decimal("0.950")
 RULE_CONFIDENCE_FUZZY = Decimal("0.850")

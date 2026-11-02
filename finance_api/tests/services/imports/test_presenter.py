@@ -9,7 +9,7 @@ import pytest
 from finance_api.importers.schemas import ResolvedImportTarget
 from finance_api.models.import_batches import ImportBatch
 from finance_api.models.staged_transactions import StagedTransaction
-from finance_api.services.import_presenter import ImportBatchPresenter
+from finance_api.services.imports.presenter import ImportBatchPresenter
 
 SP_TZ = ZoneInfo("America/Sao_Paulo")
 

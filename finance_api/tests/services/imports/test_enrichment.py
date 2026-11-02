@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from finance_api.models.staged_transactions import StagedTransaction
-from finance_api.services.import_enrichment import BatchEnrichmentService
+from finance_api.services.imports.enrichment import BatchEnrichmentService
 
 SP_TZ = ZoneInfo("America/Sao_Paulo")
 

@@ -9,7 +9,7 @@ import pytest
 from finance_api.models.staged_transactions import StagedTransaction
 from finance_api.schemas.enums import StepOutcomeStatus
 from finance_api.schemas.imports import BulkActionRequest, StepOutcome
-from finance_api.services.import_bulk import ImportBulkService
+from finance_api.services.imports.bulk import ImportBulkService
 
 SP_TZ = ZoneInfo("America/Sao_Paulo")
 

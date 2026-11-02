@@ -9,7 +9,7 @@ import pytest
 from finance_api.models.staged_transactions import StagedTransaction
 from finance_api.schemas.enums import CommitOutcomeStatus
 from finance_api.schemas.imports import CommitRequest, CommitStepOutcome
-from finance_api.services.import_commit import CommitContextResolver, ImportCommitService
+from finance_api.services.imports.commit import CommitContextResolver, ImportCommitService
 
 SP_TZ = ZoneInfo("America/Sao_Paulo")
 

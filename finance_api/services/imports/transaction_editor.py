@@ -12,7 +12,7 @@ from finance_api.repositories.category_rules import CategoryRuleRepositoryProtoc
 from finance_api.repositories.income_categories import IncomeCategoryRepository
 from finance_api.repositories.staged_transactions import StagedTransactionRepository
 from finance_api.schemas.imports import StagedTransactionResponse, StagedTransactionUpdate
-from finance_api.services.import_presenter import ImportBatchPresenter
+from finance_api.services.imports.presenter import ImportBatchPresenter
 
 ALLOWED_KINDS = ("EXPENSE", "INCOME", "TRANSFER", "INVOICE_PAYMENT", "REFUND")
 CATEGORYLESS_KINDS = ("TRANSFER", "INVOICE_PAYMENT", "REFUND")

@@ -9,7 +9,7 @@ import pytest
 from finance_api.core.exceptions import EntityNotFoundError, ValidationError
 from finance_api.models.staged_transactions import StagedTransaction
 from finance_api.schemas.imports import StagedTransactionUpdate
-from finance_api.services.import_transaction_editor import StagedTransactionEditor
+from finance_api.services.imports.transaction_editor import StagedTransactionEditor
 
 SP_TZ = ZoneInfo("America/Sao_Paulo")
 

@@ -12,7 +12,7 @@ from finance_api.models.staged_transactions import StagedTransaction
 from finance_api.repositories.category_rules import CategoryRuleRepositoryProtocol
 from finance_api.schemas.enums import BulkActionType, StepOutcomeStatus
 from finance_api.schemas.imports import BulkActionRequest
-from finance_api.services.import_bulk_strategies import (
+from finance_api.services.imports.bulk_strategies import (
     ApproveBulkStrategy,
     IgnoreBulkStrategy,
     ReopenBulkStrategy,

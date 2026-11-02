@@ -11,7 +11,7 @@ import pytest
 from finance_api.models.staged_transactions import StagedTransaction
 from finance_api.schemas.enums import CommitOutcomeStatus
 from finance_api.schemas.imports import CommitContext
-from finance_api.services.import_commit_strategies import (
+from finance_api.services.imports.commit_strategies import (
     ExpenseCommitStrategy,
     ExpenseDuplicateDetector,
     IncomeCommitStrategy,

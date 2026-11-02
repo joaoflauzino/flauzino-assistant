@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from finance_api.models.staged_transactions import StagedTransaction
-from finance_api.services.import_reclassify import ImportReclassifyService
+from finance_api.services.imports.reclassify import ImportReclassifyService
 
 SP_TZ = ZoneInfo("America/Sao_Paulo")
 

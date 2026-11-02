@@ -14,12 +14,12 @@ from finance_api.repositories.income_categories import IncomeCategoryRepository
 from finance_api.repositories.staged_transactions import StagedTransactionRepository
 from finance_api.services.ai_classifier import AIClassifierClient
 from finance_api.services.classification import ClassificationService
-from finance_api.services.import_bulk import ImportBulkService
-from finance_api.services.import_commit import ImportCommitService
-from finance_api.services.import_presenter import ImportBatchPresenter
-from finance_api.services.import_reclassify import ImportReclassifyService
-from finance_api.services.import_transaction_editor import StagedTransactionEditor
-from finance_api.services.import_upload import ImportUploadService
+from finance_api.services.imports.bulk import ImportBulkService
+from finance_api.services.imports.commit import ImportCommitService
+from finance_api.services.imports.presenter import ImportBatchPresenter
+from finance_api.services.imports.reclassify import ImportReclassifyService
+from finance_api.services.imports.transaction_editor import StagedTransactionEditor
+from finance_api.services.imports.upload import ImportUploadService
 from finance_api.services.incomes import IncomeService
 from finance_api.services.protocols import (
     BulkActionStrategy,

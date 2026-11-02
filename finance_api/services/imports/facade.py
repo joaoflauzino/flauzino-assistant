@@ -15,7 +15,7 @@ from finance_api.schemas.imports import (
     SummaryResponse,
 )
 from finance_api.schemas.pagination import PaginatedResponse
-from finance_api.services.import_wiring import ImportCollaborators, ImportServiceDeps
+from finance_api.services.imports.wiring import ImportCollaborators, ImportServiceDeps
 
 
 class ImportService:

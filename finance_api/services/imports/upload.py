@@ -15,10 +15,10 @@ from finance_api.models.import_batches import ImportBatch
 from finance_api.repositories.imports import ImportBatchRepositoryProtocol
 from finance_api.repositories.staged_transactions import StagedTransactionRepository
 from finance_api.schemas.imports import ImportBatchResponse
-from finance_api.services.import_enrichment import BatchEnrichmentService
-from finance_api.services.import_fingerprint import ImportFingerprintService
-from finance_api.services.import_presenter import ImportBatchPresenter
-from finance_api.services.import_staging import StagingBuilder
+from finance_api.services.imports.enrichment import BatchEnrichmentService
+from finance_api.services.imports.fingerprint import ImportFingerprintService
+from finance_api.services.imports.presenter import ImportBatchPresenter
+from finance_api.services.imports.staging import StagingBuilder
 
 BANK_HINT = "c6"
 

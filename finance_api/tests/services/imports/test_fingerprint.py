@@ -3,7 +3,7 @@ from decimal import Decimal
 from zoneinfo import ZoneInfo
 
 from finance_api.importers.schemas import ParsedTransaction
-from finance_api.services.import_fingerprint import ImportFingerprintService
+from finance_api.services.imports.fingerprint import ImportFingerprintService
 
 SP_TZ = ZoneInfo("America/Sao_Paulo")
 

@@ -20,8 +20,8 @@ from finance_api.repositories.staged_transactions import StagedTransactionReposi
 from finance_api.schemas.imports import BulkActionRequest, CommitRequest
 from finance_api.services.ai_classifier import AIClassifierClient
 from finance_api.services.classification import ClassificationService
-from finance_api.services.import_factory import build_default_import_service
-from finance_api.services.import_wiring import ImportOverrides, ImportServiceDeps
+from finance_api.services.imports.factory import build_default_import_service
+from finance_api.services.imports.wiring import ImportOverrides, ImportServiceDeps
 from finance_api.services.incomes import IncomeService
 from finance_api.services.spents import SpentService
 

@@ -5,26 +5,26 @@ from finance_api.importers.registry import (
     build_default_target_resolvers,
 )
 from finance_api.services.ai_classifier import AIClassifierClient
-from finance_api.services.import_bulk import ImportBulkService
-from finance_api.services.import_bulk_strategies import build_default_bulk_strategies
-from finance_api.services.import_commit import CommitContextResolver, ImportCommitService
-from finance_api.services.import_commit_strategies import (
+from finance_api.services.imports.bulk import ImportBulkService
+from finance_api.services.imports.bulk_strategies import build_default_bulk_strategies
+from finance_api.services.imports.commit import CommitContextResolver, ImportCommitService
+from finance_api.services.imports.commit_strategies import (
     build_default_commit_strategies,
     build_default_duplicate_detectors,
 )
-from finance_api.services.import_enrichment import BatchEnrichmentService
-from finance_api.services.import_fingerprint import ImportFingerprintService
-from finance_api.services.import_presenter import ImportBatchPresenter
-from finance_api.services.import_reclassify import ImportReclassifyService
-from finance_api.services.import_staging import StagingBuilder
-from finance_api.services.import_transaction_editor import StagedTransactionEditor
-from finance_api.services.import_upload import ImportUploadService
-from finance_api.services.import_wiring import (
+from finance_api.services.imports.enrichment import BatchEnrichmentService
+from finance_api.services.imports.facade import ImportService
+from finance_api.services.imports.fingerprint import ImportFingerprintService
+from finance_api.services.imports.presenter import ImportBatchPresenter
+from finance_api.services.imports.reclassify import ImportReclassifyService
+from finance_api.services.imports.staging import StagingBuilder
+from finance_api.services.imports.transaction_editor import StagedTransactionEditor
+from finance_api.services.imports.upload import ImportUploadService
+from finance_api.services.imports.wiring import (
     ImportCollaborators,
     ImportOverrides,
     ImportServiceDeps,
 )
-from finance_api.services.imports import ImportService
 from finance_api.services.protocols import TransactionCommitStrategy
 
 
