@@ -40,8 +40,6 @@ BASELINE: dict[str, str] = {
     "D|telegram_api/handlers/photo_handler.py": "6.5 — renomear para photo.py",
     "D|telegram_api/handlers/voice_handler.py": "6.5 — renomear para voice.py",
     "D|telegram_api/services/session_service.py": "6.5 — renomear para session.py",
-    "E|agent_api/services/tools/__init__.py": "5.3 — remover __all__",
-    "E|telegram_api/services/__init__.py": "5.3 — remover __all__",
 }
 
 

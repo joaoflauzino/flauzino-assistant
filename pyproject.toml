@@ -54,8 +54,8 @@ ignore = ["E501"]
 max-complexity = 10
 
 [tool.ruff.lint.pylint]
-max-branches = 8 # permissivo no início; reduzir para 6 ao final das fases
-max-statements = 50 # permissivo no início; reduzir para 40 ao final das fases
+max-branches = 6
+max-statements = 40
 
 [tool.ruff.lint.isort]
 known-first-party = ["finance_api", "agent_api", "graph_api", "telegram_api"]

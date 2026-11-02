@@ -29,10 +29,10 @@ A Fase 3.7 empacota **um** cluster (`services/import_*`). Sem um critério repet
 | `graph_api/services` | 1 | — | `graph_service` repete o pacote | D | renomear → **6.5** |
 | `finance_api/utils` | 1 | 13 | pacote com um único módulo | junk drawer | achatar → **6.4** |
 | `finance_api/mcp` | 3 | 287 | — | — | manter (bounded context legítimo) |
-| `finance_api/models/__init__.py`, `agent_api/services/tools/__init__.py`, `telegram_api/services/__init__.py` | 3 | — | `__all__` em `__init__` interno | E | **3.6 / 5.3** |
+| `finance_api/models/__init__.py`, `agent_api/services/tools/__init__.py`, `telegram_api/services/__init__.py` | 3 | — | `__all__` em `__init__` interno | E | **3.6 ✅ / 5.3 ✅** |
 | `import_strategies.py` 351 · `http_client.py` 421 · `expense_handler.py` 408 | 3 | — | arquivo > 300 LOC | B | **3.5 / 4.2 / 4.3** |
 
-Fora do escopo deste gate: as 56 funções top-level com `_` (Regra 4) já estão nas Fases 4.5/5.x; e a padronização de *nomes de função* não é organização de módulos.
+Fora do escopo deste gate: as 56 funções top-level com `_` (Regra 4) foram **zeradas** nas Fases 4.5/5.x; e a padronização de *nomes de função* não é organização de módulos.
 
 ---
 
@@ -51,7 +51,7 @@ Objetivo: impedir que as fases seguintes (3.5, 3.7, 4.x e 5.x) ou qualquer featu
 | **B** | Tamanho de arquivo | arquivo de produção > 300 LOC | 3 arquivos → 3.5 / 4.2 / 4.3 |
 | **C** | Nome de pacote | diretório cujo nome é keyword Python (`keyword.iskeyword`/`issoftkeyword`) | 0 (previne `services/import/`) |
 | **D** | Módulo repete o pacote | `stem == pkg`, `stem.startswith(pkg + "_")` ou `stem.endswith("_" + singular(pkg))` | 10 módulos → 3.7 (some) + 6.5 |
-| **E** | Superfície de pacote | `__all__` em `__init__.py` que não é da raiz da API | 3 arquivos → 3.6 / 5.3 |
+| **E** | Superfície de pacote | `__all__` em `__init__.py` que não é da raiz da API | 3 arquivos → 3.6 ✅ / 5.3 ✅ |
 
 - [x] Baseline como **allowlist explícita** (dict `caminho → fase que quita`), seguindo o padrão do `per-file-ignores` da Fase 0 — nunca `pytest.skip` genérico
 - [x] Mensagem de falha acionável: caminho, regra violada, limiar e a Regra 8 da skill
@@ -134,7 +134,7 @@ Objetivo: impedir que as fases seguintes (3.5, 3.7, 4.x e 5.x) ou qualquer featu
 ### Notas de execução
 
 - **6.1** — o baseline foi validado como **exato** na data: 17 violações encontradas = 17 congeladas, 0 entradas obsoletas. A regra A já enxerga o cluster `import_*` (12/1.606) que a 3.7 vai empacotar; a regra B cobre os 3 arquivos grandes que 3.5/4.2/4.3 vão dividir.
-- **Burn-down em curso** — a 3.5 quitou `import_strategies.py` (regra B), a 3.6 quitou o `__all__` de `models/__init__.py` (regra E), a 3.7 zerou a regra A e a Fase 4 zerou a regra B no `telegram_api`: baseline **17 → 16 → 15 → 14 → 12**, com as entradas restantes batendo exatamente com as violações reais (0 stale).
+- **Burn-down em curso** — a 3.5 quitou `import_strategies.py` (regra B), a 3.6 quitou o `__all__` de `models/__init__.py` (regra E), a 3.7 zerou a regra A, a Fase 4 zerou a regra B no `telegram_api` e a 5.3 zerou a regra E: baseline **17 → 16 → 15 → 14 → 12 → 10**, com as entradas restantes batendo exatamente com as violações reais (0 stale). Faltam apenas os 10 renomes da 6.5.
 - **Comportamento do allowlist** — o gate **só falha em violação nova**; entradas obsoletas não quebram a suíte, de propósito, para não gerar churn de allowlist a cada fase. A 6.6 apaga o allowlist inteiro e o gate passa a ser estrito.
 - **Prova de que o gate morde** — criado manualmente um arquivo de 301 LOC em `finance_api/services/`; a suíte falhou com `[B|...__gate_probe.py] 301 LOC (> 300)`; arquivo removido em seguida. As 5 regras também têm testes sintéticos com `tmp_path`.
 - **CI** — `tests/` agora é coletado no `uv run pytest`, que é exatamente o que o workflow `.github/workflows/feature.yml` executa.

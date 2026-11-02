@@ -4,7 +4,7 @@
 >
 > **Branch de trabalho:** `feat/refactor` (3º ciclo — os planos anteriores `.specs/code-quality-refactoring/`, `.specs/quality-refactoring/` e `.specs/python-patterns-refactoring/` já foram em grande parte executados; este plano é **incremental** e parte do estado atual medido).
 >
-> **Status geral:** 🟨 Em execução — Fases 0, 1, 2, 3 e 4 concluídas em 2026-11-02; Fase 5 é a próxima; Fase 6 em andamento (6.1 concluída — gate ativo, baseline 17 → 12 conforme as fases quitam dívida).
+> **Status geral:** 🟨 Em execução — Fases 0, 1, 2, 3, 4 e 5 concluídas em 2026-11-02; Fase 6 em andamento (6.1 concluída, 6.2–6.6 pendentes; baseline do gate 17 → 10).
 
 ---
 
@@ -26,7 +26,7 @@
 | 2 | [03-fase-2-metodos-longos-em-services.md](./03-fase-2-metodos-longos-em-services.md) | Eixo B — métodos > 40 LOC nos services | ✅ Concluída | 6/6 tarefas |
 | 3 | [04-fase-3-finance-api-repositorios-e-modulos.md](./04-fase-3-finance-api-repositorios-e-modulos.md) | Eixo C — `finance_api`: repositories, imports tardios, utils, pacote `imports/` | ✅ Concluída | 7/7 tarefas |
 | 4 | [05-fase-4-telegram-api-modulos-e-handlers.md](./05-fase-4-telegram-api-modulos-e-handlers.md) | Eixo C — `telegram_api`: Regra 4, splits, handlers finos | ✅ Concluída | 5/5 tarefas |
-| 5 | [06-fase-5-agent-api-e-verificacao-final.md](./06-fase-5-agent-api-e-verificacao-final.md) | Eixo C — `agent_api`, `__all__`, verificação final | ⬜ Não iniciada | 0/4 tarefas |
+| 5 | [06-fase-5-agent-api-e-verificacao-final.md](./06-fase-5-agent-api-e-verificacao-final.md) | Eixo C — `agent_api`, `__all__`, verificação final | ✅ Concluída | 4/4 tarefas |
 | 6 | [07-fase-6-padronizacao-de-modulos.md](./07-fase-6-padronizacao-de-modulos.md) | Eixo C — padrão de módulos no repo inteiro + gate de arquitetura (política como código) | 🟨 Em andamento | 1/6 tarefas |
 
 ### Definição de pronto global
@@ -36,7 +36,7 @@
 - [x] Fase 2 — métodos longos em services
 - [x] Fase 3 — `finance_api` modular
 - [x] Fase 4 — `telegram_api` modular
-- [ ] Fase 5 — `agent_api` modular + verificação final
+- [x] Fase 5 — `agent_api` modular + verificação final
 - [ ] Fase 6 — padronização de módulos no repo + gate automático
 
 ---
@@ -60,9 +60,9 @@
 - **904 funções de produção** nas 4 APIs.
 - **35 funções violando os gates** (`ifs > 3` OU `loc > 40` OU `profundidade ≥ 4`) — re-medido em 2026-11-02 na Fase 0 (eram 33 antes do WIP de faturas/dashboard).
 - **~54% das violações (19) estão na camada `services/`** — foco pedido pelo desenvolvedor.
-- **56 funções top-level com `_underscore`** em 16 arquivos (violação da Regra 4).
-- **6 imports tardios** dentro de funções em `finance_api/repositories/` (violação do `AGENTS.md` §3.4).
-- **3 `__all__`** em `__init__.py` internos (violação da Regra 5).
+- **0** funções top-level com `_underscore` (eram 56 em 16 arquivos; quitadas nas 4.5, 5.1–5.2 e 5.4).
+- **0** imports tardios (eram 6 em `finance_api/repositories/`; quitados nas 3.1–3.2).
+- **0** `__all__` em `__init__.py` internos (eram 3; quitados nas 3.6 e 5.3).
 
 > **Atualização da Fase 1 (2026-11-02):** nenhuma função em `*/services/` permanece com mais de 3 condicionais. As violações restantes de Eixo A/B estão mapeadas nas fases 2–3.
 
@@ -77,6 +77,8 @@
 > **Atualização da Fase 4 (2026-11-02):** `telegram_api` sem nenhuma função top-level com `_`; retry centralizado em `post_with_retry`; `http_client.py` 422 → 71 LOC; `expense_handler.py` 409 → 243 com savers em `services/expense.py`; os 3 handlers de mídia passaram a compartilhar `services/agent_interaction.py`. Baseline do gate: 14 → **12** (regra B zerada no telegram_api).
 
 > **Atualização da Fase 3.5 (2026-11-02):** `import_strategies.py` (351 LOC, acima do teto da Regra 6) foi dividido em `import_bulk_strategies.py` + `import_commit_strategies.py`. `DuplicateDetectorStrategy` subiu para `services/protocols.py` (Regra 2) e `resolve_salary_competence_date` foi para o seu único consumidor (`import_staging.py`). No gate de arquitetura, a regra B caiu de 3 → 2 violações e o baseline de 17 → 16, sem entradas obsoletas — primeira prova real do burn-down.
+
+> **Atualização da Fase 5 (2026-11-02):** `agent_api` sem nenhuma função top-level com `_` (`core/utils.py` + `services/utils.py` concentram os helpers puros; `TokenUsage` foi para `core/schemas.py` pela Regra 1); `__all__` zerado nos dois `__init__.py` restantes; helpers de `classify`/`system_prompt` compartilhados. Verificação final: **0** funções com `ifs > 3`, **0** com profundidade ≥ 4, **0** imports tardios, **0** `__all__`, **0** top-level `_`, restando só as 3 funções de LOC documentadas em §2.2-B. Os gates do ruff foram endurecidos para `max-branches=6`/`max-statements=40` e ficaram verdes. Baseline do gate: 12 → **10** (regra E zerada).
 
 ### 2.1 Piores funções por densidade de condicionais (Eixo A)
 
@@ -126,9 +128,9 @@ Nenhuma delas viola `C90`/`PLR0912`/`PLR0915`; por isso não houve `# noqa`.
 
 | Violação | Regra | Onde | Fase |
 |---|---|---|---|
-| **56 funções top-level com `_`** | Regra 4 | ✅ `telegram_api` zerado na 4.5 (formatter, balance/expense handlers, main, middleware); restam `agent_api/core/callbacks.py` (5), `agent_api/services/classify.py` (2) e +9 arquivos com 1 cada | 4.5 ✅, 5.1–5.2 |
+| **56 funções top-level com `_`** | Regra 4 | ✅ **zero** no repo: `telegram_api` zerado na 4.5; `agent_api` em 5.1–5.2; os 2 últimos (`c6_common`, `classification`) na 5.4 | 4.5 ✅, 5.1–5.2 ✅, 5.4 ✅ |
 | **Imports tardios em funções** | `AGENTS.md` §3.4 | `finance_api/repositories/payment_methods.py` (5×), `categories.py` (1×: linha 35) | 3.1–3.2 ✅ |
-| **`__all__` em módulos internos** | Regra 5 | `finance_api/models/__init__.py` ✅ (3.6), `agent_api/services/tools/__init__.py`, `telegram_api/services/__init__.py` | 3.6 ✅, 5.3 |
+| **`__all__` em módulos internos** | Regra 5 | ✅ **zero**: `models/__init__.py` (3.6), `agent_api/services/tools/__init__.py` e `telegram_api/services/__init__.py` (5.3) | 3.6 ✅, 5.3 ✅ |
 | **Utilidade duplicada em vez de `utils.py`** | Regra 3 | `_normalize_str`/`_normalize` em 3 repositories — já existe `finance_api/utils/text.py` (repos usam `.lower()`, utils `.upper()` — preservar call-site) + alias `_normalize` em `utils/text.py:13` | 3.3 ✅ |
 | **Módulo com SRP misto (formatação pura + I/O)** | Regra 3/SRP | `telegram_api/core/formatter.py` (238 linhas) | 4.1 ✅ |
 | **Retry loop duplicado 3×** | `python-anti-patterns` | `telegram_api/core/http_client.py`: mesmo `for attempt in range(3)` + backoff em 3 funções (prof. 4) | 4.2 ✅ |
@@ -160,7 +162,7 @@ Inventário medido (detalhe e baselines em [07-fase-6](./07-fase-6-padronizacao-
 | `services/payment_*` | 3 arquivos / 211 LOC | **manter plano** |
 | `finance_api/mcp/`, `telegram_api/handlers/` | bounded contexts | **manter** |
 
-**Enforcement:** a Regra 8 é verificada por `tests/architecture/test_module_organization.py` (5 checagens medíveis, baseline com allowlist explícita e burn-down obrigatório em 6.6). Review humano deixa de ser o único gate. **Ativo desde 2026-11-02** (6.1 concluída). Burn-down: 17 itens no congelamento → **14** após as Fases 3.5/3.6/3.7, sem nenhuma entrada obsoleta.
+**Enforcement:** a Regra 8 é verificada por `tests/architecture/test_module_organization.py` (5 checagens medíveis, baseline com allowlist explícita e burn-down obrigatório em 6.6). Review humano deixa de ser o único gate. **Ativo desde 2026-11-02** (6.1 concluída). Burn-down: 17 itens no congelamento → **14** após as Fases 3.5/3.6/3.7 → **12** após a Fase 4 → **10** após a 5.3, sem nenhuma entrada obsoleta.
 
 ---
 
@@ -196,23 +198,23 @@ Cada commit: `make format` + `make lint` + `uv run pytest` verdes. **Nenhum comm
 
 ## 4. Definição de pronto global (quality gates)
 
-- [ ] Nenhuma função de produção com **> 3 condicionais** (`AGENTS.md` §3.4) — ou justificativa documentada (Fase 2.6).
-- [ ] Nenhuma função de produção com **> 40 LOC**, salvo casos documentados.
-- [ ] Nenhuma função com **profundidade de aninhamento ≥ 4**.
-- [ ] **Zero** funções top-level com prefixo `_` (Regra 4).
-- [ ] **Zero** imports fora do topo do arquivo (`AGENTS.md` §3.4).
-- [ ] **Zero** `except Exception` engolindo erro em repositories/services.
-- [ ] **Zero** `__all__` em módulos internos (Regra 5).
-- [ ] Cluster de import isolado em `finance_api/services/imports/` — arquivos planos, `__init__.py` vazio (Regra 6; Fase 3.7).
-- [ ] Nenhum cluster de prefixo acima do limiar da Regra 8 (≥ 5 arquivos ou ≥ 800 LOC) fora de um pacote plano.
+- [x] Nenhuma função de produção com **> 3 condicionais** (`AGENTS.md` §3.4) — ou justificativa documentada (Fase 2.6).
+- [x] Nenhuma função de produção com **> 40 LOC**, salvo casos documentados.
+- [x] Nenhuma função com **profundidade de aninhamento ≥ 4**.
+- [x] **Zero** funções top-level com prefixo `_` (Regra 4).
+- [x] **Zero** imports fora do topo do arquivo (`AGENTS.md` §3.4).
+- [ ] **Zero** `except Exception` engolindo erro em repositories/services — pendência: `telegram_api/repositories/session_repository.py` (4 blocos `# Boundary`, cache de sessão best-effort com comportamento fixado em teste); exige decisão de produto para propagar falha de DB.
+- [x] **Zero** `__all__` em módulos internos (Regra 5).
+- [x] Cluster de import isolado em `finance_api/services/imports/` — arquivos planos, `__init__.py` vazio (Regra 6; Fase 3.7).
+- [x] Nenhum cluster de prefixo acima do limiar da Regra 8 (≥ 5 arquivos ou ≥ 800 LOC) fora de um pacote plano.
 - [ ] Nenhum pacote nomeado com keyword Python; nenhum módulo repetindo o nome do próprio pacote.
 - [ ] Nenhum pacote de um único módulo genérico (`utils/`).
 - [ ] `tests/architecture/test_module_organization.py` verde **sem allowlist** (Fase 6.6).
-- [ ] Retry/backoff de HTTP em **um único lugar** no `telegram_api`.
-- [ ] Handlers do Telegram ≤ 30 LOC, delegando para `services/`.
-- [ ] `ruff` (`C90`, `PLR0912`, `PLR0915`) sem violações; `make format`, `make lint`, `uv run pytest` verdes.
-- [ ] Testes unitários atualizados/criados para cada colaborador extraído (fakes/mocks, sem banco real).
-- [ ] Nenhuma mudança de contrato HTTP externo.
+- [x] Retry/backoff de HTTP em **um único lugar** no `telegram_api`.
+- [x] Handlers do Telegram ≤ 30 LOC, delegando para `services/`.
+- [x] `ruff` (`C90`, `PLR0912`, `PLR0915`) sem violações; `make format`, `make lint`, `uv run pytest` verdes.
+- [x] Testes unitários atualizados/criados para cada colaborador extraído (fakes/mocks, sem banco real).
+- [x] Nenhuma mudança de contrato HTTP externo.
 - [ ] `git diff` apresentado ao usuário antes de qualquer commit.
 
 ---
