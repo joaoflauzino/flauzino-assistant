@@ -38,17 +38,17 @@ async def get_by_key(self, key: str) -> PaymentMethod | None:
 Hoje: `_normalize_str` em `repositories/categories.py:14` e `income_categories.py:14`, `_normalize` em `category_rules.py:13`, e `finance_api/utils/text.py` já tem `normalize_text` + alias `_normalize` (viola Regra 4).
 ⚠️ **Atenção comportamental:** repos usam `.lower()`, `utils/text.py` usa `.upper()` — preservar o case de cada call-site.
 
-- [ ] `finance_api/utils/text.py`: remover o alias `_normalize`; expor `normalize_upper(text)` e `normalize_lower(text)` compartilhando a remoção de diacríticos
-- [ ] `repositories/categories.py`, `income_categories.py`, `category_rules.py`: apagar os `_normalize_str`/`_normalize` locais e importar de `finance_api.utils.text`
-- [ ] Testes: `test_categories_repository.py`, `test_income_categories_repository.py`, `test_imports_and_rules_repositories.py` + teste direto de `utils/text.py`
-- [ ] Commit: `refactor(utils): consolidate text normalization`
+- [x] `finance_api/utils/text.py`: remover o alias `_normalize`; expor `normalize_upper(text)` e `normalize_lower(text)` compartilhando a remoção de diacríticos
+- [x] `repositories/categories.py`, `income_categories.py`, `category_rules.py`: apagar os `_normalize_str`/`_normalize` locais e importar de `finance_api.utils.text`
+- [x] Testes: `test_categories_repository.py`, `test_income_categories_repository.py`, `test_imports_and_rules_repositories.py` + teste direto de `utils/text.py`
+- [x] Commit: `refactor(utils): consolidate text normalization`
 
 ### 3.4 `finance_api/repositories/staged_transactions.py:101` — `list_by_filter` (54 LOC, 6 `if`s)
-- [ ] Extrair `_build_conditions(batch_id, status, kind, only_duplicates, only_unclassified) -> list` e `_apply_pagination(query, page, size)`
-- [ ] Reutilizar `_build_conditions` em `get_approved_for_commit`
-- [ ] Método público fica ≤ 15 linhas
-- [ ] Testes: `test_spents_repository.py`/testes de staged transactions existentes
-- [ ] Commit: `refactor(repositories): staged_transactions conditions/pagination`
+- [x] Extrair `_build_conditions(batch_id, status, kind, only_duplicates, only_unclassified) -> list` e `_apply_pagination(query, page, size)`
+- [x] Reutilizar `_build_conditions` em `get_approved_for_commit`
+- [x] Método público fica ≤ 15 linhas
+- [x] Testes: `test_spents_repository.py`/testes de staged transactions existentes
+- [x] Commit: `refactor(repositories): staged_transactions conditions/pagination`
 
 ### 3.5 `finance_api/services/import_strategies.py` (349 linhas — acima do teto ~300 da Regra 6)
 > **Entre 3.4 e 3.5 roda a Fase 6.1** (gate de arquitetura): o split abaixo deve fazer a regra B (arquivo > 300 LOC) cair de 3 → 2 violações e a 3.7 deve zerar a regra A.
@@ -145,7 +145,7 @@ finance_api/services/imports/
 - [ ] Zero `except Exception` engolindo erro em `payment_methods.py`
 - [ ] Zero `getattr` defensivo contra modelos tipados
 - [ ] Zero `_normalize*` duplicado — uma única fonte em `finance_api/utils/text.py`
-- [ ] `list_by_filter` ≤ 20 LOC
+- [x] `list_by_filter` ≤ 20 LOC
 - [ ] Nenhum arquivo de `finance_api/services/` > ~300 linhas
 - [ ] Cluster de import isolado em `finance_api/services/imports/` (15 arquivos planos, `__init__.py` vazio)
 - [ ] `make format` && `make lint` && `uv run pytest` verdes
@@ -158,8 +158,14 @@ finance_api/services/imports/
 |---|---|---|---|
 | 2026-11-02 | — (aguardando autorização) | 3.1 lookup chain ordenado (PM → cartão → conta) + adapters puros `payment_method_from_credit_card`/`payment_method_from_account`; removidos 4 `except Exception`, 4 `getattr` e 5 imports tardios. `get_by_key` 52 → 12 LOC; `list` 56 → 8 LOC; `list_credit_cards` 31 → 6 LOC | 16 passed (repo) · 372 (finance_api) |
 | 2026-11-02 | — | 3.2 `func` movido para o topo em `categories.py` | agrupado no commit 3.1 |
+| 2026-11-02 | — (aguardando autorização) | 3.3 `utils/text.py` como fonte única (`strip_diacritics`, `normalize_upper`, `normalize_lower`); removidos 3 helpers locais e o alias `_normalize` | 599 passed (+8 de `utils/text`) |
+| 2026-11-02 | — | **fora do plano (bug pré-existente)**: `GET /payment-methods/` retornava 500 (`ResponseValidationError`) porque os `PaymentMethod` sintéticos não carregavam `created_at`; adapters agora copiam `created_at` do cartão/conta | 607 passed (+1 regressão de router) |
+| 2026-11-02 | — (aguardando autorização) | 3.4 `list_by_filter` 54 → **20 LOC / 0 `if`s**; `_build_conditions` declarativo (2 `if`s) + `_with_conditions` + `_apply_pagination`; `get_approved_for_commit` reusa o builder | 607 passed (+7 do repositório) |
 
 ### Notas de execução
 
 - **3.1** — a cadeia ficou `_find_payment_method → _find_credit_card → _find_account` (mesma ordem e mesmos logs `debug` de antes), cada passo com guard clause; os adapters CreditCard/Account → `PaymentMethod` são funções puras de módulo (Regra 4) e ganharam testes diretos. `payment_method_from_account(..., include_bank=True)` preserva a diferença histórica entre `get_by_key` (nome puro) e `list` (nome + banco).
 - **3.1 (mocks)** — dois testes precisavam de mocks mais fiéis, como previsto na Fase 1.3: `test_list_credit_cards` e `test_invoices_router` devolviam `PaymentMethod` no lugar de `CreditCard`; agora usam as entidades reais. Adicionado teste de regressão provando que erro de banco **propaga** (`SQLAlchemyError`) em vez de virar `None` silencioso.
+- **3.3** — `utils/text.py` passou a ter `strip_diacritics` (compartilhado), `normalize_upper` e `normalize_lower`; `normalize_text` e o alias `_normalize` foram removidos (o único consumidor do alias eram os call-sites migrados). Case preservado por call-site: repositórios de **categorias** usam `normalize_lower` (comparação de chaves), `category_rules`, `classification` e `classification_chain` usam `normalize_upper`. Nenhum `_normalize*` local remanescente em produção.
+- **3.4** — `list_by_filter` caiu de 54 → 20 LOC com **0 condicionais**; as condições viraram uma tabela declarativa de igualdades (`(valor, coluna)`) + 2 flags explícitas (`only_duplicates`, `only_unclassified`), mantendo o comportamento de não emitir `WHERE` quando não há filtro (`and_()` vazio é evitado em `_with_conditions`). Ordenação e janela ficaram em `_apply_pagination`. `get_approved_for_commit` reusa `_build_conditions(batch_id=..., status="APPROVED")`.
+- **Bug pré-existente (fora do plano, commit separado)** — `GET /payment-methods/` respondia 500: os `PaymentMethod` sintéticos (montados a partir de `CreditCard`/`Account`) não tinham `created_at`, e `PaymentMethodResponse.created_at` é obrigatório. Correção: os adapters copiam `created_at` da entidade de origem (sem afrouxar o contrato do schema). Regressão coberta por teste de router que exercita o repositório real com DB mockado.
