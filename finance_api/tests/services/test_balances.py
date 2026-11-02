@@ -85,7 +85,7 @@ def test_build_balances_with_and_without_limits(balance_service):
 @pytest.mark.asyncio
 async def test_resolve_pm_invoice_period_with_reference_month(balance_service):
     pm = MagicMock(spec=PaymentMethod, key="nubank")
-    balance_service.inv_service.get_invoice_dates = AsyncMock(
+    balance_service.inv_service.get_billing_period = AsyncMock(
         return_value=(date(2025, 3, 1), date(2025, 3, 31))
     )
 
@@ -95,7 +95,7 @@ async def test_resolve_pm_invoice_period_with_reference_month(balance_service):
 
     assert start_d == date(2025, 3, 1)
     assert end_d == date(2025, 3, 31)
-    balance_service.inv_service.get_invoice_dates.assert_awaited_once_with(pm, "2025-03")
+    balance_service.inv_service.get_billing_period.assert_awaited_once_with(pm, "2025-03")
 
 
 @pytest.mark.asyncio
@@ -104,7 +104,7 @@ async def test_resolve_pm_invoice_period_shifts_next_month_when_today_past_end(b
 
     # Primeira chamada: ciclo do mês corrente (fechou em 10/05)
     # Segunda chamada: ciclo do próximo mês (mês seguinte)
-    balance_service.inv_service.get_invoice_dates = AsyncMock(
+    balance_service.inv_service.get_billing_period = AsyncMock(
         side_effect=[
             (date(2025, 4, 11), date(2025, 5, 10)),
             (date(2025, 5, 11), date(2025, 6, 10)),
@@ -118,14 +118,14 @@ async def test_resolve_pm_invoice_period_shifts_next_month_when_today_past_end(b
 
     assert start_d == date(2025, 5, 11)
     assert end_d == date(2025, 6, 10)
-    assert balance_service.inv_service.get_invoice_dates.await_count == 2
+    assert balance_service.inv_service.get_billing_period.await_count == 2
 
 
 @pytest.mark.asyncio
 async def test_resolve_pm_invoice_period_shifts_prev_month_when_today_before_start(balance_service):
     pm = MagicMock(spec=PaymentMethod, key="nubank")
 
-    balance_service.inv_service.get_invoice_dates = AsyncMock(
+    balance_service.inv_service.get_billing_period = AsyncMock(
         side_effect=[
             (date(2025, 5, 11), date(2025, 6, 10)),
             (date(2025, 4, 11), date(2025, 5, 10)),
@@ -139,7 +139,7 @@ async def test_resolve_pm_invoice_period_shifts_prev_month_when_today_before_sta
 
     assert start_d == date(2025, 4, 11)
     assert end_d == date(2025, 5, 10)
-    assert balance_service.inv_service.get_invoice_dates.await_count == 2
+    assert balance_service.inv_service.get_billing_period.await_count == 2
 
 
 @pytest.mark.asyncio
@@ -157,7 +157,7 @@ async def test_get_balance_full_flow():
     pm_pix = MagicMock(spec=PaymentMethod, key="pix_joao", is_credit_card=False)
     pm_repo.list = AsyncMock(return_value=([pm_card, pm_pix], 2))
 
-    inv_service.get_invoice_dates = AsyncMock(return_value=(date(2025, 5, 1), date(2025, 5, 31)))
+    inv_service.get_billing_period = AsyncMock(return_value=(date(2025, 5, 1), date(2025, 5, 31)))
 
     spent1 = MagicMock(spec=Spent, category="mercado", amount=350.0)
     spent2 = MagicMock(spec=Spent, category="mercado", amount=100.0)
@@ -207,4 +207,4 @@ async def test_resolve_pm_invoice_period_non_credit_card(balance_service):
 
     assert start_d == date(2026, 9, 1)
     assert end_d == date(2026, 9, 30)
-    balance_service.inv_service.get_invoice_dates.assert_not_awaited()
+    balance_service.inv_service.get_billing_period.assert_not_awaited()

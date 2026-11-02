@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import pytest
 
+from finance_api.core.exceptions import ValidationError
 from finance_api.models.invoices import InvoiceStatus
 from finance_api.services.invoices import (
     InvoiceService,
@@ -54,6 +55,86 @@ async def test_get_invoice_dates():
 
     assert closing_d == date(2026, 10, 26)
     assert due_d == date(2026, 11, 5)
+
+
+@pytest.mark.asyncio
+async def test_get_billing_period_covers_purchases_of_the_civil_month():
+    repo = AsyncMock()
+    pm_repo = AsyncMock()
+    service = InvoiceService(repo, pm_repo)
+
+    pm = MagicMock()
+    pm.is_credit_card = True
+    pm.closing_day = 25
+    pm.due_day = 5
+    pm.key = "nubank"
+    repo.get_by_payment_method_and_month.return_value = None
+
+    start_d, end_d = await service.get_billing_period(pm, "2026-10")
+
+    # September invoice closes on 25/09 (Friday); October invoice closes on
+    # 26/10 (25/10 is a Sunday). A purchase made on 10/10 belongs to this cycle.
+    assert start_d == date(2026, 9, 26)
+    assert end_d == date(2026, 10, 26)
+    assert start_d <= date(2026, 10, 10) <= end_d
+
+
+@pytest.mark.asyncio
+async def test_get_billing_period_honors_manual_closing_overrides():
+    repo = AsyncMock()
+    pm_repo = AsyncMock()
+    service = InvoiceService(repo, pm_repo)
+
+    pm = MagicMock()
+    pm.is_credit_card = True
+    pm.closing_day = 25
+    pm.due_day = 5
+    pm.key = "nubank"
+
+    september_invoice = MagicMock(real_closing_date=date(2026, 9, 30))
+    october_invoice = MagicMock(real_closing_date=date(2026, 10, 27))
+    repo.get_by_payment_method_and_month.side_effect = [october_invoice, september_invoice]
+
+    start_d, end_d = await service.get_billing_period(pm, "2026-10")
+
+    assert start_d == date(2026, 10, 1)
+    assert end_d == date(2026, 10, 27)
+
+
+@pytest.mark.asyncio
+async def test_get_billing_period_falls_back_to_civil_month_when_overrides_overlap():
+    repo = AsyncMock()
+    pm_repo = AsyncMock()
+    service = InvoiceService(repo, pm_repo)
+
+    pm = MagicMock()
+    pm.is_credit_card = True
+    pm.closing_day = 5
+    pm.due_day = 15
+    pm.key = "nubank"
+
+    september_invoice = MagicMock(real_closing_date=date(2026, 10, 10))
+    october_invoice = MagicMock(real_closing_date=date(2026, 10, 5))
+    repo.get_by_payment_method_and_month.side_effect = [october_invoice, september_invoice]
+
+    start_d, end_d = await service.get_billing_period(pm, "2026-10")
+
+    assert start_d == date(2026, 10, 1)
+    assert end_d == date(2026, 10, 31)
+
+
+@pytest.mark.asyncio
+async def test_get_billing_period_rejects_non_credit_card():
+    repo = AsyncMock()
+    pm_repo = AsyncMock()
+    service = InvoiceService(repo, pm_repo)
+
+    pm = MagicMock()
+    pm.is_credit_card = False
+    pm.key = "pix_joao"
+
+    with pytest.raises(ValidationError):
+        await service.get_billing_period(pm, "2026-10")
 
 
 @pytest.mark.asyncio

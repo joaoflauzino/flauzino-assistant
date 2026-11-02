@@ -1,6 +1,6 @@
 # Spec: Correção do Ciclo de Faturas, Métodos de Pagamento e Evolução das Ferramentas do Agente
 
-**Status:** Concluído (Fases 1 e 2) | Próximo: Correção do Filtro de Faturas no Dashboard (Item 1.7)  
+**Status:** Concluído (Fases 1 e 2) | Concluído: Correção do ciclo de faturas no Dashboard (Itens 1.7 e 1.8)  
 **Data:** 30/09/2026  
 **Contexto:** Correção de bugs no ciclo de faturas (PostgreSQL Enum mismatch e cálculo de vencimento com virada de mês), correção na persistência de cartões na aba de Métodos de Pagamento, evolução das ferramentas `consultar_saldos` e `gerar_grafico` para suportar consultas históricas e por mês de referência, unificação da edição de datas de fechamento/vencimento e ciclo de vida de faturas (ações "Pagar Fatura" e "Desfazer Pagamento"), tratamento de métodos não-cartão no dashboard, e anotação preliminar para o futuro módulo de receitas.
 
@@ -148,8 +148,16 @@ flowchart LR
 - [x] O modal de edição de faturas permite alterar livremente o status da fatura (`OPEN`, `CLOSED`, `PAID`).
 
 ### Item 1.7 (Dashboard com Filtro de Faturas):
-- [x] No Dashboard do Frontend, selecionar o filtro **"Fechamento de Fatura"** carrega os gastos com sucesso sem erro 500 mesmo tendo métodos como `pix_joao` ou `dinheiro`.
+- [x] No Dashboard do Frontend, selecionar o filtro **"Ciclo das Faturas"** carrega os gastos com sucesso sem erro 500 mesmo tendo métodos como `pix_joao` ou `dinheiro`.
 - [x] Os gastos feitos com cartão respeitam o período da fatura, enquanto os gastos feitos via Pix/débito/dinheiro respeitam o mês civil correspondente.
+
+### 1.8. Gastos do mês desapareciam no modo "Ciclo das Faturas" [RESOLVIDO]
+- **Sintoma:** Um gasto visível no modo **Mês Civil** não aparecia ao alternar para **Ciclo das Faturas**.
+- **Causa Raiz:** `InvoicesDashboardStrategy` e `BalanceService` usavam `get_invoice_dates()` como se ele retornasse o período de compras da fatura. Na verdade, esse método retorna `(real_closing_date, real_due_date)`, ou seja, a janela `[fechamento, vencimento]`. Para um cartão que fecha dia 25 e vence dia 5, a fatura de outubro era consultada como `26/10 → 05/11`, excluindo quase todas as compras de outubro (ex.: uma compra em `10/10`).
+- **Solução:**
+  - Novo método `InvoiceService.get_billing_period(pm, reference_month)`, que retorna a janela real de compras: do dia seguinte ao fechamento do mês anterior até o fechamento do mês de referência (inclusive), respeitando overrides manuais de fechamento.
+  - `InvoicesDashboardStrategy` e `BalanceService` passaram a usar `get_billing_period()`.
+  - Fallback para o mês civil quando overrides manuais geram uma janela inválida (`início > fim`).
 
 ---
 
