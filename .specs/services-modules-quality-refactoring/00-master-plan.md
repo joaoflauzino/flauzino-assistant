@@ -4,7 +4,7 @@
 >
 > **Branch de trabalho:** `feat/refactor` (3º ciclo — os planos anteriores `.specs/code-quality-refactoring/`, `.specs/quality-refactoring/` e `.specs/python-patterns-refactoring/` já foram em grande parte executados; este plano é **incremental** e parte do estado atual medido).
 >
-> **Status geral:** 🟨 Em execução — Fase 0 concluída em 2026-11-02; Fase 1 aguardando início.
+> **Status geral:** 🟨 Em execução — Fases 0, 1 e 2 concluídas em 2026-11-02; Fase 3 aguardando início.
 
 ---
 
@@ -23,7 +23,7 @@
 |---|---|---|---|---|
 | 0 | [01-fase-0-gates-e-rede-de-seguranca.md](./01-fase-0-gates-e-rede-de-seguranca.md) | WIP atual, gates de lint, testes de caracterização | ✅ Concluída | 4/4 tarefas |
 | 1 | [02-fase-1-condicionais-em-services.md](./02-fase-1-condicionais-em-services.md) | Eixo A — cascatas de `if` nos services | ✅ Concluída | 6/6 tarefas |
-| 2 | [03-fase-2-metodos-longos-em-services.md](./03-fase-2-metodos-longos-em-services.md) | Eixo B — métodos > 40 LOC nos services | ⬜ Não iniciada | 0/6 tarefas |
+| 2 | [03-fase-2-metodos-longos-em-services.md](./03-fase-2-metodos-longos-em-services.md) | Eixo B — métodos > 40 LOC nos services | ✅ Concluída | 6/6 tarefas |
 | 3 | [04-fase-3-finance-api-repositorios-e-modulos.md](./04-fase-3-finance-api-repositorios-e-modulos.md) | Eixo C — `finance_api`: repositories, imports tardios, utils | ⬜ Não iniciada | 0/6 tarefas |
 | 4 | [05-fase-4-telegram-api-modulos-e-handlers.md](./05-fase-4-telegram-api-modulos-e-handlers.md) | Eixo C — `telegram_api`: Regra 4, splits, handlers finos | ⬜ Não iniciada | 0/5 tarefas |
 | 5 | [06-fase-5-agent-api-e-verificacao-final.md](./06-fase-5-agent-api-e-verificacao-final.md) | Eixo C — `agent_api`, `__all__`, verificação final | ⬜ Não iniciada | 0/4 tarefas |
@@ -32,7 +32,7 @@
 
 - [x] Fase 0 — gates e rede de segurança
 - [x] Fase 1 — condicionais em services
-- [ ] Fase 2 — métodos longos em services
+- [x] Fase 2 — métodos longos em services
 - [ ] Fase 3 — `finance_api` modular
 - [ ] Fase 4 — `telegram_api` modular
 - [ ] Fase 5 — `agent_api` modular + verificação final
@@ -63,6 +63,8 @@
 - **3 `__all__`** em `__init__.py` internos (violação da Regra 5).
 
 > **Atualização da Fase 1 (2026-11-02):** nenhuma função em `*/services/` permanece com mais de 3 condicionais. As violações restantes de Eixo A/B estão mapeadas nas fases 2–3.
+
+> **Atualização da Fase 2 (2026-11-02):** nenhuma função em `*/services/` (nem em `importers/`) permanece com **profundidade ≥ 4**; os únicos casos acima de 40 LOC dentro do escopo dos services são os três aceitos em §2.6 (`import_staging._to_staged` 45, `tools/graph.build_gerar_grafico` 41, `importers/c6_credit_card_csv._parse_row` 50). `ImportService.__init__` caiu de 97 → 16 LOC. Violações de LOC restantes ficam fora dos services: `repositories/` (Fase 3.1/3.4) e `telegram_api/handlers|core` (Fase 4.2/4.4).
 
 ### 2.1 Piores funções por densidade de condicionais (Eixo A)
 
@@ -97,6 +99,16 @@
 | `finance_api/services/balances.py:138` | `_build_balances` | 44 | montagem do DTO com agregações inline (**nova violação**, re-medida na Fase 0) | 2.3 |
 | `finance_api/services/import_staging.py:94` | `_to_staged` | 45 | mapping puro (0 `if`) | 2.6 (documentar) |
 | `finance_api/services/ai_classifier.py:17` | `classify_batch` | 43 | payload + LLM + sanitize no mesmo método | 2.4 |
+
+### 2.2-B Casos aceitos com justificativa (medidos na Fase 2)
+
+| Arquivo:linha | Função | LOC | `if`s | Justificativa |
+|---|---|---:|---:|---|
+| `finance_api/services/import_staging.py:94` | `_to_staged` | 45 | 0 | Mapping campo-a-campo (1 atribuição por campo do `StagedTransaction`). Profundidade 0, sem condicionais; decompor criaria fragmentos sem regra própria. |
+| `finance_api/importers/c6_credit_card_csv.py:93` | `_parse_row` | 50 | 2 | Parser de uma linha de CSV: leitura de colunas + montagem do `ParsedTransaction`. Prof. 1; os helpers de parsing já existem (`_resolve_amounts`, `_normalize_*`, `_parse_installments`). |
+| `agent_api/services/tools/graph.py:33` | `build_gerar_grafico` | 41 | 1 | Envolve o `@tool` aninhado (31 LOC) cuja **docstring é o contrato do LLM** e não pode mudar; o corpo da tool é só fetch → guard → generate → command. |
+
+Nenhuma delas viola `C90`/`PLR0912`/`PLR0915`; por isso não houve `# noqa`.
 
 ### 2.3 Organização modular (Eixo C — `python-modular-code-organization`)
 
