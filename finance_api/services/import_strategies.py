@@ -106,8 +106,13 @@ class SetCategoryBulkStrategy:
         income_category_repo: IncomeCategoryLookupProtocol,
         rule_repo: CategoryRuleRepositoryProtocol,
     ) -> None:
-        self._category_repo = category_repo
-        self._income_category_repo = income_category_repo
+        self._repositories_by_kind: dict[
+            TransactionKind,
+            CategoryLookupProtocol | IncomeCategoryLookupProtocol,
+        ] = {
+            TransactionKind.EXPENSE: category_repo,
+            TransactionKind.INCOME: income_category_repo,
+        }
         self._rule_repo = rule_repo
 
     async def execute(
@@ -118,36 +123,34 @@ class SetCategoryBulkStrategy:
         if not req.category:
             return StepOutcome(status=StepOutcomeStatus.SKIPPED)
 
-        clean_cat = req.category.strip().lower()
+        clean_category = req.category.strip().lower()
 
-        if tx.kind == TransactionKind.EXPENSE and not await self._category_repo.get_by_key(
-            clean_cat
-        ):
+        repository = self._repositories_by_kind.get(tx.kind)
+        if repository is not None and not await repository.get_by_key(clean_category):
             return StepOutcome(
                 status=StepOutcomeStatus.ERROR,
-                error_message=f"Categoria '{clean_cat}' não existe",
-            )
-        if tx.kind == TransactionKind.INCOME and not await self._income_category_repo.get_by_key(
-            clean_cat
-        ):
-            return StepOutcome(
-                status=StepOutcomeStatus.ERROR,
-                error_message=f"Categoria '{clean_cat}' não existe",
+                error_message=f"Categoria '{clean_category}' não existe",
             )
 
-        tx.category = clean_cat
+        tx.category = clean_category
         if tx.status == "PENDING":
             tx.status = "APPROVED"
 
-        if req.remember and tx.merchant:
-            await self._rule_repo.upsert_rule(
-                pattern=tx.merchant,
-                direction=tx.direction,
-                kind=tx.kind,
-                category=tx.category,
-                source="LEARNED",
-            )
+        await self._learn_rule(tx, req)
         return StepOutcome(status=StepOutcomeStatus.UPDATED)
+
+    async def _learn_rule(self, tx: StagedTransaction, req: BulkActionRequest) -> None:
+        """Learns the merchant->category rule when the request asks for it."""
+        if not req.remember or not tx.merchant:
+            return
+
+        await self._rule_repo.upsert_rule(
+            pattern=tx.merchant,
+            direction=tx.direction,
+            kind=tx.kind,
+            category=tx.category,
+            source="LEARNED",
+        )
 
 
 class ExpenseCommitStrategy:

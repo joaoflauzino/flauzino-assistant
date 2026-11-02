@@ -95,14 +95,22 @@ class BalanceService:
     ) -> tuple[date, date]:
         """Resolves invoice start and end dates for a payment method based on current date or reference month."""
         if not pm.is_credit_card:
-            target_month = reference_month or today.strftime("%Y-%m")
-            year, month = map(int, target_month.split("-"))
-            _, last_day = calendar.monthrange(year, month)
-            return date(year, month, 1), date(year, month, last_day)
+            return self._civil_month_period(reference_month, today)
 
         if reference_month:
             return await self.inv_service.get_billing_period(pm, reference_month)
 
+        return await self._current_invoice_period(pm, today)
+
+    def _civil_month_period(self, reference_month: str | None, today: date) -> tuple[date, date]:
+        """Returns the first and last day of the target civil month."""
+        target_month = reference_month or today.strftime("%Y-%m")
+        year, month = map(int, target_month.split("-"))
+        _, last_day = calendar.monthrange(year, month)
+        return date(year, month, 1), date(year, month, last_day)
+
+    async def _current_invoice_period(self, pm: PaymentMethod, today: date) -> tuple[date, date]:
+        """Resolves the invoice period of the month containing today, shifting when needed."""
         current_month_str = today.strftime("%Y-%m")
         start_d, end_d = await self.inv_service.get_billing_period(pm, current_month_str)
         logger.info(
@@ -110,22 +118,26 @@ class BalanceService:
         )
 
         if today > end_d:
-            next_month = today + relativedelta(months=1)
-            start_d, end_d = await self.inv_service.get_billing_period(
-                pm, next_month.strftime("%Y-%m")
-            )
-            logger.info(
-                f"[{pm.key}] After today > end_d, shifted to {next_month.strftime('%Y-%m')}: start {start_d} end {end_d}"
-            )
-        elif today < start_d:
-            prev_month = today - relativedelta(months=1)
-            start_d, end_d = await self.inv_service.get_billing_period(
-                pm, prev_month.strftime("%Y-%m")
-            )
-            logger.info(
-                f"[{pm.key}] After today < start_d, shifted to {prev_month.strftime('%Y-%m')}: start {start_d} end {end_d}"
-            )
+            return await self._next_invoice_period(pm, today)
+        if today < start_d:
+            return await self._previous_invoice_period(pm, today)
 
+        return start_d, end_d
+
+    async def _next_invoice_period(self, pm: PaymentMethod, today: date) -> tuple[date, date]:
+        next_month = today + relativedelta(months=1)
+        start_d, end_d = await self.inv_service.get_billing_period(pm, next_month.strftime("%Y-%m"))
+        logger.info(
+            f"[{pm.key}] After today > end_d, shifted to {next_month.strftime('%Y-%m')}: start {start_d} end {end_d}"
+        )
+        return start_d, end_d
+
+    async def _previous_invoice_period(self, pm: PaymentMethod, today: date) -> tuple[date, date]:
+        prev_month = today - relativedelta(months=1)
+        start_d, end_d = await self.inv_service.get_billing_period(pm, prev_month.strftime("%Y-%m"))
+        logger.info(
+            f"[{pm.key}] After today < start_d, shifted to {prev_month.strftime('%Y-%m')}: start {start_d} end {end_d}"
+        )
         return start_d, end_d
 
     def _aggregate_spents_by_category(self, spents: Sequence[Spent]) -> dict[str, float]:

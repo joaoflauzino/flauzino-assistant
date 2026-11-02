@@ -7,7 +7,7 @@ from finance_api.core.dates import DateRange, compute_business_day, resolve_due_
 from finance_api.core.decorators import handle_service_errors
 from finance_api.core.exceptions import EntityNotFoundError, ValidationError
 from finance_api.core.logger import get_logger
-from finance_api.models.invoices import InvoiceStatus
+from finance_api.models.invoices import Invoice, InvoiceStatus
 from finance_api.models.payment_methods import PaymentMethod
 from finance_api.repositories.invoices import InvoiceRepository
 from finance_api.repositories.payment_methods import PaymentMethodRepository
@@ -144,32 +144,60 @@ class InvoiceService:
         invoice = await self.repo.get_by_payment_method_and_month(
             payment_method_key, reference_month
         )
-        if invoice:
-            patch: dict[str, object] = {}
-            if closing_date is not None:
-                patch["real_closing_date"] = closing_date
-            if due_date is not None:
-                patch["real_due_date"] = due_date
-            if status is not None:
-                patch["status"] = status
-            if not invoice.credit_card_id and pm.id:
-                patch["credit_card_id"] = pm.id
-            updated = await self.repo.update(invoice.id, InvoiceUpdate(**patch))
-            return InvoiceResponse.model_validate(updated)
+        if invoice is None:
+            return await self._create_invoice(
+                payment_method_key, pm, reference_month, closing_date, due_date, status
+            )
 
-        closing_d = pm.closing_day or (closing_date.day if closing_date else 1)
-        due_d = pm.due_day or (due_date.day if due_date else 1)
-        due_ref_month = resolve_due_reference_month(reference_month, closing_d, due_d)
+        return await self._patch_invoice(invoice, pm, closing_date, due_date, status)
 
-        new_inv = InvoiceCreate(
+    async def _patch_invoice(
+        self,
+        invoice: Invoice,
+        pm: PaymentMethod,
+        closing_date: date | None,
+        due_date: date | None,
+        status: InvoiceStatus | None,
+    ) -> InvoiceResponse:
+        """Applies the non-null fields of the request to an existing invoice."""
+        patch: dict[str, object] = {
+            field: value
+            for field, value in {
+                "real_closing_date": closing_date,
+                "real_due_date": due_date,
+                "status": status,
+            }.items()
+            if value is not None
+        }
+        if not invoice.credit_card_id and pm.id:
+            patch["credit_card_id"] = pm.id
+
+        updated = await self.repo.update(invoice.id, InvoiceUpdate(**patch))
+        return InvoiceResponse.model_validate(updated)
+
+    async def _create_invoice(
+        self,
+        payment_method_key: str,
+        pm: PaymentMethod,
+        reference_month: str,
+        closing_date: date | None,
+        due_date: date | None,
+        status: InvoiceStatus | None,
+    ) -> InvoiceResponse:
+        """Creates the invoice when only a preview existed, honoring manual dates."""
+        closing_day = pm.closing_day or (closing_date.day if closing_date else 1)
+        due_day = pm.due_day or (due_date.day if due_date else 1)
+        due_reference_month = resolve_due_reference_month(reference_month, closing_day, due_day)
+
+        invoice = InvoiceCreate(
             payment_method_key=payment_method_key,
             credit_card_id=pm.id,
             reference_month=reference_month,
-            real_closing_date=closing_date or compute_business_day(reference_month, closing_d),
-            real_due_date=due_date or compute_business_day(due_ref_month, due_d),
+            real_closing_date=closing_date or compute_business_day(reference_month, closing_day),
+            real_due_date=due_date or compute_business_day(due_reference_month, due_day),
             status=status or InvoiceStatus.OPEN,
         )
-        created = await self.repo.create(new_inv)
+        created = await self.repo.create(invoice)
         return InvoiceResponse.model_validate(created)
 
     @handle_service_errors

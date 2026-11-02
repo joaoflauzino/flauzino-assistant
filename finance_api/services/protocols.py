@@ -3,9 +3,11 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import Protocol
+from uuid import UUID
 
 from finance_api.models.categories import Category
 from finance_api.models.income_categories import IncomeCategory
+from finance_api.models.payment_methods import PaymentMethod
 from finance_api.models.staged_transactions import StagedTransaction
 from finance_api.schemas.classification import (
     ClassificationContext,
@@ -19,6 +21,7 @@ from finance_api.schemas.imports import (
     CommitStepOutcome,
     StepOutcome,
 )
+from finance_api.schemas.payment_resolution import ResolvedPaymentTarget
 
 type MerchantExtractorStep = Callable[[RawTransactionText], ExtractedMerchantInfo | None]
 type MerchantExtractorPipeline = Callable[[RawTransactionText], ExtractedMerchantInfo]
@@ -34,6 +37,38 @@ class IncomeCategoryLookupProtocol(Protocol):
     """Structural contract for looking up income categories by key."""
 
     async def get_by_key(self, key: str) -> IncomeCategory | None: ...
+
+
+class PaymentMethodLookupProtocol(Protocol):
+    """Structural contract for looking up payment methods by key."""
+
+    async def get_by_key(self, key: str) -> PaymentMethod | None: ...
+
+
+class PaymentResolutionServiceProtocol(Protocol):
+    """Structural contract for resolving account/credit card relations."""
+
+    async def resolve(
+        self,
+        payment_method_key: str | None,
+        requested_payment_type: str | None = None,
+        is_credit_card_hint: bool = False,
+    ) -> ResolvedPaymentTarget: ...
+
+
+class PaymentTargetPayload(Protocol):
+    """Update payload that can receive the resolved payment relations."""
+
+    payment_method: str | None
+    payment_type: str | None
+    account_id: UUID | None
+    credit_card_id: UUID | None
+
+
+class UpdatePreparationStep[T](Protocol):
+    """Structural contract for a single preparation step of an update payload."""
+
+    async def prepare(self, data: T) -> None: ...
 
 
 class BulkActionStrategy(Protocol):

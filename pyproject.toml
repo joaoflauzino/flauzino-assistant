@@ -46,11 +46,15 @@ line-length = 100
 exclude = ["*.ipynb"]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "UP", "C90"]
+select = ["E", "F", "W", "I", "UP", "C90", "PLR0912", "PLR0915"]
 ignore = ["E501"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 10
+
+[tool.ruff.lint.pylint]
+max-branches = 8 # permissivo no início; reduzir para 6 ao final das fases
+max-statements = 50 # permissivo no início; reduzir para 40 ao final das fases
 
 [tool.ruff.lint.isort]
 known-first-party = ["finance_api", "agent_api", "graph_api", "telegram_api"]

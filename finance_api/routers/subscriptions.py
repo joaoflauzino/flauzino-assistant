@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from finance_api.core.database import get_db
+from finance_api.repositories.categories import CategoryRepository
 from finance_api.repositories.subscriptions import SubscriptionRepository
 from finance_api.schemas.pagination import PaginatedResponse
 from finance_api.schemas.subscriptions import (
@@ -21,7 +22,7 @@ async def create_subscription(
     subscription: SubscriptionCreate, db: AsyncSession = Depends(get_db)
 ) -> SubscriptionResponse:
     repo = SubscriptionRepository(db)
-    service = SubscriptionService(repo)
+    service = SubscriptionService(repo, category_repo=CategoryRepository(db))
     return await service.create(subscription)
 
 
@@ -51,7 +52,7 @@ async def update_subscription(
     subscription_id: UUID, update_data: SubscriptionUpdate, db: AsyncSession = Depends(get_db)
 ) -> SubscriptionResponse:
     repo = SubscriptionRepository(db)
-    service = SubscriptionService(repo)
+    service = SubscriptionService(repo, category_repo=CategoryRepository(db))
     return await service.update(subscription_id, update_data)
 
 

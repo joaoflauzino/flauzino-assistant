@@ -195,6 +195,119 @@ async def test_agent_service_get_response_unknown_error(mocker, agent_service):
 
 
 @pytest.mark.asyncio
+async def test_agent_service_extracts_response_from_tool_calls(mocker, agent_service):
+    """Test resilience path: AssistantResponse arrives as a tool call inside messages."""
+    tool_call_message = AIMessage(
+        content="",
+        tool_calls=[
+            {
+                "name": "AssistantResponse",
+                "args": {
+                    "response_message": "Resposta via tool call",
+                    "suggested_options": ["Ok"],
+                    "is_complete": True,
+                },
+                "id": "call_1",
+            }
+        ],
+    )
+    mock_agent = MagicMock()
+    mock_agent.ainvoke = AsyncMock(
+        return_value={
+            "messages": [HumanMessage(content="oi"), tool_call_message],
+            "structured_response": None,
+            "image_base64": "chart_base64",
+        }
+    )
+    mocker.patch("agent_api.services.agent.create_agent", return_value=mock_agent)
+
+    result = await agent_service.get_response([{"role": "user", "content": "oi"}])
+
+    assert result.response_message == "Resposta via tool call"
+    assert result.suggested_options == ["Ok"]
+    assert result.is_complete is True
+    assert result.image_base64 == "chart_base64"
+
+
+@pytest.mark.asyncio
+async def test_agent_service_ignores_unrelated_tool_calls(mocker, agent_service):
+    """Test that tool calls other than AssistantResponse fall back to plain text."""
+    tool_call_message = AIMessage(
+        content="Texto final do agente",
+        tool_calls=[{"name": "gerar_grafico", "args": {"periodo": "2026-10"}, "id": "call_graph"}],
+    )
+    mock_agent = MagicMock()
+    mock_agent.ainvoke = AsyncMock(
+        return_value={
+            "messages": [HumanMessage(content="gere um gráfico"), tool_call_message],
+            "structured_response": None,
+        }
+    )
+    mocker.patch("agent_api.services.agent.create_agent", return_value=mock_agent)
+
+    result = await agent_service.get_response([{"role": "user", "content": "gráfico"}])
+
+    assert result.response_message == "Texto final do agente"
+    assert result.is_complete is False
+
+
+@pytest.mark.asyncio
+async def test_agent_service_fallback_without_messages_uses_default_text(mocker, agent_service):
+    """Test fallback default message when the agent returns no messages at all."""
+    mock_agent = MagicMock()
+    mock_agent.ainvoke = AsyncMock(return_value={"messages": [], "structured_response": None})
+    mocker.patch("agent_api.services.agent.create_agent", return_value=mock_agent)
+
+    result = await agent_service.get_response([{"role": "user", "content": "oi"}])
+
+    assert result.response_message == "Desculpe, não consegui processar a resposta adequadamente."
+    assert result.is_complete is False
+    assert result.suggested_options == ["Sim", "Não"]
+
+
+@pytest.mark.asyncio
+async def test_agent_service_dict_response_does_not_override_own_image(mocker, agent_service):
+    """Test that a structured dict keeps its own image instead of the state fallback."""
+    mock_agent = MagicMock()
+    mock_agent.ainvoke = AsyncMock(
+        return_value={
+            "messages": [HumanMessage(content="gere um gráfico")],
+            "structured_response": {
+                "response_message": "Gráfico gerado",
+                "suggested_options": [],
+                "is_complete": True,
+                "image_base64": "image_from_dict",
+            },
+            "image_base64": "image_from_state",
+        }
+    )
+    mocker.patch("agent_api.services.agent.create_agent", return_value=mock_agent)
+
+    result = await agent_service.get_response([{"role": "user", "content": "gráfico"}])
+
+    assert result.image_base64 == "image_from_dict"
+
+
+@pytest.mark.asyncio
+async def test_agent_service_text_fallback_keeps_state_image(mocker, agent_service):
+    """Test that the plain-text fallback propagates the image stored in the state."""
+    mock_agent = MagicMock()
+    mock_agent.ainvoke = AsyncMock(
+        return_value={
+            "messages": [HumanMessage(content="oi"), AIMessage(content="Segue o gráfico")],
+            "structured_response": None,
+            "image_base64": "image_from_state",
+        }
+    )
+    mocker.patch("agent_api.services.agent.create_agent", return_value=mock_agent)
+
+    result = await agent_service.get_response([{"role": "user", "content": "oi"}])
+
+    assert result.response_message == "Segue o gráfico"
+    assert result.image_base64 == "image_from_state"
+
+
+@pytest.mark.asyncio
 async def test_get_system_prompt_includes_categories(agent_service, mock_finance_service):
     """Test that get_system_prompt queries finance_service for categories and payment methods."""
     prompt = await agent_service.get_system_prompt()

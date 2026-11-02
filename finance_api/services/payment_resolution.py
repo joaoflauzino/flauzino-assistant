@@ -1,7 +1,6 @@
 """Domain service that resolves payment relations (account and/or credit card)."""
 
 from collections.abc import Sequence
-from typing import Protocol
 
 from finance_api.repositories.accounts import AccountRepository, AccountRepositoryProtocol
 from finance_api.repositories.credit_cards import (
@@ -18,15 +17,6 @@ from finance_api.services.payment_resolution_steps import (
 
 DEFAULT_PAYMENT_TYPE = "DEBIT"
 CREDIT_PAYMENT_TYPE = "CREDIT"
-
-
-class PaymentResolutionServiceProtocol(Protocol):
-    async def resolve(
-        self,
-        payment_method_key: str | None,
-        requested_payment_type: str | None = None,
-        is_credit_card_hint: bool = False,
-    ) -> ResolvedPaymentTarget: ...
 
 
 class PaymentResolutionService:

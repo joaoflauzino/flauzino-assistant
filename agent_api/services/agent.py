@@ -14,6 +14,7 @@ from agent_api.services.finance import FinanceService
 from agent_api.services.graph import GraphService
 from agent_api.services.system_prompt import PromptMetadata, build_system_prompt
 from agent_api.services.tools import create_agent_tools
+from agent_api.services.utils import attach_image
 
 logger = get_logger(__name__)
 
@@ -83,38 +84,61 @@ class AgentService:
     def _extract_assistant_response(self, result: dict[str, Any]) -> AssistantResponse:
         """Extracts and normalizes AssistantResponse from LangChain result dictionary."""
         image_base64 = result.get("image_base64")
-        structured_resp = result.get("structured_response")
-        msgs = result.get("messages", [])
+        extractors = (self._from_structured_state, self._from_tool_calls)
 
-        # 1. Se structured_response veio na raiz do state retornado
+        for extract in extractors:
+            response = extract(result)
+            if response is not None:
+                return attach_image(response, image_base64)
+
+        return self._fallback_response(result)
+
+    def _from_structured_state(self, result: dict[str, Any]) -> AssistantResponse | None:
+        """Reads AssistantResponse from the root of the returned state."""
+        structured_resp = result.get("structured_response")
+
         if isinstance(structured_resp, AssistantResponse):
-            if image_base64 and not structured_resp.image_base64:
-                structured_resp.image_base64 = image_base64
             logger.info(
                 f"🎯 [AGENT:EXTRACT] structured_response extraído diretamente do state: {structured_resp}"
             )
             return structured_resp
-        elif isinstance(structured_resp, dict):
-            resp = AssistantResponse(**structured_resp)
-            if image_base64 and not resp.image_base64:
-                resp.image_base64 = image_base64
-            logger.info(f"🎯 [AGENT:EXTRACT] structured_response dict convertido: {resp}")
-            return resp
 
-        # 2. Resiliência: se o tool call de AssistantResponse estiver nas mensagens
-        for m in reversed(msgs):
-            if isinstance(m, AIMessage) and getattr(m, "tool_calls", None):
-                for tc in m.tool_calls:
-                    if tc.get("name") == "AssistantResponse":
-                        args = tc.get("args") or {}
-                        resp = AssistantResponse(**args)
-                        if image_base64 and not resp.image_base64:
-                            resp.image_base64 = image_base64
-                        logger.info(f"🎯 [AGENT:EXTRACT] Extraído de AIMessage.tool_calls: {resp}")
-                        return resp
+        if not isinstance(structured_resp, dict):
+            return None
 
-        # 3. Fallback: Se o modelo respondeu com texto comum
-        last_msg = msgs[-1] if msgs else None
+        response = AssistantResponse(**structured_resp)
+        logger.info(f"🎯 [AGENT:EXTRACT] structured_response dict convertido: {response}")
+        return response
+
+    def _from_tool_calls(self, result: dict[str, Any]) -> AssistantResponse | None:
+        """Resilience path: reads the AssistantResponse tool call from the messages."""
+        for message in reversed(result.get("messages", [])):
+            if not isinstance(message, AIMessage) or not message.tool_calls:
+                continue
+
+            response = self._response_from_tool_calls(message.tool_calls)
+            if response is not None:
+                return response
+
+        return None
+
+    def _response_from_tool_calls(
+        self, tool_calls: list[dict[str, Any]]
+    ) -> AssistantResponse | None:
+        for tool_call in tool_calls:
+            if tool_call.get("name") != "AssistantResponse":
+                continue
+
+            response = AssistantResponse(**(tool_call.get("args") or {}))
+            logger.info(f"🎯 [AGENT:EXTRACT] Extraído de AIMessage.tool_calls: {response}")
+            return response
+
+        return None
+
+    def _fallback_response(self, result: dict[str, Any]) -> AssistantResponse:
+        """Fallback path: the model answered with plain text instead of a structure."""
+        messages = result.get("messages", [])
+        last_msg = messages[-1] if messages else None
         response_text = (
             str(last_msg.content)
             if last_msg and getattr(last_msg, "content", None)
@@ -127,7 +151,7 @@ class AgentService:
             response_message=response_text,
             is_complete=False,
             suggested_options=["Sim", "Não"],
-            image_base64=image_base64,
+            image_base64=result.get("image_base64"),
         )
 
     @handle_llm_errors

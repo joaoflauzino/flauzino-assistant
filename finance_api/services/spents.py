@@ -26,6 +26,11 @@ from finance_api.services.dashboard_strategies import (
 )
 from finance_api.services.invoices import InvoiceService
 from finance_api.services.payment_resolution import PaymentResolutionService
+from finance_api.services.update_preparation import (
+    ExpenseCategoryStep,
+    SpentPaymentStep,
+    UpdateDataPreparer,
+)
 
 logger = get_logger(__name__)
 
@@ -143,7 +148,7 @@ class SpentService:
         resolved = await self.payment_resolver.resolve(
             matched_pm.key,
             requested_payment_type=spent.payment_type,
-            is_credit_card_hint=getattr(matched_pm, "is_credit_card", False),
+            is_credit_card_hint=matched_pm.is_credit_card,
         )
         if resolved.credit_card_id:
             spent.credit_card_id = resolved.credit_card_id
@@ -216,24 +221,7 @@ class SpentService:
     async def update(self, spent_id: UUID, update_data: SpentUpdate) -> "Spent":
         logger.info(f"Updating spent: {spent_id}")
 
-        if update_data.category:
-            matched_cat = await self._validate_category(update_data.category)
-            update_data.category = matched_cat.key
-
-        if update_data.payment_method:
-            matched_pm = await self._validate_payment_method(update_data.payment_method)
-            update_data.payment_method = matched_pm.key
-
-            resolved = await self.payment_resolver.resolve(
-                matched_pm.key,
-                requested_payment_type=update_data.payment_type,
-                is_credit_card_hint=getattr(matched_pm, "is_credit_card", False),
-            )
-            if resolved.credit_card_id:
-                update_data.credit_card_id = resolved.credit_card_id
-            if resolved.account_id:
-                update_data.account_id = resolved.account_id
-            update_data.payment_type = resolved.payment_type
+        await self._build_update_preparer().prepare(update_data)
 
         current_spent = await self.repo.get_by_id(spent_id)
         if not current_spent:
@@ -243,6 +231,15 @@ class SpentService:
         if not updated_spent:
             raise EntityNotFoundError(f"Gasto com ID {spent_id} não encontrado")
         return updated_spent
+
+    def _build_update_preparer(self) -> UpdateDataPreparer[SpentUpdate]:
+        """Builds the category/payment preparation chain used before persisting an update."""
+        return UpdateDataPreparer(
+            (
+                ExpenseCategoryStep(self.category_repo),
+                SpentPaymentStep(self.pm_repo, self.payment_resolver),
+            )
+        )
 
     @handle_service_errors
     async def delete(self, spent_id: UUID) -> bool:

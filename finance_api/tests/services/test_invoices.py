@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import pytest
 
-from finance_api.core.exceptions import ValidationError
+from finance_api.core.exceptions import EntityNotFoundError, ValidationError
 from finance_api.models.invoices import InvoiceStatus
 from finance_api.services.invoices import (
     InvoiceService,
@@ -294,3 +294,156 @@ async def test_reopen_invoice():
 
     repo.update.assert_awaited_once()
     assert result.status == InvoiceStatus.OPEN
+
+
+def make_credit_card_pm(
+    pm_id: object | None = None,
+    closing_day: int | None = 28,
+    due_day: int | None = 5,
+    key: str = "c6_joao",
+) -> MagicMock:
+    """Builds a credit card payment method double for invoice service tests."""
+    pm = MagicMock()
+    pm.id = uuid4() if pm_id is None else pm_id
+    pm.key = key
+    pm.is_credit_card = True
+    pm.closing_day = closing_day
+    pm.due_day = due_day
+    return pm
+
+
+def make_invoice_double(
+    inv_id: object,
+    *,
+    status: InvoiceStatus = InvoiceStatus.OPEN,
+    credit_card_id: object | None = None,
+) -> MagicMock:
+    """Builds an invoice double carrying every field required by InvoiceResponse."""
+    invoice = MagicMock()
+    invoice.id = inv_id
+    invoice.payment_method_key = "c6_joao"
+    invoice.credit_card_id = credit_card_id
+    invoice.reference_month = "2026-09"
+    invoice.real_closing_date = date(2026, 9, 28)
+    invoice.real_due_date = date(2026, 10, 5)
+    invoice.status = status
+    invoice.created_at = datetime.now()
+    return invoice
+
+
+@pytest.mark.asyncio
+async def test_update_invoice_dates_patches_only_closing_date():
+    repo = AsyncMock()
+    pm_repo = AsyncMock()
+    service = InvoiceService(repo, pm_repo)
+
+    inv_id = uuid4()
+    repo.get_by_payment_method_and_month.return_value = make_invoice_double(
+        inv_id, credit_card_id=uuid4()
+    )
+    repo.update.return_value = make_invoice_double(inv_id, credit_card_id=uuid4())
+    pm_repo.get_by_key.return_value = make_credit_card_pm()
+
+    await service.update_invoice_dates("c6_joao", "2026-09", closing_date=date(2026, 9, 29))
+
+    patch = repo.update.call_args[0][1]
+    assert patch.model_dump(exclude_unset=True) == {"real_closing_date": date(2026, 9, 29)}
+
+
+@pytest.mark.asyncio
+async def test_update_invoice_dates_patches_only_due_date():
+    repo = AsyncMock()
+    pm_repo = AsyncMock()
+    service = InvoiceService(repo, pm_repo)
+
+    inv_id = uuid4()
+    repo.get_by_payment_method_and_month.return_value = make_invoice_double(
+        inv_id, credit_card_id=uuid4()
+    )
+    repo.update.return_value = make_invoice_double(inv_id, credit_card_id=uuid4())
+    pm_repo.get_by_key.return_value = make_credit_card_pm()
+
+    await service.update_invoice_dates("c6_joao", "2026-09", due_date=date(2026, 10, 10))
+
+    patch = repo.update.call_args[0][1]
+    assert patch.model_dump(exclude_unset=True) == {"real_due_date": date(2026, 10, 10)}
+
+
+@pytest.mark.asyncio
+async def test_update_invoice_dates_links_missing_credit_card_id():
+    repo = AsyncMock()
+    pm_repo = AsyncMock()
+    service = InvoiceService(repo, pm_repo)
+
+    inv_id = uuid4()
+    card_id = uuid4()
+    repo.get_by_payment_method_and_month.return_value = make_invoice_double(
+        inv_id, credit_card_id=None
+    )
+    repo.update.return_value = make_invoice_double(inv_id, credit_card_id=card_id)
+    pm_repo.get_by_key.return_value = make_credit_card_pm(pm_id=card_id)
+
+    await service.update_invoice_dates("c6_joao", "2026-09", status=InvoiceStatus.PAID)
+
+    patch = repo.update.call_args[0][1]
+    assert patch.model_dump(exclude_unset=True) == {
+        "status": InvoiceStatus.PAID,
+        "credit_card_id": card_id,
+    }
+
+
+@pytest.mark.asyncio
+async def test_update_invoice_dates_creates_invoice_with_default_days():
+    repo = AsyncMock()
+    pm_repo = AsyncMock()
+    service = InvoiceService(repo, pm_repo)
+
+    card_id = uuid4()
+    pm_repo.get_by_key.return_value = make_credit_card_pm(
+        pm_id=card_id, closing_day=None, due_day=None
+    )
+    repo.get_by_payment_method_and_month.return_value = None
+    created_inv = make_invoice_double(uuid4(), credit_card_id=card_id)
+    created_inv.real_closing_date = date(2026, 9, 30)
+    repo.create.return_value = created_inv
+
+    result = await service.update_invoice_dates(
+        "c6_joao", "2026-09", closing_date=date(2026, 9, 30)
+    )
+
+    created_payload = repo.create.call_args[0][0]
+    assert created_payload.credit_card_id == card_id
+    assert created_payload.real_closing_date == date(2026, 9, 30)
+    assert created_payload.status == InvoiceStatus.OPEN
+    assert result.real_closing_date == date(2026, 9, 30)
+
+
+@pytest.mark.asyncio
+async def test_update_invoice_dates_rejects_unknown_payment_method():
+    repo = AsyncMock()
+    pm_repo = AsyncMock()
+    service = InvoiceService(repo, pm_repo)
+    pm_repo.get_by_key.return_value = None
+
+    with pytest.raises(EntityNotFoundError, match="não encontrado"):
+        await service.update_invoice_dates("cartao_fantasma", "2026-09")
+
+    repo.update.assert_not_awaited()
+    repo.create.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_update_invoice_dates_rejects_non_credit_card():
+    repo = AsyncMock()
+    pm_repo = AsyncMock()
+    service = InvoiceService(repo, pm_repo)
+
+    pm = make_credit_card_pm(key="pix_joao")
+    pm.is_credit_card = False
+    pm_repo.get_by_key.return_value = pm
+
+    with pytest.raises(EntityNotFoundError, match="não encontrado"):
+        await service.update_invoice_dates("pix_joao", "2026-09")
+
+    repo.update.assert_not_awaited()
+    repo.create.assert_not_awaited()
