@@ -9,6 +9,11 @@ from finance_api.repositories.subscriptions import SubscriptionRepository
 from finance_api.schemas.pagination import PaginatedResponse
 from finance_api.schemas.subscriptions import SubscriptionCreate, SubscriptionUpdate
 from finance_api.services.payment_resolution import PaymentResolutionService
+from finance_api.services.update_preparation import (
+    ExpenseCategoryStep,
+    SubscriptionPaymentStep,
+    UpdateDataPreparer,
+)
 
 logger = get_logger(__name__)
 
@@ -18,9 +23,17 @@ class SubscriptionService:
         self,
         repo: SubscriptionRepository,
         payment_resolver: PaymentResolutionService | None = None,
+        category_repo: CategoryRepository | None = None,
     ):
         self.repo = repo
         self._payment_resolver = payment_resolver
+        self._category_repo = category_repo
+
+    @property
+    def category_repo(self) -> CategoryRepository:
+        if self._category_repo is not None:
+            return self._category_repo
+        return CategoryRepository(self.repo.db)
 
     @property
     def payment_resolver(self) -> PaymentResolutionService:
@@ -36,7 +49,7 @@ class SubscriptionService:
 
         target = await self.payment_resolver.resolve(
             data.payment_method,
-            requested_payment_type=getattr(data, "payment_type", None),
+            requested_payment_type=data.payment_type,
         )
         if target.credit_card_id:
             data.credit_card_id = target.credit_card_id
@@ -48,8 +61,7 @@ class SubscriptionService:
     async def create(self, subscription: SubscriptionCreate) -> "Subscription":
         logger.info(f"Creating subscription: {subscription.name} - {subscription.category}")
 
-        category_repo = CategoryRepository(self.repo.db)
-        if not await category_repo.get_by_key(subscription.category):
+        if not await self.category_repo.get_by_key(subscription.category):
             raise ValidationError(
                 f"Categoria '{subscription.category}' não existe. Por favor, crie-a primeiro."
             )
@@ -80,15 +92,7 @@ class SubscriptionService:
     ) -> "Subscription":
         logger.info(f"Updating subscription: {subscription_id}")
 
-        if update_data.category:
-            category_repo = CategoryRepository(self.repo.db)
-            if not await category_repo.get_by_key(update_data.category):
-                raise ValidationError(
-                    f"Categoria '{update_data.category}' não existe. Por favor, crie-a primeiro."
-                )
-
-        if update_data.payment_method:
-            await self._resolve_payment_relations(update_data)
+        await self._build_update_preparer().prepare(update_data)
 
         current_subscription = await self.repo.get_by_id(subscription_id)
         if not current_subscription:
@@ -98,6 +102,15 @@ class SubscriptionService:
         if not updated_subscription:
             raise EntityNotFoundError(f"Assinatura com ID {subscription_id} não encontrada")
         return updated_subscription
+
+    def _build_update_preparer(self) -> UpdateDataPreparer[SubscriptionUpdate]:
+        """Builds the category/payment preparation chain used before persisting an update."""
+        return UpdateDataPreparer(
+            (
+                ExpenseCategoryStep(self.category_repo),
+                SubscriptionPaymentStep(self.payment_resolver),
+            )
+        )
 
     @handle_service_errors
     async def delete(self, subscription_id: UUID) -> bool:

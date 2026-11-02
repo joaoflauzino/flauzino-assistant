@@ -63,24 +63,29 @@ class CreditCardService:
     @handle_service_errors
     async def update(self, card_id: UUID, update_data: CreditCardUpdate) -> CreditCard:
         logger.info(f"Updating credit card: {card_id}")
-        if update_data.account_id and self.account_repository:
-            account = await self.account_repository.get_by_id(update_data.account_id)
-            if not account:
-                raise EntityNotFoundError(
-                    f"Conta vinculada com ID {update_data.account_id} não encontrada"
-                )
-
-        if update_data.key:
-            existing = await self.repository.get_by_key(update_data.key)
-            if existing and existing.id != card_id:
-                raise EntityConflictError(
-                    f"Cartão de crédito com chave '{update_data.key}' já existe."
-                )
+        await self._validate_linked_account(update_data.account_id)
+        await self._validate_key_is_available(update_data.key, card_id)
 
         card = await self.repository.update(card_id, update_data)
         if not card:
             raise EntityNotFoundError(f"Cartão de crédito com ID {card_id} não encontrado")
         return card
+
+    async def _validate_linked_account(self, account_id: UUID | None) -> None:
+        if not account_id or not self.account_repository:
+            return
+
+        account = await self.account_repository.get_by_id(account_id)
+        if not account:
+            raise EntityNotFoundError(f"Conta vinculada com ID {account_id} não encontrada")
+
+    async def _validate_key_is_available(self, key: str | None, card_id: UUID) -> None:
+        if not key:
+            return
+
+        existing = await self.repository.get_by_key(key)
+        if existing and existing.id != card_id:
+            raise EntityConflictError(f"Cartão de crédito com chave '{key}' já existe.")
 
     @handle_service_errors
     async def delete(self, card_id: UUID) -> None:

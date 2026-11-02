@@ -18,6 +18,11 @@ from finance_api.schemas.incomes import (
     MonthlyBalanceSummary,
 )
 from finance_api.services.payment_resolution import PaymentResolutionService
+from finance_api.services.update_preparation import (
+    IncomeCategoryStep,
+    IncomePaymentStep,
+    UpdateDataPreparer,
+)
 
 logger = get_logger(__name__)
 
@@ -120,21 +125,22 @@ class IncomeService:
 
     @handle_service_errors
     async def update(self, income_id: UUID, update_data: IncomeUpdate) -> IncomeResponse:
-        if update_data.category:
-            await self._validate_category(update_data.category)
-        if update_data.payment_method:
-            matched_pm = await self._validate_payment_method(update_data.payment_method)
-            update_data.payment_method = matched_pm.key
-            if not getattr(update_data, "account_id", None):
-                resolved = await self.payment_resolver.resolve(matched_pm.key)
-                if resolved.account_id:
-                    update_data.account_id = resolved.account_id
+        await self._build_update_preparer().prepare(update_data)
 
         logger.info(f"Updating income: {income_id}")
         income = await self.repo.update(income_id, update_data)
         if not income:
             raise EntityNotFoundError(f"Receita {income_id} não encontrada")
         return IncomeResponse.model_validate(income)
+
+    def _build_update_preparer(self) -> UpdateDataPreparer[IncomeUpdate]:
+        """Builds the category/payment preparation chain used before persisting an update."""
+        return UpdateDataPreparer(
+            (
+                IncomeCategoryStep(self.category_repo),
+                IncomePaymentStep(self.pm_repo, self.payment_resolver),
+            )
+        )
 
     @handle_service_errors
     async def delete(self, income_id: UUID) -> bool:
