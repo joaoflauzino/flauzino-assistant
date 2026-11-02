@@ -9,8 +9,9 @@ Checks the production packages of every API against five measurable rules:
 * **D** — no module may repeat the name of the package it lives in (skill rule 8.2).
 * **E** — internal ``__init__.py`` files must not declare ``__all__`` (skill rule 5).
 
-Debt frozen on 2026-11-02 lives in ``BASELINE``: every entry names the phase that pays
-it down. New violations fail the suite; the allowlist is deleted in phase 6.6.
+Debt was frozen in ``BASELINE`` between phases 6.1 and 6.5 and burned down in phase 6.6:
+the gate is now strict, so any violation fails the suite. The expected layout is documented in
+``.specs/services-modules-quality-refactoring/08-estrutura-padrao-apis.md``.
 """
 
 import keyword
@@ -28,19 +29,6 @@ RULE_LEGEND = (
     "B=arquivo acima de 300 LOC; C=pacote com nome de keyword; "
     "D=modulo repetindo o nome do pacote; E=__all__ em __init__ interno."
 )
-
-BASELINE: dict[str, str] = {
-    "D|graph_api/services/graph_service.py": "6.5 — renomear para graph.py",
-    "D|telegram_api/handlers/balance_handler.py": "6.5 — renomear para balance.py",
-    "D|telegram_api/handlers/balance_summary_handler.py": "6.5 — renomear",
-    "D|telegram_api/handlers/command_handler.py": "6.5 — renomear para command.py",
-    "D|telegram_api/handlers/expense_handler.py": "6.5 — renomear para expense.py",
-    "D|telegram_api/handlers/income_handler.py": "6.5 — renomear para income.py",
-    "D|telegram_api/handlers/message_handler.py": "6.5 — renomear para message.py",
-    "D|telegram_api/handlers/photo_handler.py": "6.5 — renomear para photo.py",
-    "D|telegram_api/handlers/voice_handler.py": "6.5 — renomear para voice.py",
-    "D|telegram_api/services/session_service.py": "6.5 — renomear para session.py",
-}
 
 
 def iter_production_files(roots: Sequence[pathlib.Path]) -> Iterable[pathlib.Path]:
@@ -146,7 +134,7 @@ def format_report(violations: dict[str, str]) -> str:
         *(f"  [{key}] {detail}" for key, detail in sorted(violations.items())),
         "",
         RULE_LEGEND,
-        "Conserte ou registre a dívida em BASELINE com a fase que a quita (spec 6.1).",
+        "Conserte a violação seguindo a estrutura padrão (spec 08-estrutura-padrao-apis.md).",
     ]
     return "\n".join(lines)
 
@@ -158,12 +146,10 @@ def write_module(path: pathlib.Path, content: str = "") -> pathlib.Path:
     return path
 
 
-def test_no_new_module_organization_violations() -> None:
-    new_violations = {
-        key: detail for key, detail in collect_violations().items() if key not in BASELINE
-    }
+def test_no_module_organization_violations() -> None:
+    violations = collect_violations()
 
-    assert not new_violations, format_report(new_violations)
+    assert not violations, format_report(violations)
 
 
 def test_cluster_rule_flags_a_prefix_group_over_the_threshold(tmp_path: pathlib.Path) -> None:

@@ -1,7 +1,7 @@
 # Fase 6 — Padronização de Módulos em Todo o Repo + Gate de Arquitetura
 
 > **Spec:** [00-master-plan.md](./00-master-plan.md)
-> **Status:** 🟨 Em andamento (2026-11-02 — 6.1 concluída) · (`⬜ Não iniciada` → `🟨 Em andamento` → `✅ Concluída`)
+> **Status:** ✅ Concluída (2026-11-02) · (`⬜ Não iniciada` → `🟨 Em andamento` → `✅ Concluída`)
 > **Depende de:** Fase 0 concluída · **6.1 entra entre 3.4 e 3.5** (antes de 3.5/3.7 e das Fases 4–5) · 6.4 depende de 3.3 · 6.5 depende da Fase 4 concluída
 > **Commits previstos:** 5
 > **Meta:** o repositório inteiro segue o mesmo critério de organização de módulos, e esse critério é verificado automaticamente (política como código), não por review.
@@ -59,55 +59,55 @@ Objetivo: impedir que as fases seguintes (3.5, 3.7, 4.x e 5.x) ou qualquer featu
 - [x] Commit: `test(architecture): enforce module organization rules`
 
 ### 6.2 Decisões do inventário (watchlist)
-- [ ] Registrar no master plan §2.4 a decisão por cluster: **empacotar** / **manter plano** / **observar**
-- [ ] Watchlist com gatilho medido, para reavaliar ao fim da Fase 6:
+- [x] Registrar no master plan §2.4 a decisão por cluster: **empacotar** / **manter plano** / **observar**
+- [x] Watchlist com gatilho medido, para reavaliar ao fim da Fase 6:
   - `finance_api/importers/c6_*` → empacotar `importers/c6/` quando chegar a **5 arquivos ou 800 LOC** (provável ao adicionar outro banco)
   - `finance_api/services/classification*` + `ai_classifier.py` → se ficarem órfãos após a 3.7, candidatos a `services/imports/classify.py` + `classification_chain.py`
   - `finance_api/services/payment_*` → abaixo do limiar; só reavaliar se passar de 5 arquivos
-- [ ] Sem código nesta tarefa
+- [x] Sem código nesta tarefa
 
 ### 6.3 Padrão de estrutura por API (documento normativo)
-- [ ] Criar `08-estrutura-padrao-apis.md` com o shape canônico e as exceções permitidas:
+- [x] Criar `08-estrutura-padrao-apis.md` com o shape canônico e as exceções permitidas:
   - **comum às 4 APIs**: `core/`, `routers/`, `services/`, `schemas/`, `tests/`
   - `repositories/` + `models/` quando há persistência (finance, agent, telegram)
   - `handlers/` no `telegram_api` = camada de adapter do Telegram (legítima)
   - `importers/`, `mcp/` no `finance_api` = bounded contexts legítimos
   - `graph_api` sem `models/`/`repositories/` = renderer stateless (registrar como intencional, não como dívida)
   - onde vai código novo de cada tipo (regra de decisão em 5 linhas)
-- [ ] Commit: `docs(specs): document canonical API module layout`
+- [x] Commit: `docs(specs): document canonical API module layout`
 
 ### 6.4 Enxugar `finance_api/utils/` (pacote com um único módulo)
-- [ ] `git mv finance_api/utils/text.py finance_api/core/text.py` e remover o pacote vazio
-- [ ] Atualizar consumidores (`services/classification.py`, `services/classification_chain.py`, testes)
-- [ ] **Depois da 3.3** (que consolida `normalize_text`/`_normalize` nesse arquivo) — ordem explícita
-- [ ] Testes: `test_classification_service.py`, `test_classification_chain.py`, `test_extractors.py` + teste direto do módulo
-- [ ] Commit: `refactor(core): flatten single-module utils package`
+- [x] `git mv finance_api/utils/text.py finance_api/core/text.py` e remover o pacote vazio
+- [x] Atualizar consumidores (`services/classification.py`, `services/classification_chain.py`, testes)
+- [x] **Depois da 3.3** (que consolida `normalize_text`/`_normalize` nesse arquivo) — ordem explícita
+- [x] Testes: `test_classification_service.py`, `test_classification_chain.py`, `test_extractors.py` + teste direto do módulo
+- [x] Commit: `refactor(core): flatten single-module utils package`
 
 ### 6.5 Renomes: módulo não repete o nome do pacote (Regra 8.2)
-- [ ] `telegram_api/handlers/`: `expense_handler.py → expense.py`, `income_handler.py → income.py`, `message_handler.py → message.py`, `photo_handler.py → photo.py`, `voice_handler.py → voice.py`, `command_handler.py → command.py`, `balance_handler.py → balance.py`, `balance_summary_handler.py → balance_summary.py` (+ 7 testes espelhados)
-- [ ] `telegram_api/services/session_service.py → session.py` e `graph_api/services/graph_service.py → graph.py` (classes mantêm `SessionService`/`GraphService`)
-- [ ] Atualizar imports (`telegram_api/main.py`, `handlers/__init__.py`, `core/middleware.py`, testes)
-- [ ] **Depois da Fase 4** (4.4 reescreve voice/photo/message; 4.5 mexe nos nomes de função) e da Fase 5
-- [ ] Testes: suíte do `telegram_api` + `test_graph_service.py`, sem alterar asserts
-- [ ] Commit: `refactor(telegram): drop redundant module suffixes per rule 8`
+- [x] `telegram_api/handlers/`: `expense_handler.py → expense.py`, `income_handler.py → income.py`, `message_handler.py → message.py`, `photo_handler.py → photo.py`, `voice_handler.py → voice.py`, `command_handler.py → command.py`, `balance_handler.py → balance.py`, `balance_summary_handler.py → balance_summary.py` (+ 7 testes espelhados)
+- [x] `telegram_api/services/session_service.py → session.py` e `graph_api/services/graph_service.py → graph.py` (classes mantêm `SessionService`/`GraphService`)
+- [x] Atualizar imports (`telegram_api/main.py`, `handlers/__init__.py`, `core/middleware.py`, testes)
+- [x] **Depois da Fase 4** (4.4 reescreve voice/photo/message; 4.5 mexe nos nomes de função) e da Fase 5
+- [x] Testes: suíte do `telegram_api` + `test_graph_service.py`, sem alterar asserts
+- [x] Commit: `refactor(telegram): drop redundant module suffixes per rule 8`
 
 ### 6.6 Zerar o baseline
-- [ ] Re-medir as 5 regras; confirmar que 3.5, 3.6, 3.7, 4.2, 4.3, 5.3, 6.4 e 6.5 quitaram seus itens
-- [ ] Remover **toda** a allowlist — o gate passa a ser estrito (nenhuma exceção)
-- [ ] Se restar item estruturalmente justificável, registrar no `08-estrutura-padrao-apis.md` **e** na allowlist com justificativa (não deixar implícito)
-- [ ] Commit: `chore(architecture): burn down module organization baseline`
+- [x] Re-medir as 5 regras; confirmar que 3.5, 3.6, 3.7, 4.2, 4.3, 5.3, 6.4 e 6.5 quitaram seus itens
+- [x] Remover **toda** a allowlist — o gate passa a ser estrito (nenhuma exceção)
+- [x] Se restar item estruturalmente justificável, registrar no `08-estrutura-padrao-apis.md` **e** na allowlist com justificativa (não deixar implícito)
+- [x] Commit: `chore(architecture): burn down module organization baseline`
 
 ---
 
 ## 3. Critérios de aceite da fase (gates)
 
-- [ ] `tests/architecture/test_module_organization.py` verde **sem allowlist** (regras A–E)
-- [ ] Nenhum pacote com nome de keyword Python
-- [ ] Nenhum módulo repetindo o nome do pacote em que vive
-- [ ] Nenhum pacote de um único módulo genérico (`utils/`)
-- [ ] `services/imports/` é o único pacote de feature criado neste ciclo (3.7) e está plano
-- [ ] `08-estrutura-padrao-apis.md` publicado e referenciado pelo master plan
-- [ ] Watchlist registrada com gatilho mensurável e data
+- [x] `tests/architecture/test_module_organization.py` verde **sem allowlist** (regras A–E)
+- [x] Nenhum pacote com nome de keyword Python
+- [x] Nenhum módulo repetindo o nome do pacote em que vive
+- [x] Nenhum pacote de um único módulo genérico (`utils/`)
+- [x] `services/imports/` é o único pacote de feature criado neste ciclo (3.7) e está plano
+- [x] `08-estrutura-padrao-apis.md` publicado e referenciado pelo master plan
+- [x] Watchlist registrada com gatilho mensurável e data
 - [x] `make format` && `make lint` && `uv run pytest` verdes (incluindo o novo `tests/`)
 
 ---
@@ -130,6 +130,11 @@ Objetivo: impedir que as fases seguintes (3.5, 3.7, 4.x e 5.x) ou qualquer featu
 | Data | Commit | Descrição | Testes |
 |---|---|---|---|
 | 2026-11-02 | — (aguardando autorização) | 6.1 `tests/architecture/test_module_organization.py` com as 5 regras (A–E), baseline de **17 itens** (cada um apontando a fase que quita), 7 testes do próprio gate; `tests` entrou no `testpaths` e `make test-mcp` foi corrigido | 614 passed (+7 do gate) |
+| 2026-11-02 | — (aguardando autorização) | 6.2 decisões por cluster + watchlist com gatilho medido e data de reavaliação registradas no master plan §2.4 | docs |
+| 2026-11-02 | — | 6.3 `08-estrutura-padrao-apis.md`: shape canônico das 4 APIs, regra de decisão em 5 linhas, exceções permitidas e vínculo com o gate | docs |
+| 2026-11-02 | — | 6.4 `finance_api/utils/text.py` → `finance_api/core/text.py`; pacote `utils/` removido; 9 imports atualizados e teste espelhado em `tests/core/test_text.py` | 670 passed |
+| 2026-11-02 | — | 6.5 8 módulos `*_handler.py` → `*.py`, `session_service.py` → `session.py`, `graph_service.py` → `graph.py` + 7 testes espelhados; `__init__.py` adicionados em `telegram_api/tests/*` e `graph_api/tests` | 670 passed |
+| 2026-11-02 | — | 6.6 allowlist **apagada**; gate estrito com **0 violações** (regras A–E) | 670 passed |
 
 ### Notas de execução
 
@@ -138,3 +143,11 @@ Objetivo: impedir que as fases seguintes (3.5, 3.7, 4.x e 5.x) ou qualquer featu
 - **Comportamento do allowlist** — o gate **só falha em violação nova**; entradas obsoletas não quebram a suíte, de propósito, para não gerar churn de allowlist a cada fase. A 6.6 apaga o allowlist inteiro e o gate passa a ser estrito.
 - **Prova de que o gate morde** — criado manualmente um arquivo de 301 LOC em `finance_api/services/`; a suíte falhou com `[B|...__gate_probe.py] 301 LOC (> 300)`; arquivo removido em seguida. As 5 regras também têm testes sintéticos com `tmp_path`.
 - **CI** — `tests/` agora é coletado no `uv run pytest`, que é exatamente o que o workflow `.github/workflows/feature.yml` executa.
+
+### Notas da conclusão (6.2–6.6)
+
+- **6.2/6.3** — sem código: as decisões já medidas no inventário foram registradas no master plan §2.4 e a estrutura canônica virou o documento normativo `08-estrutura-padrao-apis.md`, referenciado pelo master plan e pelo gate.
+- **6.4** — o pacote `finance_api/utils/` existia só para `text.py` (13 LOC). O rename foi puro (`git mv` + 9 imports) e o teste espelhado foi para `finance_api/tests/core/test_text.py`; o pacote e o diretório de testes vazio foram removidos.
+- **6.5** — os 8 handlers (`balance`, `balance_summary`, `command`, `expense`, `income`, `message`, `photo`, `voice`), `session_service.py → session.py` e `graph_service.py → graph.py` mantiveram os nomes das classes (`SessionService`, `GraphRendererServiceDep`) e todos os `callback_data`/contratos; só módulos e patch targets mudaram. Não existe teste de `command`, por isso 7 testes espelhados (não 8).
+- **6.5 (colisão de basename)** — com `test_expense.py` em `tests/handlers/` e `tests/services/`, o pytest passou a ver dois módulos top-level com o mesmo nome (os diretórios de teste do `telegram_api`/`graph_api` não tinham `__init__.py`). A correção foi adicionar `__init__.py` em `telegram_api/tests/**` e `graph_api/tests`, alinhando essas APIs ao padrão já usado em `finance_api`/`agent_api`.
+- **6.6** — `BASELINE` removido por completo; `test_no_module_organization_violations` agora falha em qualquer violação. Medição final: **0** violações A–E (as 10 entradas de rename da 6.5 e as 2 de `__all__` da 5.3 foram quitadas), sem allowlist residual.
