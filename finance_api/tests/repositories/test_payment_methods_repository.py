@@ -2,12 +2,52 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
+from sqlalchemy.exc import SQLAlchemyError
 
 from finance_api.models.accounts import Account
 from finance_api.models.credit_cards import CreditCard
 from finance_api.models.payment_methods import PaymentMethod
-from finance_api.repositories.payment_methods import PaymentMethodRepository
+from finance_api.repositories.payment_methods import (
+    PaymentMethodRepository,
+    payment_method_from_account,
+    payment_method_from_credit_card,
+)
 from finance_api.schemas.payment_methods import PaymentMethodCreate
+
+
+def make_credit_card(key: str, name: str, **overrides) -> CreditCard:
+    fields = {
+        "id": uuid4(),
+        "key": key,
+        "name": name,
+        "account_id": uuid4(),
+        "closing_day": 2,
+        "due_day": 10,
+        "credit_limit": 12000.0,
+    }
+    fields.update(overrides)
+    return CreditCard(**fields)
+
+
+def make_account(key: str, name: str, bank: str = "c6", **overrides) -> Account:
+    fields = {
+        "id": uuid4(),
+        "key": key,
+        "name": name,
+        "bank": bank,
+        "owner": "joao",
+        "type": "CHECKING",
+    }
+    fields.update(overrides)
+    return Account(**fields)
+
+
+def make_result(items: list) -> MagicMock:
+    """Builds a fake execute() result whose scalars().all() returns ``items``."""
+    result = MagicMock()
+    result.scalars.return_value.all.return_value = items
+    result.scalar_one_or_none.return_value = None
+    return result
 
 
 @pytest.fixture
@@ -60,8 +100,8 @@ async def test_empty_string_converted_to_none_in_schema():
 
 async def test_list_credit_cards(mock_db_session):
     repo = PaymentMethodRepository(mock_db_session)
-    card1 = PaymentMethod(key="c6", display_name="C6", is_credit_card=True)
-    card2 = PaymentMethod(key="nubank", display_name="Nubank", is_credit_card=True)
+    card1 = make_credit_card("c6", "C6")
+    card2 = make_credit_card("nubank", "Nubank")
 
     mock_db_session.execute.return_value.scalars.return_value.all.return_value = [card1, card2]
 
@@ -69,6 +109,10 @@ async def test_list_credit_cards(mock_db_session):
 
     assert len(results) == 2
     assert results[0].key == "c6"
+    assert results[0].display_name == "C6"
+    assert results[0].is_credit_card is True
+    assert results[0].closing_day == 2
+    assert results[0].due_day == 10
     assert results[1].key == "nubank"
 
 
@@ -156,3 +200,113 @@ async def test_get_by_key_returns_none_when_not_found_anywhere():
 
     assert result is None
     assert mock_session.execute.await_count == 3
+
+
+async def test_get_by_key_propagates_database_errors():
+    """Database failures must surface instead of being swallowed into a silent None."""
+    mock_session = AsyncMock()
+    mock_session.execute.side_effect = SQLAlchemyError("connection lost")
+
+    repo = PaymentMethodRepository(mock_session)
+
+    with pytest.raises(SQLAlchemyError):
+        await repo.get_by_key("pix_joao")
+
+
+async def test_list_derives_cards_and_accounts_before_stored_methods():
+    mock_session = AsyncMock()
+    card = make_credit_card("c6_card", "C6 Carbon")
+    account = make_account("c6_joao", "C6 João", bank="c6")
+    mock_session.execute.side_effect = [make_result([card]), make_result([account])]
+
+    repo = PaymentMethodRepository(mock_session)
+    items, total = await repo.list()
+
+    assert total == 2
+    assert [item.key for item in items] == ["c6_card", "c6_joao"]
+    assert items[0].is_credit_card is True
+    assert items[0].display_name == "C6 Carbon"
+    assert items[1].is_credit_card is False
+    assert items[1].display_name == "C6 João (c6)"
+    assert mock_session.execute.await_count == 2
+
+
+async def test_list_paginates_derived_items():
+    mock_session = AsyncMock()
+    first = make_credit_card("c6_card", "C6 Carbon")
+    second = make_credit_card("nubank_card", "Nubank Ultravioleta")
+    mock_session.execute.side_effect = [make_result([first, second]), make_result([])]
+
+    repo = PaymentMethodRepository(mock_session)
+    items, total = await repo.list(page=2, size=1)
+
+    assert total == 2
+    assert [item.key for item in items] == ["nubank_card"]
+
+
+async def test_list_falls_back_to_stored_payment_methods():
+    mock_session = AsyncMock()
+    stored = PaymentMethod(key="pix_joao", display_name="Pix João", is_credit_card=False)
+    mock_session.execute.side_effect = [
+        make_result([]),
+        make_result([]),
+        make_result([stored]),
+        make_result([stored]),
+    ]
+
+    repo = PaymentMethodRepository(mock_session)
+    items, total = await repo.list()
+
+    assert [item.key for item in items] == ["pix_joao"]
+    assert total == 1
+
+
+async def test_list_credit_cards_falls_back_to_stored_when_card_table_is_empty():
+    mock_session = AsyncMock()
+    stored_card = PaymentMethod(key="c6", display_name="C6", is_credit_card=True)
+    mock_session.execute.side_effect = [make_result([]), make_result([stored_card])]
+
+    repo = PaymentMethodRepository(mock_session)
+    results = await repo.list_credit_cards()
+
+    assert [card.key for card in results] == ["c6"]
+
+
+def test_payment_method_from_credit_card_maps_all_fields():
+    card = make_credit_card("c6_card", "C6 Carbon", closing_day=3, due_day=11)
+
+    method = payment_method_from_credit_card(card)
+
+    assert method.id == card.id
+    assert method.key == "c6_card"
+    assert method.display_name == "C6 Carbon"
+    assert method.is_credit_card is True
+    assert method.closing_day == 3
+    assert method.due_day == 11
+
+
+def test_payment_method_from_account_omits_bank_by_default():
+    account = make_account("c6_joao", "C6 João", bank="c6")
+
+    method = payment_method_from_account(account)
+
+    assert method.id == account.id
+    assert method.key == "c6_joao"
+    assert method.display_name == "C6 João"
+    assert method.is_credit_card is False
+
+
+def test_payment_method_from_account_includes_bank_when_requested():
+    method = payment_method_from_account(
+        make_account("c6_joao", "C6 João", bank="c6"), include_bank=True
+    )
+
+    assert method.display_name == "C6 João (c6)"
+
+
+def test_payment_method_from_account_skips_empty_bank():
+    method = payment_method_from_account(
+        make_account("c6_joao", "C6 João", bank=""), include_bank=True
+    )
+
+    assert method.display_name == "C6 João"

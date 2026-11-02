@@ -8,8 +8,8 @@ from httpx import ASGITransport, AsyncClient
 
 from finance_api.core.database import get_db
 from finance_api.main import app
+from finance_api.models.credit_cards import CreditCard
 from finance_api.models.invoices import InvoiceStatus
-from finance_api.models.payment_methods import PaymentMethod
 from finance_api.routers.invoices import get_invoice_service
 
 pytestmark = pytest.mark.asyncio
@@ -25,13 +25,14 @@ async def test_client():
 async def test_list_invoices_router_integration(test_client):
     # Tests router with real InvoiceService and PaymentMethodRepository
     mock_db = AsyncMock()
-    card = PaymentMethod(
+    card = CreditCard(
         id=uuid4(),
         key="c6_joao",
-        display_name="C6 João",
-        is_credit_card=True,
+        name="C6 João",
+        account_id=uuid4(),
         closing_day=28,
         due_day=5,
+        credit_limit=10000.0,
     )
     # 1st execute for list_credit_cards, 2nd for list_by_month
     mock_db.execute.side_effect = [

@@ -1,7 +1,7 @@
 import unicodedata
 from uuid import UUID
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from finance_api.core.logger import get_logger
@@ -32,8 +32,6 @@ class CategoryRepository:
         query = select(Category).order_by(Category.display_name)
 
         # Count query
-        from sqlalchemy import func
-
         count_query = select(func.count()).select_from(query.subquery())
         count_result = await self.db.execute(count_query)
         total = count_result.scalar() or 0
