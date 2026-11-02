@@ -4,7 +4,7 @@
 >
 > **Branch de trabalho:** `feat/refactor` (3º ciclo — os planos anteriores `.specs/code-quality-refactoring/`, `.specs/quality-refactoring/` e `.specs/python-patterns-refactoring/` já foram em grande parte executados; este plano é **incremental** e parte do estado atual medido).
 >
-> **Status geral:** 🟨 Em execução — Fases 0, 1 e 2 concluídas em 2026-11-02; Fase 3 em início; Fase 6 planejada, com a tarefa 6.1 posicionada entre 3.4 e 3.5 (protege 3.5, 3.7 e as Fases 4–5 sem churn de baseline).
+> **Status geral:** 🟨 Em execução — Fases 0, 1, 2 e 3 concluídas em 2026-11-02; Fase 4 é a próxima; Fase 6 em andamento (6.1 concluída — gate de arquitetura ativo, baseline 17 → 14 conforme as fases quitam dívida).
 
 ---
 
@@ -24,7 +24,7 @@
 | 0 | [01-fase-0-gates-e-rede-de-seguranca.md](./01-fase-0-gates-e-rede-de-seguranca.md) | WIP atual, gates de lint, testes de caracterização | ✅ Concluída | 4/4 tarefas |
 | 1 | [02-fase-1-condicionais-em-services.md](./02-fase-1-condicionais-em-services.md) | Eixo A — cascatas de `if` nos services | ✅ Concluída | 6/6 tarefas |
 | 2 | [03-fase-2-metodos-longos-em-services.md](./03-fase-2-metodos-longos-em-services.md) | Eixo B — métodos > 40 LOC nos services | ✅ Concluída | 6/6 tarefas |
-| 3 | [04-fase-3-finance-api-repositorios-e-modulos.md](./04-fase-3-finance-api-repositorios-e-modulos.md) | Eixo C — `finance_api`: repositories, imports tardios, utils, pacote `imports/` | 🟨 Em andamento | 5/7 tarefas |
+| 3 | [04-fase-3-finance-api-repositorios-e-modulos.md](./04-fase-3-finance-api-repositorios-e-modulos.md) | Eixo C — `finance_api`: repositories, imports tardios, utils, pacote `imports/` | ✅ Concluída | 7/7 tarefas |
 | 4 | [05-fase-4-telegram-api-modulos-e-handlers.md](./05-fase-4-telegram-api-modulos-e-handlers.md) | Eixo C — `telegram_api`: Regra 4, splits, handlers finos | ⬜ Não iniciada | 0/5 tarefas |
 | 5 | [06-fase-5-agent-api-e-verificacao-final.md](./06-fase-5-agent-api-e-verificacao-final.md) | Eixo C — `agent_api`, `__all__`, verificação final | ⬜ Não iniciada | 0/4 tarefas |
 | 6 | [07-fase-6-padronizacao-de-modulos.md](./07-fase-6-padronizacao-de-modulos.md) | Eixo C — padrão de módulos no repo inteiro + gate de arquitetura (política como código) | 🟨 Em andamento | 1/6 tarefas |
@@ -34,7 +34,7 @@
 - [x] Fase 0 — gates e rede de segurança
 - [x] Fase 1 — condicionais em services
 - [x] Fase 2 — métodos longos em services
-- [ ] Fase 3 — `finance_api` modular
+- [x] Fase 3 — `finance_api` modular
 - [ ] Fase 4 — `telegram_api` modular
 - [ ] Fase 5 — `agent_api` modular + verificação final
 - [ ] Fase 6 — padronização de módulos no repo + gate automático
@@ -125,16 +125,16 @@ Nenhuma delas viola `C90`/`PLR0912`/`PLR0915`; por isso não houve `# noqa`.
 | Violação | Regra | Onde | Fase |
 |---|---|---|---|
 | **56 funções top-level com `_`** | Regra 4 | `telegram_api/core/formatter.py` (11), `handlers/balance_handler.py` (8), `handlers/expense_handler.py` (8), `telegram_api/main.py` (8), `core/middleware.py` (5), `agent_api/core/callbacks.py` (5), `agent_api/services/classify.py` (2), + 9 arquivos com 1 cada | 4.1–4.5, 5.1–5.2 |
-| **Imports tardios em funções** | `AGENTS.md` §3.4 | `finance_api/repositories/payment_methods.py` (5×), `categories.py` (1×: linha 35) | 3.1–3.2 |
-| **`__all__` em módulos internos** | Regra 5 | `finance_api/models/__init__.py`, `agent_api/services/tools/__init__.py`, `telegram_api/services/__init__.py` | 3.6, 5.3 |
-| **Utilidade duplicada em vez de `utils.py`** | Regra 3 | `_normalize_str`/`_normalize` em 3 repositories — já existe `finance_api/utils/text.py` (repos usam `.lower()`, utils `.upper()` — preservar call-site) + alias `_normalize` em `utils/text.py:13` | 3.3 |
+| **Imports tardios em funções** | `AGENTS.md` §3.4 | `finance_api/repositories/payment_methods.py` (5×), `categories.py` (1×: linha 35) | 3.1–3.2 ✅ |
+| **`__all__` em módulos internos** | Regra 5 | `finance_api/models/__init__.py` ✅ (3.6), `agent_api/services/tools/__init__.py`, `telegram_api/services/__init__.py` | 3.6 ✅, 5.3 |
+| **Utilidade duplicada em vez de `utils.py`** | Regra 3 | `_normalize_str`/`_normalize` em 3 repositories — já existe `finance_api/utils/text.py` (repos usam `.lower()`, utils `.upper()` — preservar call-site) + alias `_normalize` em `utils/text.py:13` | 3.3 ✅ |
 | **Módulo com SRP misto (formatação pura + I/O)** | Regra 3/SRP | `telegram_api/core/formatter.py` (238 linhas) | 4.1 |
 | **Retry loop duplicado 3×** | `python-anti-patterns` | `telegram_api/core/http_client.py`: mesmo `for attempt in range(3)` + backoff em 3 funções (prof. 4) | 4.2 |
 | **Lógica de negócio no handler** | Camadas | `telegram_api/handlers/expense_handler.py` (409 linhas): builders e savers deveriam estar em `services/` | 4.3 |
-| **Arquivos acima do teto (~300 linhas, Regra 6)** | Regra 6 | `http_client.py` (422), `expense_handler.py` (409), `import_strategies.py` (349), `core/dependencies.py` (306) | 3.5, 4.2–4.3 |
+| **Arquivos acima do teto (~300 linhas, Regra 6)** | Regra 6 | `http_client.py` (421 → 4.2), `expense_handler.py` (408 → 4.3), `import_strategies.py` (351 → ✅ 3.5), `core/dependencies.py` (295, sob o teto) | 3.5 ✅, 4.2–4.3 |
 | **Instanciação de dependência dentro de método** | DI (`AGENTS.md` §3.4) | `finance_api/services/subscriptions.py:84` | 1.3 |
 | **`getattr` defensivo contra mocks em produção** | `python-anti-patterns` | `payment_methods.py:48,68`, `spents.py:230` | 1.3, 3.1 |
-| **Cluster de feature espalhado por prefixo (pasta escrita por extenso)** | Regra 6 | `finance_api/services/import_*.py` + `imports.py`: **14 arquivos / 1.718 LOC = 40% de `services/`** (35 arquivos / 4.290 LOC); grafo é DAG, mas o prefixo `import_` faz o papel de diretório | 3.7 |
+| **Cluster de feature espalhado por prefixo (pasta escrita por extenso)** | Regra 6 | `finance_api/services/import_*.py` + `imports.py`: **14 arquivos / 1.718 LOC = 40% de `services/`** (35 arquivos / 4.290 LOC); grafo é DAG, mas o prefixo `import_` faz o papel de diretório | 3.7 ✅ |
 | **Módulo repetindo o nome do pacote** | Regra 8.2 | `telegram_api/handlers/*_handler.py` (8 arquivos), `telegram_api/services/session_service.py`, `graph_api/services/graph_service.py` | 6.5 |
 | **Pacote com um único módulo (junk drawer `utils/`)** | Regra 6 | `finance_api/utils/` — pacote inteiro para `text.py` (13 LOC) | 6.4 |
 | **Regra de organização sem verificação automática** | Regra 8 / governança | nenhum teste valida cluster, tamanho, nome de pacote ou `__init__` — só review humano | 6.1 |
@@ -149,7 +149,7 @@ Inventário medido (detalhe e baselines em [07-fase-6](./07-fase-6-padronizacao-
 
 | Cluster / sintoma | Medida | Decisão |
 |---|---|---|
-| `services/import_*` | 12 arquivos / 1.606 LOC | **empacotar** → `services/imports/` (3.7) |
+| `services/import_*` | 12 arquivos / 1.606 LOC | ✅ **empacotado** em `services/imports/` (3.7) |
 | `handlers/*_handler` | 8 módulos repetindo o pacote | **renomear** (6.5) |
 | `services/session_service`, `graph_api/services/graph_service` | 1 arquivo cada | **renomear** (6.5) |
 | `finance_api/utils/` | 1 módulo, 13 LOC | **achatar** para `core/text.py` (6.4) |
@@ -158,7 +158,7 @@ Inventário medido (detalhe e baselines em [07-fase-6](./07-fase-6-padronizacao-
 | `services/payment_*` | 3 arquivos / 211 LOC | **manter plano** |
 | `finance_api/mcp/`, `telegram_api/handlers/` | bounded contexts | **manter** |
 
-**Enforcement:** a Regra 8 é verificada por `tests/architecture/test_module_organization.py` (5 checagens medíveis, baseline com allowlist explícita e burn-down obrigatório em 6.6). Review humano deixa de ser o único gate. **Ativo desde 2026-11-02** (6.1 concluída; baseline de 17 itens, 0 obsoletos).
+**Enforcement:** a Regra 8 é verificada por `tests/architecture/test_module_organization.py` (5 checagens medíveis, baseline com allowlist explícita e burn-down obrigatório em 6.6). Review humano deixa de ser o único gate. **Ativo desde 2026-11-02** (6.1 concluída). Burn-down: 17 itens no congelamento → **14** após as Fases 3.5/3.6/3.7, sem nenhuma entrada obsoleta.
 
 ---
 

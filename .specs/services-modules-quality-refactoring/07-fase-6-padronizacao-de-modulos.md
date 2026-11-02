@@ -134,7 +134,7 @@ Objetivo: impedir que as fases seguintes (3.5, 3.7, 4.x e 5.x) ou qualquer featu
 ### Notas de execução
 
 - **6.1** — o baseline foi validado como **exato** na data: 17 violações encontradas = 17 congeladas, 0 entradas obsoletas. A regra A já enxerga o cluster `import_*` (12/1.606) que a 3.7 vai empacotar; a regra B cobre os 3 arquivos grandes que 3.5/4.2/4.3 vão dividir.
-- **Burn-down em curso** — a 3.5 já quitou `import_strategies.py` (regra B), levando o baseline de 17 → **16**; as entradas restantes continuam batendo exatamente com as violações reais (0 stale).
+- **Burn-down em curso** — a 3.5 quitou `import_strategies.py` (regra B), a 3.6 quitou o `__all__` de `models/__init__.py` (regra E) e a 3.7 zerou a regra A: baseline **17 → 16 → 15 → 14**, com as entradas restantes batendo exatamente com as violações reais (0 stale).
 - **Comportamento do allowlist** — o gate **só falha em violação nova**; entradas obsoletas não quebram a suíte, de propósito, para não gerar churn de allowlist a cada fase. A 6.6 apaga o allowlist inteiro e o gate passa a ser estrito.
 - **Prova de que o gate morde** — criado manualmente um arquivo de 301 LOC em `finance_api/services/`; a suíte falhou com `[B|...__gate_probe.py] 301 LOC (> 300)`; arquivo removido em seguida. As 5 regras também têm testes sintéticos com `tmp_path`.
 - **CI** — `tests/` agora é coletado no `uv run pytest`, que é exatamente o que o workflow `.github/workflows/feature.yml` executa.

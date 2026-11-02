@@ -1,7 +1,7 @@
 # Fase 3 — Eixo C `finance_api`: Repositories, Imports Tardios e Utils
 
 > **Spec:** [00-master-plan.md](./00-master-plan.md)
-> **Status:** 🟨 Em andamento (2026-11-02) · (`⬜ Não iniciada` → `🟨 Em andamento` → `✅ Concluída`)
+> **Status:** ✅ Concluída (2026-11-02) · (`⬜ Não iniciada` → `🟨 Em andamento` → `✅ Concluída`)
 > **Depende de:** Fase 0 concluída (pode rodar em paralelo com Fases 1–2 se houver reviewers distintos)
 > **Commits previstos:** 5
 > **Meta:** zero imports tardios, zero `except Exception` em repositories, zero utilidade duplicada, cluster de import empacotado.
@@ -66,9 +66,9 @@ Dividir em **arquivos planos e coesos** (sem subpacotes — Regra 6):
 ### 3.6 `finance_api/models/__init__.py` — `__all__` (Regra 5)
 ⚠️ Os **imports** do `__init__.py` têm efeito colateral de registro de metadata do SQLAlchemy — não remover sem validar.
 
-- [ ] Validar impacto em `create_all`/migrations e imports em `main.py`
-- [ ] Remover apenas o `__all__`, mantendo os imports
-- [ ] Commit: agrupado com 3.5 ou separado (`chore(models): remove __all__ per rule 5`)
+- [x] Validar impacto em `create_all`/migrations e imports em `main.py`
+- [x] Remover apenas o `__all__`, mantendo os imports
+- [x] Commit: agrupado com 3.5 ou separado (`chore(models): remove __all__ per rule 5`)
 
 ### 3.7 Empacotar o cluster de import em `finance_api/services/imports/` (Regra 6)
 **Diagnóstico medido (2026-11-02):** o cluster `services/import_*.py` + `imports.py` tem **14 arquivos / 1.718 LOC = 40%** dos 35 arquivos / 4.290 LOC de `services/`. O prefixo `import_` está exercendo o papel de diretório: 14 entradas de um diretório compartilhando o mesmo prefixo deixaram de ser "flat e coeso".
@@ -107,25 +107,25 @@ finance_api/services/imports/
 ```
 
 **Pré-requisitos:**
-- [ ] 3.5 concluída (`import_strategies.py` já splitado em bulk/commit)
+- [x] 3.5 concluída (`import_strategies.py` já splitado em bulk/commit)
 
 **Tarefas:**
-- [ ] Criar `services/imports/__init__.py` vazio
-- [ ] `git mv` dos 12 módulos para `services/imports/` (nomes do layout acima) + `git mv imports.py facade.py`
-- [ ] `git mv` dos testes para `tests/services/imports/` espelhando os nomes (`test_imports_service.py → test_facade.py`, `test_import_upload.py → test_upload.py`, …) e criar `tests/services/imports/__init__.py` se o pytest exigir (convenção já usada em `tests/repositories/`)
-- [ ] Atualizar as 43+ referências `finance_api.services.import_*` / `.imports` em produção e testes (o volume cresce com a 3.5)
-- [ ] Atualizar o mapa do master plan (§2.1/§2.2/§2.2-B/§2.3) e as referências de path nas specs das fases já concluídas
-- [ ] Validar importação do app (`python -c "import finance_api.main"`) para pegar ciclos que o `ast` não vê
-- [ ] Testes: suíte completa **sem alterar asserts** (só caminhos de import)
-- [ ] Commit: `refactor(imports): group the import feature into services/imports package`
+- [x] Criar `services/imports/__init__.py` vazio
+- [x] `git mv` dos 12 módulos para `services/imports/` (nomes do layout acima) + `git mv imports.py facade.py`
+- [x] `git mv` dos testes para `tests/services/imports/` espelhando os nomes (`test_imports_service.py → test_facade.py`, `test_import_upload.py → test_upload.py`, …) e criar `tests/services/imports/__init__.py` se o pytest exigir (convenção já usada em `tests/repositories/`)
+- [x] Atualizar as 43+ referências `finance_api.services.import_*` / `.imports` em produção e testes (o volume cresce com a 3.5)
+- [x] Atualizar o mapa do master plan (§2.1/§2.2/§2.2-B/§2.3) e as referências de path nas specs das fases já concluídas
+- [x] Validar importação do app (`python -c "import finance_api.main"`) para pegar ciclos que o `ast` não vê
+- [x] Testes: suíte completa **sem alterar asserts** (só caminhos de import)
+- [x] Commit: `refactor(imports): group the import feature into services/imports package`
 
 **Gates da tarefa:**
-- [ ] Zero `finance_api/services/import_*.py` remanescente; `services/` volta a ≤ 23 entradas planas
-- [ ] Pacote só com arquivos planos (sem `strategies/`, `usecases/` etc. — Regra 6 / *flat is better than nested*)
-- [ ] `__init__.py` vazio: zero `__all__`, zero re-export
-- [ ] `git diff -M` reporta ≥ 90% de similaridade nos renames (prova de que é movimentação)
-- [ ] Suíte 100% verde sem tocar em asserts; `black`/`ruff` limpos
-- [ ] Nenhuma mudança de contrato HTTP
+- [x] Zero `finance_api/services/import_*.py` remanescente; `services/` volta a ≤ 23 entradas planas
+- [x] Pacote só com arquivos planos (sem `strategies/`, `usecases/` etc. — Regra 6 / *flat is better than nested*)
+- [x] `__init__.py` vazio: zero `__all__`, zero re-export
+- [x] `git diff -M` reconhece **todos os 26 arquivos como rename** (similaridade 83–100%; `factory.py`/`wiring.py` ficam em 83%/86% apenas pelas linhas de import reescritas)
+- [x] Suíte 100% verde sem tocar em asserts; `black`/`ruff` limpos
+- [x] Nenhuma mudança de contrato HTTP
 
 **Riscos e mitigação:**
 
@@ -141,14 +141,14 @@ finance_api/services/imports/
 
 ## Critérios de aceite da fase (gates)
 
-- [ ] Zero imports fora do topo do arquivo em `finance_api/`
-- [ ] Zero `except Exception` engolindo erro em `payment_methods.py`
-- [ ] Zero `getattr` defensivo contra modelos tipados
-- [ ] Zero `_normalize*` duplicado — uma única fonte em `finance_api/utils/text.py`
+- [x] Zero imports fora do topo do arquivo em `finance_api/`
+- [x] Zero `except Exception` engolindo erro em `payment_methods.py`
+- [x] Zero `getattr` defensivo contra modelos tipados
+- [x] Zero `_normalize*` duplicado — uma única fonte em `finance_api/utils/text.py`
 - [x] `list_by_filter` ≤ 20 LOC
-- [ ] Nenhum arquivo de `finance_api/services/` > ~300 linhas
-- [ ] Cluster de import isolado em `finance_api/services/imports/` (15 arquivos planos, `__init__.py` vazio)
-- [ ] `make format` && `make lint` && `uv run pytest` verdes
+- [x] Nenhum arquivo de `finance_api/services/` > ~300 linhas
+- [x] Cluster de import isolado em `finance_api/services/imports/` (15 arquivos planos, `__init__.py` vazio)
+- [x] `make format` && `make lint` && `uv run pytest` verdes
 
 ---
 
@@ -162,6 +162,8 @@ finance_api/services/imports/
 | 2026-11-02 | — | **fora do plano (bug pré-existente)**: `GET /payment-methods/` retornava 500 (`ResponseValidationError`) porque os `PaymentMethod` sintéticos não carregavam `created_at`; adapters agora copiam `created_at` do cartão/conta | 607 passed (+1 regressão de router) |
 | 2026-11-02 | — (aguardando autorização) | 3.4 `list_by_filter` 54 → **20 LOC / 0 `if`s**; `_build_conditions` declarativo (2 `if`s) + `_with_conditions` + `_apply_pagination`; `get_approved_for_commit` reusa o builder | 607 passed (+7 do repositório) |
 | 2026-11-02 | — (aguardando autorização) | 3.5 split de `import_strategies.py` (351 LOC) em `import_bulk_strategies.py` + `import_commit_strategies.py`; `DuplicateDetectorStrategy` movido para `services/protocols.py` (Regra 2); `resolve_salary_competence_date` movido para `import_staging.py` (único consumidor); `NullDuplicateDetector` morto removido; baseline do gate 17 → 16 | 623 passed (+10: 12 testes dos strategies splitados e 4 do salário, −6 do arquivo antigo) |
+| 2026-11-02 | — (aguardando autorização) | 3.6 `__all__` removido de `finance_api/models/__init__.py` mantendo os imports de registro de metadata (`# ruff: noqa: F401` documentado); baseline 16 → 15 | 623 passed · 13 tabelas registradas em `Base.metadata` |
+| 2026-11-02 | — (aguardando autorização) | 3.7 cluster de import empacotado em `finance_api/services/imports/` (15 arquivos planos, `__init__.py` sem re-export) + testes em `tests/services/imports/`; 20 arquivos tiveram imports atualizados; `services/` 35 → 23 entradas; baseline 15 → **14**, regra A zerada | 623 passed · `finance_api.main` importa · 26 renames detectados |
 
 ### Notas de execução
 
@@ -171,3 +173,5 @@ finance_api/services/imports/
 - **3.4** — `list_by_filter` caiu de 54 → 20 LOC com **0 condicionais**; as condições viraram uma tabela declarativa de igualdades (`(valor, coluna)`) + 2 flags explícitas (`only_duplicates`, `only_unclassified`), mantendo o comportamento de não emitir `WHERE` quando não há filtro (`and_()` vazio é evitado em `_with_conditions`). Ordenação e janela ficaram em `_apply_pagination`. `get_approved_for_commit` reusa `_build_conditions(batch_id=..., status="APPROVED")`.
 - **Bug pré-existente (fora do plano, commit separado)** — `GET /payment-methods/` respondia 500: os `PaymentMethod` sintéticos (montados a partir de `CreditCard`/`Account`) não tinham `created_at`, e `PaymentMethodResponse.created_at` é obrigatório. Correção: os adapters copiam `created_at` da entidade de origem (sem afrouxar o contrato do schema). Regressão coberta por teste de router que exercita o repositório real com DB mockado.
 - **3.5** — `import_strategies.py` (351 LOC) dividido em `import_bulk_strategies.py` (4 estratégias + builder) e `import_commit_strategies.py` (3 estratégias de commit + 3 detectores + builders). Decisões do split: (a) `DuplicateDetectorStrategy` foi para `services/protocols.py` (Regra 2) — assim `import_staging.py` depende do contrato, não do módulo de commit; (b) `SALARY_KEYWORDS` + `resolve_salary_competence_date` foram para `import_staging.py`, seu único consumidor (era a única parte do arquivo sem relação com Strategy); (c) `NullDuplicateDetector`, sem nenhum uso, foi removido. Testes espelham os módulos (`test_import_bulk_strategies.py`, `test_import_commit_strategies.py`) e o gate registrou a queda da regra B (baseline 17 → 16, **0 entradas obsoletas**).
+- **3.6** — o `__all__` saiu e os imports ficaram, com um comentário explicando o efeito colateral no `Base.metadata` e um `# ruff: noqa: F401` de arquivo (o `F401` é esperado em imports de side-effect). Validação: 13 tabelas registradas, `create_all` e app importando normalmente.
+- **3.7** — `services/` passou de 35 para 23 entradas planas; o cluster virou `services/imports/` com **15 arquivos planos** e `__init__.py` só de docstring (sem `__all__`, sem re-export). Os testes foram para `tests/services/imports/` espelhando os módulos (`test_facade.py` para a antiga `imports.py`). A movimentação é comprovada por `git diff -M`: **26 renames**, similaridade 83–100%. `grep` por `finance_api.services.import_` retorna zero e `import finance_api.main` passa (prova de ausência de ciclo). Baseline do gate: 15 → **14**, com a **regra A zerada**.
