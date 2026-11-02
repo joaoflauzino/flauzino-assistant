@@ -23,8 +23,11 @@ from finance_api.services.update_preparation import (
     IncomePaymentStep,
     UpdateDataPreparer,
 )
+from finance_api.services.utils import build_monthly_summary
 
 logger = get_logger(__name__)
+
+MONTHLY_SUMMARY_SPENT_LIMIT = 10_000
 
 
 class IncomeService:
@@ -164,35 +167,10 @@ class IncomeService:
 
         incomes = await self.repo.list_by_period(period.start, period.end)
         spents, _ = await self.spent_repo.list(
-            skip=0, limit=10000, start_date=period.start, end_date=period.end
+            skip=0,
+            limit=MONTHLY_SUMMARY_SPENT_LIMIT,
+            start_date=period.start,
+            end_date=period.end,
         )
 
-        total_incomes = sum(inc.amount for inc in incomes)
-        total_spents = sum(sp.amount for sp in spents)
-        net_balance = round(total_incomes - total_spents, 2)
-        is_positive = net_balance >= 0
-
-        savings_rate = 0.0
-        if total_incomes > 0:
-            savings_rate = round((net_balance / total_incomes) * 100, 2)
-
-        incomes_by_category: dict[str, float] = {}
-        for inc in incomes:
-            cat = inc.category
-            incomes_by_category[cat] = round(incomes_by_category.get(cat, 0.0) + inc.amount, 2)
-
-        spents_by_category: dict[str, float] = {}
-        for sp in spents:
-            cat = sp.category
-            spents_by_category[cat] = round(spents_by_category.get(cat, 0.0) + sp.amount, 2)
-
-        return MonthlyBalanceSummary(
-            reference_month=period.label,
-            total_incomes=round(total_incomes, 2),
-            total_spents=round(total_spents, 2),
-            net_balance=net_balance,
-            is_positive=is_positive,
-            savings_rate=savings_rate,
-            incomes_by_category=incomes_by_category,
-            spents_by_category=spents_by_category,
-        )
+        return build_monthly_summary(period.label, incomes, spents)

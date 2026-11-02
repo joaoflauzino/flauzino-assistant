@@ -1,7 +1,7 @@
 """Unit tests for the pure helpers shared by the agent services."""
 
 from agent_api.schemas.assistant import AssistantResponse
-from agent_api.services.utils import attach_image
+from agent_api.services.utils import attach_image, average_confidence, clean_extracted_text
 
 
 def _response(image_base64: str | None = None) -> AssistantResponse:
@@ -51,3 +51,24 @@ def test_attach_image_noop_when_both_images_are_set():
     assert result.response_message == "Mensagem de teste"
     assert result.suggested_options == ["Sim", "Não"]
     assert result.is_complete is True
+
+
+def test_clean_extracted_text_strips_surrounding_whitespace():
+    """Tesseract output is trimmed before being returned to callers."""
+    assert clean_extracted_text("  \n  Text with spaces  \n  ") == "Text with spaces"
+
+
+def test_clean_extracted_text_keeps_blank_output_blank():
+    """Whitespace-only output becomes an empty string, which triggers the empty-text guard."""
+    assert clean_extracted_text("   ") == ""
+
+
+def test_average_confidence_ignores_the_minus_one_sentinel():
+    """Confidence values of -1 mark empty regions and must not drag the average down."""
+    assert average_confidence(["80", "-1", "60"]) == 70.0
+
+
+def test_average_confidence_returns_zero_when_no_values_are_usable():
+    """A result set without usable confidences yields 0.0 instead of a division error."""
+    assert average_confidence([]) == 0.0
+    assert average_confidence(["-1", "-1"]) == 0.0

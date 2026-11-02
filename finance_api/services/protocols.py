@@ -33,6 +33,13 @@ class CategoryLookupProtocol(Protocol):
     async def get_by_key(self, key: str) -> Category | None: ...
 
 
+class CategorizedAmountProtocol(Protocol):
+    """Structural contract for any amount that can be aggregated by category."""
+
+    amount: float
+    category: str
+
+
 class IncomeCategoryLookupProtocol(Protocol):
     """Structural contract for looking up income categories by key."""
 
