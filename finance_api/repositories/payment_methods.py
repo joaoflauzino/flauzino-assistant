@@ -24,6 +24,7 @@ def payment_method_from_credit_card(card: CreditCard) -> PaymentMethod:
         is_credit_card=True,
         closing_day=card.closing_day,
         due_day=card.due_day,
+        created_at=card.created_at,
     )
 
 
@@ -38,6 +39,7 @@ def payment_method_from_account(account: Account, *, include_bank: bool = False)
         key=account.key,
         display_name=display_name,
         is_credit_card=False,
+        created_at=account.created_at,
     )
 
 

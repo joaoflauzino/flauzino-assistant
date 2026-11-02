@@ -1,3 +1,4 @@
+from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
@@ -14,6 +15,9 @@ from finance_api.repositories.payment_methods import (
 )
 from finance_api.schemas.payment_methods import PaymentMethodCreate
 
+CARD_CREATED_AT = datetime(2026, 1, 2, 3, 4, 5)
+ACCOUNT_CREATED_AT = datetime(2026, 2, 3, 4, 5, 6)
+
 
 def make_credit_card(key: str, name: str, **overrides) -> CreditCard:
     fields = {
@@ -24,6 +28,7 @@ def make_credit_card(key: str, name: str, **overrides) -> CreditCard:
         "closing_day": 2,
         "due_day": 10,
         "credit_limit": 12000.0,
+        "created_at": CARD_CREATED_AT,
     }
     fields.update(overrides)
     return CreditCard(**fields)
@@ -37,6 +42,7 @@ def make_account(key: str, name: str, bank: str = "c6", **overrides) -> Account:
         "bank": bank,
         "owner": "joao",
         "type": "CHECKING",
+        "created_at": ACCOUNT_CREATED_AT,
     }
     fields.update(overrides)
     return Account(**fields)
@@ -228,6 +234,8 @@ async def test_list_derives_cards_and_accounts_before_stored_methods():
     assert items[0].display_name == "C6 Carbon"
     assert items[1].is_credit_card is False
     assert items[1].display_name == "C6 João (c6)"
+    assert items[0].created_at == CARD_CREATED_AT
+    assert items[1].created_at == ACCOUNT_CREATED_AT
     assert mock_session.execute.await_count == 2
 
 
@@ -283,6 +291,7 @@ def test_payment_method_from_credit_card_maps_all_fields():
     assert method.is_credit_card is True
     assert method.closing_day == 3
     assert method.due_day == 11
+    assert method.created_at == CARD_CREATED_AT
 
 
 def test_payment_method_from_account_omits_bank_by_default():
@@ -294,6 +303,7 @@ def test_payment_method_from_account_omits_bank_by_default():
     assert method.key == "c6_joao"
     assert method.display_name == "C6 João"
     assert method.is_credit_card is False
+    assert method.created_at == ACCOUNT_CREATED_AT
 
 
 def test_payment_method_from_account_includes_bank_when_requested():
