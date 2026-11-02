@@ -43,17 +43,19 @@ class CategoryRuleRepository:
 
     async def find_matching_rule(self, merchant: str, direction: str) -> CategoryRule | None:
         norm_merchant = normalize_upper(merchant)
-        rules = await self.list_all()
-        for rule in rules:
+        for rule in await self.list_all():
             if rule.direction != direction:
                 continue
-            norm_pattern = normalize_upper(rule.pattern)
-            if rule.match_type == "EXACT":
-                if norm_merchant == norm_pattern:
-                    return rule
-            elif norm_pattern in norm_merchant:
+            if self._matches_rule(rule, norm_merchant):
                 return rule
         return None
+
+    def _matches_rule(self, rule: CategoryRule, norm_merchant: str) -> bool:
+        """Tells whether the rule pattern matches the normalized merchant."""
+        norm_pattern = normalize_upper(rule.pattern)
+        if rule.match_type == "EXACT":
+            return norm_merchant == norm_pattern
+        return norm_pattern in norm_merchant
 
     async def increment_hits(self, rule_id: UUID) -> None:
         await self.db.execute(

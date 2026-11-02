@@ -40,41 +40,74 @@ Data Lan\xc3\xa7amento,Data Cont\xc3\xa1bil,T\xc3\xadtulo,Descri\xc3\xa7\xc3\xa3
 """
 
 
+def attach_batch_identity(batch: ImportBatch) -> ImportBatch:
+    """Fills the fields the database would generate for a new import batch."""
+    batch.id = uuid4()
+    batch.created_at = datetime.now(ZoneInfo("America/Sao_Paulo"))
+    return batch
+
+
+def apply_batch_stats(
+    batch: ImportBatch,
+    possible_duplicates: int,
+    ai_used: bool,
+) -> ImportBatch:
+    """Applies the counters the batch update statement would persist."""
+    batch.possible_duplicates = possible_duplicates
+    batch.ai_used = ai_used
+    return batch
+
+
+def build_batch_repository() -> MagicMock:
+    """Builds the import batch repository double used by the facade tests."""
+    repo = MagicMock(spec=ImportBatchRepository)
+    repo.get_by_sha256 = AsyncMock(return_value=None)
+    repo.create = AsyncMock(side_effect=attach_batch_identity)
+    repo.update_batch_stats = AsyncMock(side_effect=apply_batch_stats)
+    repo.get_counts_by_status = AsyncMock(return_value={"pending": 3, "approved": 0})
+    repo.list_all = AsyncMock(return_value=[])
+    repo.get_global_summary = AsyncMock(return_value={"pending": 3, "approved": 0})
+    return repo
+
+
+def build_staged_transaction_repository() -> MagicMock:
+    """Builds the staged transaction repository double used by the facade tests."""
+    repo = MagicMock(spec=StagedTransactionRepository)
+    repo.get_existing_fingerprints = AsyncMock(return_value=set())
+    repo.find_possible_duplicate_spent = AsyncMock(return_value=None)
+    repo.find_possible_duplicate_income = AsyncMock(return_value=None)
+    repo.create_many = AsyncMock(side_effect=lambda transactions: transactions)
+    repo.save = AsyncMock(side_effect=lambda transaction: transaction)
+    return repo
+
+
+def build_rule_repository() -> MagicMock:
+    """Builds the category rule repository double used by the facade tests."""
+    repo = MagicMock(spec=CategoryRuleRepository)
+    repo.find_matching_rule = AsyncMock(return_value=None)
+    repo.increment_hits = AsyncMock()
+    repo.upsert_rule = AsyncMock()
+    return repo
+
+
+def build_purchase_service(
+    service_type: type[SpentService] | type[IncomeService],
+) -> MagicMock:
+    """Builds a spent/income service double that creates an empty record."""
+    service = MagicMock(spec=service_type)
+    service.create = AsyncMock(return_value=MagicMock(id=uuid4()))
+    service.repo = MagicMock()
+    service.repo.get_by_id = AsyncMock(return_value=None)
+    return service
+
+
 @pytest.fixture
 def mock_dependencies():
     acc_id = uuid4()
     mock_acc = Account(id=acc_id, key="c6_joao", name="C6 (João Lucas)")
-
-    batch_repo = MagicMock(spec=ImportBatchRepository)
-    batch_repo.get_by_sha256 = AsyncMock(return_value=None)
-
-    def _mock_batch_create(b):
-        b.id = uuid4()
-        b.created_at = datetime.now(ZoneInfo("America/Sao_Paulo"))
-        return b
-
-    def _mock_update_batch_stats(batch, possible_duplicates, ai_used):
-        batch.possible_duplicates = possible_duplicates
-        batch.ai_used = ai_used
-        return batch
-
-    batch_repo.create = AsyncMock(side_effect=_mock_batch_create)
-    batch_repo.update_batch_stats = AsyncMock(side_effect=_mock_update_batch_stats)
-    batch_repo.get_counts_by_status = AsyncMock(return_value={"pending": 3, "approved": 0})
-    batch_repo.list_all = AsyncMock(return_value=[])
-    batch_repo.get_global_summary = AsyncMock(return_value={"pending": 3, "approved": 0})
-
-    tx_repo = MagicMock(spec=StagedTransactionRepository)
-    tx_repo.get_existing_fingerprints = AsyncMock(return_value=set())
-    tx_repo.find_possible_duplicate_spent = AsyncMock(return_value=None)
-    tx_repo.find_possible_duplicate_income = AsyncMock(return_value=None)
-    tx_repo.create_many = AsyncMock(side_effect=lambda txs: txs)
-    tx_repo.save = AsyncMock(side_effect=lambda tx: tx)
-
-    rule_repo = MagicMock(spec=CategoryRuleRepository)
-    rule_repo.find_matching_rule = AsyncMock(return_value=None)
-    rule_repo.increment_hits = AsyncMock()
-    rule_repo.upsert_rule = AsyncMock()
+    batch_repo = build_batch_repository()
+    tx_repo = build_staged_transaction_repository()
+    rule_repo = build_rule_repository()
 
     acc_repo = MagicMock(spec=AccountRepository)
     acc_repo.get_by_id = AsyncMock(return_value=mock_acc)
@@ -82,15 +115,8 @@ def mock_dependencies():
     cc_repo = MagicMock(spec=CreditCardRepository)
     cc_repo.get_by_id = AsyncMock(return_value=None)
 
-    spent_service = MagicMock(spec=SpentService)
-    spent_service.create = AsyncMock(return_value=MagicMock(id=uuid4()))
-    spent_service.repo = MagicMock()
-    spent_service.repo.get_by_id = AsyncMock(return_value=None)
-
-    income_service = MagicMock(spec=IncomeService)
-    income_service.create = AsyncMock(return_value=MagicMock(id=uuid4()))
-    income_service.repo = MagicMock()
-    income_service.repo.get_by_id = AsyncMock(return_value=None)
+    spent_service = build_purchase_service(SpentService)
+    income_service = build_purchase_service(IncomeService)
 
     cat_repo = MagicMock(spec=CategoryRepository)
     cat_repo.get_by_key = AsyncMock(return_value=MagicMock(key="moradia"))

@@ -28,11 +28,7 @@ def handle_service_errors(func: Callable[..., Any]) -> Callable[..., Any]:
             raise EntityConflictError("Resource already exists.")
         except SQLAlchemyError as e:
             raise DatabaseError(f"Database operation failed: {str(e)}")
-        except EntityNotFoundError:
-            raise
-        except EntityConflictError:
-            raise
-        except ValidationError:
+        except (EntityNotFoundError, EntityConflictError, ValidationError):
             raise
         except Exception as e:
             if isinstance(e, HTTPException):

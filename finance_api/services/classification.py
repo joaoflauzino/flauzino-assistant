@@ -29,7 +29,7 @@ _PAYMENT_TYPE_PATTERNS: tuple[tuple[tuple[str, ...], PaymentType], ...] = (
 )
 
 
-def _resolve_default_payment_type(
+def resolve_default_payment_type(
     is_credit_card: bool,
     norm_combined: str,
 ) -> PaymentType:
@@ -114,7 +114,7 @@ class ClassificationService:
         norm_desc = normalize_upper(raw_description or "")
         norm_combined = f"{norm_title} {norm_desc}".strip()
 
-        default_payment_type = _resolve_default_payment_type(
+        default_payment_type = resolve_default_payment_type(
             is_credit_card=is_credit_card,
             norm_combined=norm_combined,
         )

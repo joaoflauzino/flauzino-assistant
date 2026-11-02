@@ -12,6 +12,14 @@ from telegram_api.models.session import TelegramSession
 logger = get_logger(__name__)
 
 
+def is_session_expired(updated_at: datetime, ttl_minutes: int | None) -> bool:
+    """Tells whether a session stayed unused for longer than the configured TTL."""
+    if not ttl_minutes or ttl_minutes <= 0:
+        return False
+    reference = updated_at if updated_at.tzinfo else updated_at.replace(tzinfo=UTC)
+    return datetime.now(UTC) - reference > timedelta(minutes=ttl_minutes)
+
+
 class SessionRepositoryProtocol(Protocol):
     """Domain repository contract for TelegramSession persistence."""
 
@@ -38,23 +46,17 @@ class SessionRepository:
             if not session_record:
                 return None
 
-            if ttl_minutes is not None and ttl_minutes > 0:
-                now = datetime.now(UTC)
-                updated_at = session_record.updated_at
-                if updated_at.tzinfo is None:
-                    updated_at = updated_at.replace(tzinfo=UTC)
-
-                if now - updated_at > timedelta(minutes=ttl_minutes):
-                    logger.info(
-                        f"Session {session_record.session_id} for chat_id {chat_id} "
-                        f"expired (inactive for > {ttl_minutes}m). Clearing session."
-                    )
-                    await self.session.delete(session_record)
-                    await self.session.commit()
-                    return None
+            if is_session_expired(session_record.updated_at, ttl_minutes):
+                logger.info(
+                    f"Session {session_record.session_id} for chat_id {chat_id} "
+                    f"expired (inactive for > {ttl_minutes}m). Clearing session."
+                )
+                await self.session.delete(session_record)
+                await self.session.commit()
+                return None
 
             return str(session_record.session_id)
-        except Exception as e:
+        except Exception as e:  # Boundary: a lost session degrades to an anonymous one.
             logger.error(f"Error retrieving session for chat_id {chat_id}: {e}")
             return None
 
@@ -79,7 +81,7 @@ class SessionRepository:
             await self.session.execute(stmt)
             await self.session.commit()
             logger.debug(f"Saved session {session_id} for chat_id {chat_id}")
-        except Exception as e:
+        except Exception as e:  # Boundary: session persistence is best-effort.
             logger.error(f"Error saving session for chat_id {chat_id}: {e}")
             await self.session.rollback()
 
@@ -90,7 +92,7 @@ class SessionRepository:
             await self.session.execute(stmt)
             await self.session.commit()
             logger.debug(f"Deleted session for chat_id {chat_id}")
-        except Exception as e:
+        except Exception as e:  # Boundary: session persistence is best-effort.
             logger.error(f"Error deleting session for chat_id {chat_id}: {e}")
             await self.session.rollback()
 
@@ -100,6 +102,6 @@ class SessionRepository:
             stmt = select(TelegramSession.chat_id).distinct()
             result = await self.session.execute(stmt)
             return list(result.scalars().all())
-        except Exception as e:
+        except Exception as e:  # Boundary: a metrics/cleanup read must not crash the job.
             logger.error(f"Error listing distinct chat_ids: {e}")
             return []

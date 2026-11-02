@@ -39,12 +39,12 @@ def parse_brl_decimal(value: str | None) -> Decimal:
         .replace('"', "")
     )
     try:
-        return Decimal(_normalize_separators(cleaned))
+        return Decimal(normalize_separators(cleaned))
     except InvalidOperation:
         return ZERO
 
 
-def _normalize_separators(cleaned: str) -> str:
+def normalize_separators(cleaned: str) -> str:
     if "," in cleaned and "." not in cleaned:
         return cleaned.replace(",", ".")
     if "," in cleaned and "." in cleaned:
