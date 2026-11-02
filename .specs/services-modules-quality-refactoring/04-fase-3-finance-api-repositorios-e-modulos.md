@@ -3,8 +3,8 @@
 > **Spec:** [00-master-plan.md](./00-master-plan.md)
 > **Status:** ⬜ Não iniciada · (`⬜ Não iniciada` → `🟨 Em andamento` → `✅ Concluída`)
 > **Depende de:** Fase 0 concluída (pode rodar em paralelo com Fases 1–2 se houver reviewers distintos)
-> **Commits previstos:** 4
-> **Meta:** zero imports tardios, zero `except Exception` em repositories, zero utilidade duplicada.
+> **Commits previstos:** 5
+> **Meta:** zero imports tardios, zero `except Exception` em repositories, zero utilidade duplicada, cluster de import empacotado.
 
 ---
 
@@ -59,12 +59,81 @@ Dividir em **arquivos planos e coesos** (sem subpacotes — Regra 6):
 - [ ] Testes: `test_import_strategies.py`, `test_import_bulk.py`, `test_import_commit.py`
 - [ ] Commit: `refactor(imports): split import_strategies into bulk/commit modules`
 
+> ⚠️ **Ordem:** a 3.7 (empacotamento) **depende** desta tarefa — o split acontece primeiro, ainda em `services/` plano, e depois 3.7 apenas relocaliza os arquivos resultantes. Fazer as duas juntas num commit só é aceitável, mas o diff perde a legibilidade de rename.
+
 ### 3.6 `finance_api/models/__init__.py` — `__all__` (Regra 5)
 ⚠️ Os **imports** do `__init__.py` têm efeito colateral de registro de metadata do SQLAlchemy — não remover sem validar.
 
 - [ ] Validar impacto em `create_all`/migrations e imports em `main.py`
 - [ ] Remover apenas o `__all__`, mantendo os imports
 - [ ] Commit: agrupado com 3.5 ou separado (`chore(models): remove __all__ per rule 5`)
+
+### 3.7 Empacotar o cluster de import em `finance_api/services/imports/` (Regra 6)
+**Diagnóstico medido (2026-11-02):** o cluster `services/import_*.py` + `imports.py` tem **14 arquivos / 1.718 LOC = 40%** dos 35 arquivos / 4.290 LOC de `services/`. O prefixo `import_` está exercendo o papel de diretório: 14 entradas de um diretório compartilhando o mesmo prefixo deixaram de ser "flat e coeso".
+
+O grafo intra-cluster é uma DAG sem ciclos — `facade → wiring → {upload, editor, bulk, commit, reclassifier}`, `upload → staging → strategies`, `upload → enrichment/presenter/fingerprint`, `editor → presenter`, `reclassify → enrichment` — ou seja, é a mesma *feature* vista de vários ângulos, não um aglomerado arbitrário. `factory`/`wiring` são os únicos hubs (composição).
+
+**Decisões registradas (discussão de 2026-11-02):**
+
+1. **Nome do pacote: `imports/`.** `import` é palavra reservada do Python — `from finance_api.services.import import ...` é `SyntaxError`; só funcionaria via `importlib`. `imports/` (plural) é o nome possível.
+2. **Camadas preservadas.** `routers/imports.py`, `schemas/imports.py`, `repositories/imports.py` e `repositories/staged_transactions.py` **ficam onde estão**. A alternativa "domínio vertical" (`finance_api/imports/` englobando router+service+parsers+schemas) foi **descartada**: contraria `AGENTS.md` §3.1 (`route → service → repository`) e amplia o churn para toda a feature.
+3. **`wiring.py` e `factory.py` permanecem no pacote.** Na discussão inicial foi levantado movê-los para `core/` (composition root); reavaliando, **dentro do pacote eles deixam de ser ruído** — são a API de composição da própria feature. Mover para `core/` faria o core conhecer tipos internos de um service e espalharia a feature por dois diretórios. Opção descartada.
+4. **`imports.py` → `imports/facade.py`** (nome explícito para a fachada). `__init__.py` **vazio**: sem `__all__` e sem re-export (Regra 5), mesmo padrão de `finance_api/importers/__init__.py` (0 linhas).
+5. **Sem alias de compatibilidade.** Não criar `services/imports.py` re-exportando o pacote — consumidores passam a apontar para a fonte única (43 linhas de import em 20 arquivos, sendo 13 de teste).
+6. **Sem renomear `finance_api/importers/` → `parsers/`.** A confusão `imports/` × `importers/` foi notada, mas renomear os parsers é outro escopo; se incomodar depois, vira issue separada.
+7. **Refatoração pura.** `git mv` + atualização de imports; zero mudança de comportamento, zero mudança de contrato HTTP. `git diff -M` deve mostrar apenas renames + linhas de import.
+
+**Layout alvo (15 arquivos; nomes sem o prefixo `import_`, que o pacote já fornece):**
+
+```text
+finance_api/services/imports/
+├── __init__.py            (vazio)
+├── facade.py              (ex-imports.py — ImportService)
+├── wiring.py              (ex-import_wiring.py — Deps/Overrides/Collaborators)
+├── factory.py             (ex-import_factory.py — builders)
+├── upload.py              (ex-import_upload.py)
+├── staging.py             (ex-import_staging.py)
+├── enrichment.py          (ex-import_enrichment.py)
+├── presenter.py           (ex-import_presenter.py)
+├── fingerprint.py         (ex-import_fingerprint.py)
+├── transaction_editor.py  (ex-import_transaction_editor.py)
+├── commit.py              (ex-import_commit.py)
+├── bulk.py                (ex-import_bulk.py)
+├── reclassify.py          (ex-import_reclassify.py)
+├── bulk_strategies.py     (resultado da 3.5)
+└── commit_strategies.py   (resultado da 3.5)
+```
+
+**Pré-requisitos:**
+- [ ] 3.5 concluída (`import_strategies.py` já splitado em bulk/commit)
+
+**Tarefas:**
+- [ ] Criar `services/imports/__init__.py` vazio
+- [ ] `git mv` dos 12 módulos para `services/imports/` (nomes do layout acima) + `git mv imports.py facade.py`
+- [ ] `git mv` dos testes para `tests/services/imports/` espelhando os nomes (`test_imports_service.py → test_facade.py`, `test_import_upload.py → test_upload.py`, …) e criar `tests/services/imports/__init__.py` se o pytest exigir (convenção já usada em `tests/repositories/`)
+- [ ] Atualizar as 43+ referências `finance_api.services.import_*` / `.imports` em produção e testes (o volume cresce com a 3.5)
+- [ ] Atualizar o mapa do master plan (§2.1/§2.2/§2.2-B/§2.3) e as referências de path nas specs das fases já concluídas
+- [ ] Validar importação do app (`python -c "import finance_api.main"`) para pegar ciclos que o `ast` não vê
+- [ ] Testes: suíte completa **sem alterar asserts** (só caminhos de import)
+- [ ] Commit: `refactor(imports): group the import feature into services/imports package`
+
+**Gates da tarefa:**
+- [ ] Zero `finance_api/services/import_*.py` remanescente; `services/` volta a ≤ 23 entradas planas
+- [ ] Pacote só com arquivos planos (sem `strategies/`, `usecases/` etc. — Regra 6 / *flat is better than nested*)
+- [ ] `__init__.py` vazio: zero `__all__`, zero re-export
+- [ ] `git diff -M` reporta ≥ 90% de similaridade nos renames (prova de que é movimentação)
+- [ ] Suíte 100% verde sem tocar em asserts; `black`/`ruff` limpos
+- [ ] Nenhuma mudança de contrato HTTP
+
+**Riscos e mitigação:**
+
+| Risco | Mitigação |
+|---|---|
+| Conflito com a 3.5 nos mesmos arquivos | 3.7 só começa depois da 3.5 (ordem explícita acima) |
+| Ciclo de import que o grep não detecta | o grafo medido é DAG; validar com `import finance_api.main` além da suíte |
+| Discovery do pytest no subdiretório de testes | criar `tests/services/imports/__init__.py`, seguindo `tests/repositories/` |
+| Blame/histórico diluído | commit único e isolado, só de rename; `git log --follow` funciona |
+| Paths citados nas specs ficarem obsoletos | item explícito de atualização do mapa no checklist |
 
 ---
 
@@ -76,6 +145,7 @@ Dividir em **arquivos planos e coesos** (sem subpacotes — Regra 6):
 - [ ] Zero `_normalize*` duplicado — uma única fonte em `finance_api/utils/text.py`
 - [ ] `list_by_filter` ≤ 20 LOC
 - [ ] Nenhum arquivo de `finance_api/services/` > ~300 linhas
+- [ ] Cluster de import isolado em `finance_api/services/imports/` (15 arquivos planos, `__init__.py` vazio)
 - [ ] `make format` && `make lint` && `uv run pytest` verdes
 
 ---

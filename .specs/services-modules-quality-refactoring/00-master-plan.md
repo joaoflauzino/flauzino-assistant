@@ -4,7 +4,7 @@
 >
 > **Branch de trabalho:** `feat/refactor` (3º ciclo — os planos anteriores `.specs/code-quality-refactoring/`, `.specs/quality-refactoring/` e `.specs/python-patterns-refactoring/` já foram em grande parte executados; este plano é **incremental** e parte do estado atual medido).
 >
-> **Status geral:** 🟨 Em execução — Fases 0, 1 e 2 concluídas em 2026-11-02; Fase 3 aguardando início.
+> **Status geral:** 🟨 Em execução — Fases 0, 1 e 2 concluídas em 2026-11-02; Fase 3 aguardando início; Fase 6 (padronização de módulos) planejada, com a tarefa 6.1 antecipada como pré-requisito das Fases 3–5.
 
 ---
 
@@ -24,9 +24,10 @@
 | 0 | [01-fase-0-gates-e-rede-de-seguranca.md](./01-fase-0-gates-e-rede-de-seguranca.md) | WIP atual, gates de lint, testes de caracterização | ✅ Concluída | 4/4 tarefas |
 | 1 | [02-fase-1-condicionais-em-services.md](./02-fase-1-condicionais-em-services.md) | Eixo A — cascatas de `if` nos services | ✅ Concluída | 6/6 tarefas |
 | 2 | [03-fase-2-metodos-longos-em-services.md](./03-fase-2-metodos-longos-em-services.md) | Eixo B — métodos > 40 LOC nos services | ✅ Concluída | 6/6 tarefas |
-| 3 | [04-fase-3-finance-api-repositorios-e-modulos.md](./04-fase-3-finance-api-repositorios-e-modulos.md) | Eixo C — `finance_api`: repositories, imports tardios, utils | ⬜ Não iniciada | 0/6 tarefas |
+| 3 | [04-fase-3-finance-api-repositorios-e-modulos.md](./04-fase-3-finance-api-repositorios-e-modulos.md) | Eixo C — `finance_api`: repositories, imports tardios, utils, pacote `imports/` | ⬜ Não iniciada | 0/7 tarefas |
 | 4 | [05-fase-4-telegram-api-modulos-e-handlers.md](./05-fase-4-telegram-api-modulos-e-handlers.md) | Eixo C — `telegram_api`: Regra 4, splits, handlers finos | ⬜ Não iniciada | 0/5 tarefas |
 | 5 | [06-fase-5-agent-api-e-verificacao-final.md](./06-fase-5-agent-api-e-verificacao-final.md) | Eixo C — `agent_api`, `__all__`, verificação final | ⬜ Não iniciada | 0/4 tarefas |
+| 6 | [07-fase-6-padronizacao-de-modulos.md](./07-fase-6-padronizacao-de-modulos.md) | Eixo C — padrão de módulos no repo inteiro + gate de arquitetura (política como código) | ⬜ Não iniciada (6.1 antecipada) | 0/6 tarefas |
 
 ### Definição de pronto global
 
@@ -36,6 +37,7 @@
 - [ ] Fase 3 — `finance_api` modular
 - [ ] Fase 4 — `telegram_api` modular
 - [ ] Fase 5 — `agent_api` modular + verificação final
+- [ ] Fase 6 — padronização de módulos no repo + gate automático
 
 ---
 
@@ -124,6 +126,31 @@ Nenhuma delas viola `C90`/`PLR0912`/`PLR0915`; por isso não houve `# noqa`.
 | **Arquivos acima do teto (~300 linhas, Regra 6)** | Regra 6 | `http_client.py` (422), `expense_handler.py` (409), `import_strategies.py` (349), `core/dependencies.py` (306) | 3.5, 4.2–4.3 |
 | **Instanciação de dependência dentro de método** | DI (`AGENTS.md` §3.4) | `finance_api/services/subscriptions.py:84` | 1.3 |
 | **`getattr` defensivo contra mocks em produção** | `python-anti-patterns` | `payment_methods.py:48,68`, `spents.py:230` | 1.3, 3.1 |
+| **Cluster de feature espalhado por prefixo (pasta escrita por extenso)** | Regra 6 | `finance_api/services/import_*.py` + `imports.py`: **14 arquivos / 1.718 LOC = 40% de `services/`** (35 arquivos / 4.290 LOC); grafo é DAG, mas o prefixo `import_` faz o papel de diretório | 3.7 |
+| **Módulo repetindo o nome do pacote** | Regra 8.2 | `telegram_api/handlers/*_handler.py` (8 arquivos), `telegram_api/services/session_service.py`, `graph_api/services/graph_service.py` | 6.5 |
+| **Pacote com um único módulo (junk drawer `utils/`)** | Regra 6 | `finance_api/utils/` — pacote inteiro para `text.py` (13 LOC) | 6.4 |
+| **Regra de organização sem verificação automática** | Regra 8 / governança | nenhum teste valida cluster, tamanho, nome de pacote ou `__init__` — só review humano | 6.1 |
+
+---
+
+### 2.4 Organização de módulos: critério, inventário e watchlist (Fase 6)
+
+O critério agora é normativo na skill `python-modular-code-organization` (**Regra 8**, atualizada em 2026-11-02): um grupo de módulos no mesmo diretório que compartilha prefixo/domínio vira **pacote de domínio plano** quando tem **≥ 5 arquivos** ou **≥ 800 LOC** e as dependências internas formam uma DAG. Abaixo do limiar, mantém-se plano (Regra 6).
+
+Inventário medido (detalhe e baselines em [07-fase-6](./07-fase-6-padronizacao-de-modulos.md)):
+
+| Cluster / sintoma | Medida | Decisão |
+|---|---|---|
+| `services/import_*` | 12 arquivos / 1.606 LOC | **empacotar** → `services/imports/` (3.7) |
+| `handlers/*_handler` | 8 módulos repetindo o pacote | **renomear** (6.5) |
+| `services/session_service`, `graph_api/services/graph_service` | 1 arquivo cada | **renomear** (6.5) |
+| `finance_api/utils/` | 1 módulo, 13 LOC | **achatar** para `core/text.py` (6.4) |
+| `importers/c6_*` | 3 arquivos / 506 LOC | **observar** — empacotar a partir de 5 arquivos/800 LOC |
+| `services/classification*` + `ai_classifier` | 3 arquivos / 457 LOC | **observar** se ficam órfãos após 3.7 |
+| `services/payment_*` | 3 arquivos / 211 LOC | **manter plano** |
+| `finance_api/mcp/`, `telegram_api/handlers/` | bounded contexts | **manter** |
+
+**Enforcement:** a Regra 8 é verificada por `tests/architecture/test_module_organization.py` (5 checagens medíveis, baseline com allowlist explícita e burn-down obrigatório em 6.6). Review humano deixa de ser o único gate.
 
 ---
 
@@ -138,14 +165,20 @@ Nenhuma delas viola `C90`/`PLR0912`/`PLR0915`; por isso não houve `# noqa`.
 7. `refactor(imports): kind dispatch in SetCategoryBulkStrategy` (1.5)
 8. `refactor(imports): factory for ImportService wiring` (2.1)
 9. `refactor(services): decompose long methods (ocr, incomes, ai_classifier, graph tool)` (2.2–2.5)
-10. `refactor(repositories): payment_methods lookup chain + top-level imports` (3.1–3.2)
-11. `refactor(utils): consolidate text normalization` (3.3)
-12. `refactor(repositories): staged_transactions conditions/pagination` (3.4)
-13. `refactor(imports): split import_strategies into bulk/commit modules` (3.5)
-14. `refactor(telegram): split formatter/sender + http clients + retry` (4.1–4.2)
-15. `refactor(telegram): expense_service + agent_interaction flow` (4.3–4.4)
-16. `refactor(telegram): public helper names per modular-organization rule 4` (4.5)
-17. `refactor(agent): core/utils + services/utils + remove __all__` (5.1–5.3)
+10. `test(architecture): enforce module organization rules` (**6.1 — antecipada, antes de qualquer fase 3+**)
+11. `refactor(repositories): payment_methods lookup chain + top-level imports` (3.1–3.2)
+12. `refactor(utils): consolidate text normalization` (3.3)
+13. `refactor(repositories): staged_transactions conditions/pagination` (3.4)
+14. `refactor(imports): split import_strategies into bulk/commit modules` (3.5)
+15. `refactor(imports): group the import feature into services/imports package` (3.7 — depende de 3.5)
+16. `refactor(telegram): split formatter/sender + http clients + retry` (4.1–4.2)
+17. `refactor(telegram): expense_service + agent_interaction flow` (4.3–4.4)
+18. `refactor(telegram): public helper names per modular-organization rule 4` (4.5)
+19. `refactor(agent): core/utils + services/utils + remove __all__` (5.1–5.3)
+20. `docs(specs): document canonical API module layout` (6.3)
+21. `refactor(core): flatten single-module utils package` (6.4 — depois de 3.3)
+22. `refactor(telegram): drop redundant module suffixes per rule 8` (6.5 — depois da Fase 5)
+23. `chore(architecture): burn down module organization baseline` (6.6)
 
 Cada commit: `make format` + `make lint` + `uv run pytest` verdes. **Nenhum commit/push sem autorização explícita** (`AGENTS.md` §7).
 
@@ -160,6 +193,11 @@ Cada commit: `make format` + `make lint` + `uv run pytest` verdes. **Nenhum comm
 - [ ] **Zero** imports fora do topo do arquivo (`AGENTS.md` §3.4).
 - [ ] **Zero** `except Exception` engolindo erro em repositories/services.
 - [ ] **Zero** `__all__` em módulos internos (Regra 5).
+- [ ] Cluster de import isolado em `finance_api/services/imports/` — arquivos planos, `__init__.py` vazio (Regra 6; Fase 3.7).
+- [ ] Nenhum cluster de prefixo acima do limiar da Regra 8 (≥ 5 arquivos ou ≥ 800 LOC) fora de um pacote plano.
+- [ ] Nenhum pacote nomeado com keyword Python; nenhum módulo repetindo o nome do próprio pacote.
+- [ ] Nenhum pacote de um único módulo genérico (`utils/`).
+- [ ] `tests/architecture/test_module_organization.py` verde **sem allowlist** (Fase 6.6).
 - [ ] Retry/backoff de HTTP em **um único lugar** no `telegram_api`.
 - [ ] Handlers do Telegram ≤ 30 LOC, delegando para `services/`.
 - [ ] `ruff` (`C90`, `PLR0912`, `PLR0915`) sem violações; `make format`, `make lint`, `uv run pytest` verdes.
@@ -179,6 +217,11 @@ Cada commit: `make format` + `make lint` + `uv run pytest` verdes. **Nenhum comm
 | Remover `__all__`/re-exports de `models/__init__.py` quebrar registro SQLAlchemy | Validar `create_all`/migrations e imports em `main.py` antes; manter imports (remover só o `__all__`) |
 | Split de `http_client.py` quebrar handlers do Telegram | Manter nomes públicos das funções; atualizar imports dos handlers no mesmo commit; `test_http_client.py` cobre |
 | Docstrings de `@tool` (agent_api) alterarem comportamento do LLM | Decompor apenas o corpo; docstring e assinatura da tool permanecem idênticas |
+| Empacotar `services/imports/` (3.7) conflitar com o split da 3.5 | 3.7 só inicia depois da 3.5; commit isolado de `git mv` + imports, provado por `git diff -M` |
+| Mover o cluster de import quebrar consumidores (43 linhas em 20 arquivos) | Sem alias de compatibilidade; `grep` de `finance_api.services.import_` + `import finance_api.main` + suíte completa no mesmo commit |
+| Gate de arquitetura congelar dívida na allowlist | 6.6 é obrigatória; cada item da allowlist aponta a fase que o quita; limiar e mensagens documentados na Regra 8 da skill |
+| Gate virar ruído e ser desativado | Só 5 checagens medíveis com baseline de 17 itens, todos já mapeados em fases existentes; mensagens acionáveis |
+| Renomes da 6.5 conflitarem com Fases 4–5 | Ordem explícita: 6.5 só depois da Fase 5; diff de rename puro (`git diff -M`) |
 | Scope creep | Cada fase é isolada; bugs encontrados viram issue/commit separado |
 
 ---
@@ -186,7 +229,7 @@ Cada commit: `make format` + `make lint` + `uv run pytest` verdes. **Nenhum comm
 ## 6. Referências das skills aplicadas
 
 - `python-pep8-guidelines` → limite de condicionais, tipagem, imports no topo, SRP.
-- `python-modular-code-organization` → Regra 3 (`utils.py`), Regra 4 (sem `_` top-level), Regra 5 (sem `__all__` interno), Regra 6 (arquivos planos ≤ ~300 linhas), Regra 7 (patch declarativo).
+- `python-modular-code-organization` → Regra 3 (`utils.py`), Regra 4 (sem `_` top-level), Regra 5 (sem `__all__` interno), Regra 6 (arquivos planos ≤ ~300 linhas), Regra 7 (patch declarativo), **Regra 8 (cluster de feature ≥ 5 arquivos/≥ 800 LOC vira pacote de domínio plano — critério e enforcement na Fase 6)**.
 - `python-zen-of-python` → *Flat is better than nested*, *Errors should never pass silently*, *Simple is better than complex*.
 - `python-anti-patterns` → scattered retry, bare/broad except, mixed I/O e lógica, DI.
 - `python-pattern-strategy` → dispatch por `TransactionKind`, `PURCHASE_SAVERS`.
