@@ -12,20 +12,20 @@ from finance_api.repositories.credit_cards import CreditCardRepositoryProtocol
 from finance_api.repositories.imports import ImportBatchRepositoryProtocol
 from finance_api.repositories.income_categories import IncomeCategoryRepository
 from finance_api.repositories.staged_transactions import StagedTransactionRepository
-from finance_api.services.ai_classifier import AIClassifierClient
-from finance_api.services.classification import ClassificationService
+from finance_api.services.classification.ai_classifier import AIClassifierClient
+from finance_api.services.classification.service import ClassificationService
 from finance_api.services.imports.bulk import ImportBulkService
 from finance_api.services.imports.commit import ImportCommitService
 from finance_api.services.imports.presenter import ImportBatchPresenter
-from finance_api.services.imports.reclassify import ImportReclassifyService
-from finance_api.services.imports.transaction_editor import StagedTransactionEditor
-from finance_api.services.imports.upload import ImportUploadService
-from finance_api.services.incomes import IncomeService
-from finance_api.services.protocols import (
+from finance_api.services.imports.protocols import (
     BulkActionStrategy,
     DuplicateDetectorStrategy,
     TransactionCommitStrategy,
 )
+from finance_api.services.imports.reclassify import ImportReclassifyService
+from finance_api.services.imports.transaction_editor import StagedTransactionEditor
+from finance_api.services.imports.upload import ImportUploadService
+from finance_api.services.incomes import IncomeService
 from finance_api.services.spents import SpentService
 
 

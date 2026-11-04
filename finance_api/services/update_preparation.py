@@ -12,10 +12,12 @@ from finance_api.schemas.incomes import IncomeUpdate
 from finance_api.schemas.payment_resolution import ResolvedPaymentTarget
 from finance_api.schemas.spents import SpentUpdate
 from finance_api.schemas.subscriptions import SubscriptionUpdate
-from finance_api.services.protocols import (
+from finance_api.services.lookup_protocols import (
     CategoryLookupProtocol,
     IncomeCategoryLookupProtocol,
     PaymentMethodLookupProtocol,
+)
+from finance_api.services.update_preparation_protocols import (
     PaymentResolutionServiceProtocol,
     PaymentTargetPayload,
     UpdatePreparationStep,

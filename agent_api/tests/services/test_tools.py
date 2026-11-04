@@ -5,8 +5,8 @@ from langgraph.types import Command
 
 from agent_api.schemas.limit import LimitDetails
 from agent_api.schemas.spending import SpendingDetails
-from agent_api.services.finance import FinanceService
-from agent_api.services.graph import GraphService
+from agent_api.services.clients.finance import FinanceService
+from agent_api.services.clients.graph import GraphService
 from agent_api.services.tools.graph import (
     CHART_SUCCESS_MESSAGE,
     CHART_WITHOUT_DATA_MESSAGE,

@@ -7,8 +7,8 @@ from langchain_core.language_models.chat_models import BaseChatModel
 
 from agent_api.core.exceptions import FinanceUnreachableError
 from agent_api.services.agent import AgentService
-from agent_api.services.finance import FinanceService
-from agent_api.services.graph import GraphService
+from agent_api.services.clients.finance import FinanceService
+from agent_api.services.clients.graph import GraphService
 from agent_api.services.system_prompt import (
     PromptMetadata,
     build_system_prompt,

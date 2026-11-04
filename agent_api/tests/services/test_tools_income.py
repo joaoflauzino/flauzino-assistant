@@ -2,8 +2,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from agent_api.services.finance import FinanceService
-from agent_api.services.graph import GraphService
+from agent_api.services.clients.finance import FinanceService
+from agent_api.services.clients.graph import GraphService
 from agent_api.services.tools.registry import create_agent_tools
 
 

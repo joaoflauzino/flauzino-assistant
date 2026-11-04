@@ -4,8 +4,8 @@ from finance_api.models.staged_transactions import StagedTransaction
 from finance_api.repositories.category_rules import CategoryRuleRepositoryProtocol
 from finance_api.schemas.enums import BulkActionType, StepOutcomeStatus, TransactionKind
 from finance_api.schemas.imports import BulkActionRequest, StepOutcome
-from finance_api.services.protocols import (
-    BulkActionStrategy,
+from finance_api.services.imports.protocols import BulkActionStrategy
+from finance_api.services.lookup_protocols import (
     CategoryLookupProtocol,
     IncomeCategoryLookupProtocol,
 )

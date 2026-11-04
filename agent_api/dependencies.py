@@ -12,8 +12,8 @@ from agent_api.repositories.chat_repository import ChatRepository, ChatRepositor
 from agent_api.services.agent import AgentService
 from agent_api.services.chat import ChatService
 from agent_api.services.classify import ClassifyService
-from agent_api.services.finance import FinanceService
-from agent_api.services.graph import GraphService
+from agent_api.services.clients.finance import FinanceService
+from agent_api.services.clients.graph import GraphService
 
 DBSessionDep = Annotated[AsyncSession, Depends(get_db)]
 HttpClientDep = Annotated[httpx.AsyncClient, Depends(get_http_client)]

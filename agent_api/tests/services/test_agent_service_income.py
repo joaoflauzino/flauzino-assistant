@@ -4,8 +4,8 @@ import pytest
 from langchain_core.language_models.chat_models import BaseChatModel
 
 from agent_api.services.agent import AgentService
-from agent_api.services.finance import FinanceService
-from agent_api.services.graph import GraphService
+from agent_api.services.clients.finance import FinanceService
+from agent_api.services.clients.graph import GraphService
 
 
 @pytest.fixture

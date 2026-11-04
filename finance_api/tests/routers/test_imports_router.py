@@ -38,7 +38,7 @@ from finance_api.schemas.imports import (
     SummaryResponse,
 )
 from finance_api.schemas.pagination import PaginatedResponse
-from finance_api.services.classification import ClassificationService
+from finance_api.services.classification.service import ClassificationService
 from finance_api.services.imports.facade import ImportService
 
 

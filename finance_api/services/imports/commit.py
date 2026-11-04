@@ -16,7 +16,7 @@ from finance_api.schemas.imports import (
     CommitRequest,
     CommitResult,
 )
-from finance_api.services.protocols import TransactionCommitStrategy
+from finance_api.services.imports.protocols import TransactionCommitStrategy
 
 logger = get_logger(__name__)
 

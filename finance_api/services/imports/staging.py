@@ -6,9 +6,10 @@ from uuid import UUID
 from finance_api.importers.schemas import ParsedTransaction, ResolvedImportTarget
 from finance_api.models.staged_transactions import StagedTransaction
 from finance_api.repositories.staged_transactions import StagedTransactionRepository
+from finance_api.schemas.classification import ClassificationResult
 from finance_api.schemas.enums import TransactionKind
-from finance_api.services.classification import ClassificationResult, ClassificationService
-from finance_api.services.protocols import DuplicateDetectorStrategy
+from finance_api.services.classification.service import ClassificationService
+from finance_api.services.imports.protocols import DuplicateDetectorStrategy
 
 SALARY_KEYWORDS: tuple[str, ...] = (
     "SALARIO",

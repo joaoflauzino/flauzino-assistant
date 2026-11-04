@@ -4,8 +4,8 @@ from collections.abc import Callable
 
 from langchain_core.tools import BaseTool
 
-from agent_api.services.finance import FinanceService
-from agent_api.services.graph import GraphService
+from agent_api.services.clients.finance import FinanceService
+from agent_api.services.clients.graph import GraphService
 from agent_api.services.tools.balance import build_consultar_saldos
 from agent_api.services.tools.graph import build_gerar_grafico
 from agent_api.services.tools.income import build_registrar_receita

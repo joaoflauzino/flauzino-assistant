@@ -10,8 +10,11 @@ from finance_api.schemas.enums import CommitOutcomeStatus, TransactionKind
 from finance_api.schemas.imports import CommitContext, CommitStepOutcome
 from finance_api.schemas.incomes import IncomeCreate
 from finance_api.schemas.spents import SpentCreate
+from finance_api.services.imports.protocols import (
+    DuplicateDetectorStrategy,
+    TransactionCommitStrategy,
+)
 from finance_api.services.incomes import IncomeService
-from finance_api.services.protocols import DuplicateDetectorStrategy, TransactionCommitStrategy
 from finance_api.services.spents import SpentService
 
 

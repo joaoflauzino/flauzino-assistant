@@ -10,8 +10,8 @@ from agent_api.core.callbacks import AgentLoggingCallbackHandler
 from agent_api.core.decorators import handle_llm_errors
 from agent_api.core.logger import get_logger
 from agent_api.schemas.assistant import AssistantResponse
-from agent_api.services.finance import FinanceService
-from agent_api.services.graph import GraphService
+from agent_api.services.clients.finance import FinanceService
+from agent_api.services.clients.graph import GraphService
 from agent_api.services.system_prompt import PromptMetadata, build_system_prompt
 from agent_api.services.tools.registry import create_agent_tools
 from agent_api.services.utils import attach_image
