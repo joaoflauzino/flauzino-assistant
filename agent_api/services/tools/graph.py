@@ -9,8 +9,7 @@ from langgraph.types import Command
 
 from agent_api.core.decorators import handle_tool_errors
 from agent_api.core.logger import get_logger
-from agent_api.services.clients.finance import FinanceService
-from agent_api.services.clients.graph import GraphService
+from agent_api.services.protocols import FinanceServiceProtocol, GraphServiceProtocol
 
 logger = get_logger(__name__)
 
@@ -31,8 +30,8 @@ def build_chart_command(image_base64: str, tool_call_id: str) -> Command:
 
 
 def build_gerar_grafico(
-    finance_service: FinanceService,
-    graph_service: GraphService,
+    finance_service: FinanceServiceProtocol,
+    graph_service: GraphServiceProtocol,
 ) -> BaseTool:
     """Builds the ``gerar_grafico`` tool bound to both services."""
 

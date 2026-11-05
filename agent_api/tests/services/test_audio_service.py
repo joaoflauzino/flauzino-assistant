@@ -1,3 +1,4 @@
+import threading
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -5,9 +6,26 @@ import pytest
 from agent_api.core.exceptions import AudioProcessingError, InvalidAudioError
 from agent_api.services.audio import (
     MAX_AUDIO_SIZE_BYTES,
+    AudioService,
+    FasterWhisperTranscriber,
     transcribe_audio,
     validate_audio_file,
 )
+
+
+class StubTranscriber:
+    def __init__(self, text: str = "texto", error: Exception | None = None) -> None:
+        self.text = text
+        self.error = error
+        self.calls = 0
+        self.thread_ident: int | None = None
+
+    def transcribe(self, audio_bytes: bytes) -> str:
+        self.calls += 1
+        self.thread_ident = threading.get_ident()
+        if self.error is not None:
+            raise self.error
+        return self.text
 
 
 def test_validate_audio_file_valid():
@@ -49,3 +67,39 @@ async def test_transcribe_audio_cleanup_on_error():
                 await transcribe_audio(b"dummy audio bytes")
             assert "Falha ao transcrever o áudio" in str(exc.value)
             mock_remove.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_audio_service_offloads_transcriber_to_worker_thread():
+    transcriber = StubTranscriber("Gastei dez reais")
+    service = AudioService(transcriber)
+
+    result = await service.transcribe(b"audio")
+
+    assert result == "Gastei dez reais"
+    assert transcriber.calls == 1
+    assert transcriber.thread_ident is not None
+    assert transcriber.thread_ident != threading.get_ident()
+
+
+@pytest.mark.asyncio
+async def test_audio_service_translates_adapter_failure():
+    service = AudioService(StubTranscriber(error=RuntimeError("backend down")))
+
+    with pytest.raises(AudioProcessingError, match="Falha ao transcrever o áudio"):
+        await service.transcribe(b"audio")
+
+
+def test_faster_whisper_transcriber_uses_injected_model_factory():
+    model = MagicMock()
+    segment = MagicMock(text="texto")
+    model.transcribe.return_value = ([segment], MagicMock(language="pt"))
+    factory = MagicMock(return_value=model)
+    transcriber = FasterWhisperTranscriber(model_factory=factory)
+
+    with patch("os.remove"):
+        result = transcriber.transcribe(b"audio")
+
+    assert result == "texto"
+    factory.assert_called_once_with()
+    model.transcribe.assert_called_once()

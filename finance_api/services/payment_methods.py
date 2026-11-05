@@ -12,7 +12,7 @@ logger = get_logger(__name__)
 
 
 class PaymentMethodService:
-    def __init__(self, repository: PaymentMethodRepositoryProtocol):
+    def __init__(self, repository: PaymentMethodRepositoryProtocol) -> None:
         self.repository = repository
 
     @handle_service_errors

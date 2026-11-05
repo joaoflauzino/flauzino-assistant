@@ -36,6 +36,7 @@ def service(mock_repo, mock_category_repo, mock_pm_repo):
         category_repo=mock_category_repo,
         pm_repo=mock_pm_repo,
         payment_resolver=FakePaymentResolver(),
+        inv_service=AsyncMock(),
     )
 
 

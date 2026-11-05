@@ -14,7 +14,6 @@ from finance_api.schemas.classification import (
     RawTransactionText,
     TransactionKind,
 )
-from finance_api.services.classification.ai_classifier import AIClassifierClient
 from finance_api.services.classification.chain import build_default_classification_chain
 from finance_api.services.classification.extractors import get_default_extractor_pipeline
 from finance_api.services.classification.protocols import (
@@ -51,12 +50,10 @@ class ClassificationService:
     def __init__(
         self,
         rule_repo: CategoryRuleRepositoryProtocol,
-        ai_client: AIClassifierClient | None = None,
         chain_head: ClassificationHandlerProtocol | None = None,
         extractor_pipeline: MerchantExtractorPipeline | None = None,
     ) -> None:
         self.rule_repo = rule_repo
-        self.ai_client = ai_client or AIClassifierClient()
         self._chain_head = chain_head or self._build_default_chain()
         self._extractor_pipeline = extractor_pipeline or get_default_extractor_pipeline()
 

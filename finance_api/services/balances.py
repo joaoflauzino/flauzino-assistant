@@ -17,7 +17,7 @@ from finance_api.repositories.protocols import (
     SpentRepositoryProtocol,
 )
 from finance_api.schemas.limits import CategoryBalance
-from finance_api.services.invoices import InvoiceService
+from finance_api.services.invoice_protocols import InvoicePeriodProviderProtocol
 from finance_api.services.utils import build_category_balance
 
 logger = get_logger(__name__)
@@ -30,8 +30,8 @@ class BalanceService:
         spent_repo: SpentRepositoryProtocol,
         category_repo: CategoryRepositoryProtocol,
         pm_repo: PaymentMethodRepositoryProtocol,
-        inv_service: InvoiceService,
-    ):
+        inv_service: InvoicePeriodProviderProtocol,
+    ) -> None:
         self.limit_repo = limit_repo
         self.spent_repo = spent_repo
         self.category_repo = category_repo

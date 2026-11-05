@@ -58,6 +58,22 @@ async def test_get_invoice_dates():
 
 
 @pytest.mark.asyncio
+async def test_get_invoice_dates_rejects_non_credit_card_with_domain_error():
+    repo = AsyncMock()
+    pm_repo = AsyncMock()
+    service = InvoiceService(repo, pm_repo)
+
+    pm = MagicMock()
+    pm.is_credit_card = False
+    pm.key = "itau_joao"
+
+    with pytest.raises(ValidationError, match="itau_joao"):
+        await service.get_invoice_dates(pm, "2026-10")
+
+    repo.get_by_payment_method_and_month.assert_not_awaited()
+
+
+@pytest.mark.asyncio
 async def test_get_billing_period_covers_purchases_of_the_civil_month():
     repo = AsyncMock()
     pm_repo = AsyncMock()

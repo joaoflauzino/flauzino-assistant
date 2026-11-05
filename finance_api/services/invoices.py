@@ -27,7 +27,7 @@ class InvoiceService:
         self,
         repo: InvoiceRepositoryProtocol,
         pm_repo: PaymentMethodRepositoryProtocol,
-    ):
+    ) -> None:
         self.repo = repo
         self.pm_repo = pm_repo
 
@@ -56,7 +56,7 @@ class InvoiceService:
         If not found, computes using payment_method's closing_day and due_day.
         """
         if not payment_method.is_credit_card:
-            raise ValueError(f"Payment method {payment_method.key} is not a credit card.")
+            raise ValidationError(f"Payment method {payment_method.key} is not a credit card.")
 
         invoice = await self.repo.get_by_payment_method_and_month(
             payment_method.key, reference_month

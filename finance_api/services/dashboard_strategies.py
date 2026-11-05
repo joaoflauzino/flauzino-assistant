@@ -1,6 +1,5 @@
 from collections.abc import Sequence
 from datetime import date
-from typing import Protocol
 
 from finance_api.core.dates import DateRange
 from finance_api.models.spents import Spent
@@ -8,18 +7,7 @@ from finance_api.repositories.protocols import (
     PaymentMethodRepositoryProtocol,
     SpentRepositoryProtocol,
 )
-from finance_api.services.invoices import InvoiceService
-
-
-class DashboardPeriodStrategy(Protocol):
-    """Protocol contract for resolving dashboard spents based on a chosen period strategy."""
-
-    async def fetch_spents(
-        self,
-        reference_month: str,
-        skip: int,
-        size: int,
-    ) -> tuple[Sequence[Spent], int]: ...
+from finance_api.services.invoice_protocols import InvoicePeriodProviderProtocol
 
 
 class CivilMonthDashboardStrategy:
@@ -44,7 +32,7 @@ class InvoicesDashboardStrategy:
     def __init__(
         self,
         spent_repo: SpentRepositoryProtocol,
-        inv_service: InvoiceService,
+        inv_service: InvoicePeriodProviderProtocol,
         pm_repo: PaymentMethodRepositoryProtocol,
     ) -> None:
         self._repo = spent_repo

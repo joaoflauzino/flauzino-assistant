@@ -20,18 +20,18 @@ from finance_api.repositories.protocols import (
 from finance_api.schemas.installments import InstallmentSummary
 from finance_api.schemas.pagination import PaginatedResponse
 from finance_api.schemas.spents import SpentCreate, SpentUpdate
+from finance_api.services.dashboard_protocols import DashboardPeriodStrategy
 from finance_api.services.dashboard_strategies import (
     CivilMonthDashboardStrategy,
-    DashboardPeriodStrategy,
     InvoicesDashboardStrategy,
 )
-from finance_api.services.invoices import InvoiceService
+from finance_api.services.invoice_protocols import InvoicePeriodProviderProtocol
+from finance_api.services.payment_resolution_protocols import PaymentResolutionServiceProtocol
 from finance_api.services.update_preparation import (
     ExpenseCategoryStep,
     SpentPaymentStep,
     UpdateDataPreparer,
 )
-from finance_api.services.update_preparation_protocols import PaymentResolutionServiceProtocol
 
 logger = get_logger(__name__)
 
@@ -43,7 +43,7 @@ class SpentService:
         category_repo: CategoryRepositoryProtocol,
         pm_repo: PaymentMethodRepositoryProtocol,
         payment_resolver: PaymentResolutionServiceProtocol,
-        inv_service: InvoiceService | None = None,
+        inv_service: InvoicePeriodProviderProtocol,
     ) -> None:
         self.repo = repo
         self.category_repo = category_repo
@@ -91,23 +91,9 @@ class SpentService:
 
         return spents_to_create
 
-    async def _resolve_invoice_periods(
-        self,
-        reference_month: str,
-        inv_service: InvoiceService | None = None,
-        pm_repo: PaymentMethodRepositoryProtocol | None = None,
-    ) -> list[tuple[str, date, date]]:
-        """Resolves invoice billing periods for all payment methods."""
-        active_inv = inv_service or self.inv_service
-        active_pm = pm_repo or self.pm_repo
-        if not active_inv:
-            raise ValidationError("InvoiceService não configurado para resolver faturas.")
-
-        strategy = InvoicesDashboardStrategy(self.repo, active_inv, active_pm)
-        return await strategy._resolve_invoice_periods(reference_month)
-
     @handle_service_errors
     async def create(self, spent: SpentCreate) -> "Spent":
+        """Creates a spent, normalizing the supplied payload in place."""
         logger.info(f"Creating spent: {spent.amount} - {spent.category}")
 
         matched_category = await self._validate_category(spent.category)
@@ -157,23 +143,14 @@ class SpentService:
         mode: str,
         page: int,
         size: int,
-        inv_service: InvoiceService | None = None,
-        pm_repo: PaymentMethodRepositoryProtocol | None = None,
     ) -> PaginatedResponse["Spent"]:
         logger.info(f"Dashboard mode {mode} for {reference_month}")
         skip = (page - 1) * size
 
-        active_inv = inv_service or self.inv_service
-        active_pm = pm_repo or self.pm_repo
-
-        if mode == "INVOICES" and not active_inv:
-            raise ValidationError("InvoiceService não configurado para resolver faturas.")
-
         strategies: dict[str, DashboardPeriodStrategy] = {
             "CIVIL_MONTH": CivilMonthDashboardStrategy(self.repo),
+            "INVOICES": InvoicesDashboardStrategy(self.repo, self.inv_service, self.pm_repo),
         }
-        if active_inv is not None:
-            strategies["INVOICES"] = InvoicesDashboardStrategy(self.repo, active_inv, active_pm)
 
         strategy = strategies.get(mode)
         if strategy is None:
@@ -192,6 +169,7 @@ class SpentService:
 
     @handle_service_errors
     async def update(self, spent_id: UUID, update_data: SpentUpdate) -> "Spent":
+        """Updates a spent after preparing the payload in place."""
         logger.info(f"Updating spent: {spent_id}")
 
         await self._build_update_preparer().prepare(update_data)

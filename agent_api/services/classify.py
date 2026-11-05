@@ -30,7 +30,7 @@ Regras fundamentais:
 
 
 class ClassifyService:
-    def __init__(self, llm: BaseChatModel):
+    def __init__(self, llm: BaseChatModel) -> None:
         self.llm = llm
 
     async def classify_transactions(self, request: ClassifyBatchRequest) -> ClassifyBatchResponse:

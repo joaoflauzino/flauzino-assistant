@@ -19,12 +19,12 @@ from finance_api.schemas.incomes import (
     IncomeUpdate,
     MonthlyBalanceSummary,
 )
+from finance_api.services.payment_resolution_protocols import PaymentResolutionServiceProtocol
 from finance_api.services.update_preparation import (
     IncomeCategoryStep,
     IncomePaymentStep,
     UpdateDataPreparer,
 )
-from finance_api.services.update_preparation_protocols import PaymentResolutionServiceProtocol
 from finance_api.services.utils import build_monthly_summary
 
 logger = get_logger(__name__)
@@ -63,6 +63,7 @@ class IncomeService:
 
     @handle_service_errors
     async def create(self, income_data: IncomeCreate) -> IncomeResponse:
+        """Creates an income, normalizing the supplied payload in place."""
         await self._validate_category(income_data.category)
         if income_data.payment_method:
             matched_pm = await self._validate_payment_method(income_data.payment_method)
@@ -106,6 +107,7 @@ class IncomeService:
 
     @handle_service_errors
     async def update(self, income_id: UUID, update_data: IncomeUpdate) -> IncomeResponse:
+        """Updates an income after preparing the payload in place."""
         await self._build_update_preparer().prepare(update_data)
 
         logger.info(f"Updating income: {income_id}")

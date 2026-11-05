@@ -1,6 +1,7 @@
 """Unit tests for OCR service."""
 
 import io
+import threading
 from unittest.mock import patch
 
 import numpy as np
@@ -9,6 +10,7 @@ from PIL import Image
 
 from agent_api.core.exceptions import InvalidImageError, OCRProcessingError
 from agent_api.services.ocr import (
+    OCRService,
     extract_text,
     preprocess_image,
     validate_image_file,
@@ -29,6 +31,31 @@ def sample_image_bytes():
 def corrupted_image_bytes():
     """Create corrupted image data."""
     return b"not a valid image"
+
+
+class StubPreprocessor:
+    def __init__(self, error: Exception | None = None) -> None:
+        self.error = error
+        self.thread_ident: int | None = None
+
+    def preprocess(self, image_bytes: bytes) -> np.ndarray:
+        self.thread_ident = threading.get_ident()
+        if self.error is not None:
+            raise self.error
+        return np.zeros((2, 2), dtype=np.uint8)
+
+
+class StubRecognizer:
+    def __init__(self, text: str = "Nota fiscal", confidence: float = 91.5) -> None:
+        self.text = text
+        self.confidence = confidence
+        self.thread_ident: int | None = None
+        self.languages: list[str] = []
+
+    def recognize(self, image: np.ndarray, lang: str) -> tuple[str, float]:
+        self.thread_ident = threading.get_ident()
+        self.languages.append(lang)
+        return self.text, self.confidence
 
 
 class TestOCRService:
@@ -172,3 +199,43 @@ class TestOCRService:
         _, confidence = await extract_text(sample_image_bytes)
 
         assert confidence == 0.0
+
+
+class TestOCRServiceAdapters:
+    """Verifies the adapter boundary and the offloading contract."""
+
+    @pytest.mark.asyncio
+    async def test_extract_text_offloads_adapters_to_worker_threads(self):
+        preprocessor = StubPreprocessor()
+        recognizer = StubRecognizer()
+        service = OCRService(preprocessor=preprocessor, recognizer=recognizer)
+
+        text, confidence = await service.extract_text(b"image", lang="por")
+
+        assert text == "Nota fiscal"
+        assert confidence == 91.5
+        assert recognizer.languages == ["por"]
+        assert preprocessor.thread_ident is not None
+        assert recognizer.thread_ident is not None
+        assert preprocessor.thread_ident != threading.get_ident()
+        assert recognizer.thread_ident != threading.get_ident()
+
+    @pytest.mark.asyncio
+    async def test_extract_text_raises_on_blank_recognized_text(self):
+        service = OCRService(
+            preprocessor=StubPreprocessor(),
+            recognizer=StubRecognizer(text="   "),
+        )
+
+        with pytest.raises(OCRProcessingError):
+            await service.extract_text(b"image")
+
+    @pytest.mark.asyncio
+    async def test_extract_text_translates_preprocessor_failure(self):
+        service = OCRService(
+            preprocessor=StubPreprocessor(error=RuntimeError("decode failed")),
+            recognizer=StubRecognizer(),
+        )
+
+        with pytest.raises(InvalidImageError):
+            await service.extract_text(b"image")

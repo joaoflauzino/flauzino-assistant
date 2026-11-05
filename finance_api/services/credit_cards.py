@@ -18,8 +18,8 @@ class CreditCardService:
     def __init__(
         self,
         repository: CreditCardRepositoryProtocol,
-        account_repository: AccountRepositoryProtocol | None = None,
-    ):
+        account_repository: AccountRepositoryProtocol,
+    ) -> None:
         self.repository = repository
         self.account_repository = account_repository
 
@@ -49,12 +49,11 @@ class CreditCardService:
     @handle_service_errors
     async def create(self, card_data: CreditCardCreate) -> CreditCard:
         logger.info(f"Creating credit card: {card_data.key}")
-        if self.account_repository:
-            account = await self.account_repository.get_by_id(card_data.account_id)
-            if not account:
-                raise EntityNotFoundError(
-                    f"Conta vinculada com ID {card_data.account_id} não encontrada"
-                )
+        account = await self.account_repository.get_by_id(card_data.account_id)
+        if not account:
+            raise EntityNotFoundError(
+                f"Conta vinculada com ID {card_data.account_id} não encontrada"
+            )
 
         existing = await self.repository.get_by_key(card_data.key)
         if existing:
@@ -74,7 +73,7 @@ class CreditCardService:
         return card
 
     async def _validate_linked_account(self, account_id: UUID | None) -> None:
-        if not account_id or not self.account_repository:
+        if not account_id:
             return
 
         account = await self.account_repository.get_by_id(account_id)

@@ -7,11 +7,13 @@ from finance_api.repositories.protocols import (
     CreditCardRepositoryProtocol,
 )
 from finance_api.schemas.payment_resolution import ResolvedPaymentTarget
+from finance_api.services.payment_resolution_protocols import (
+    PaymentResolutionContext,
+    PaymentResolutionStep,
+)
 from finance_api.services.payment_resolution_steps import (
     AccountPaymentStep,
     CreditCardPaymentStep,
-    PaymentResolutionContext,
-    PaymentResolutionStep,
 )
 
 DEFAULT_PAYMENT_TYPE = "DEBIT"

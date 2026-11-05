@@ -20,12 +20,13 @@ class SpendingLimitService:
         self,
         repo: SpendingLimitRepositoryProtocol,
         category_repo: CategoryRepositoryProtocol,
-    ):
+    ) -> None:
         self.repo = repo
         self.category_repo = category_repo
 
     @handle_service_errors
     async def create(self, limit_data: SpendingLimitCreate) -> "SpendingLimit":
+        """Creates a spending limit, normalizing the supplied payload in place."""
         logger.info(f"Creating spending limit for category: {limit_data.category}")
 
         # Validate category exists in database and normalize
@@ -70,6 +71,7 @@ class SpendingLimitService:
 
     @handle_service_errors
     async def update(self, limit_id: UUID, update_data: SpendingLimitUpdate) -> "SpendingLimit":
+        """Updates a spending limit after normalizing the payload in place."""
         logger.info(f"Updating spending limit: {limit_id}")
         if update_data.category:
             matched_cat = await self.category_repo.get_by_key(update_data.category)

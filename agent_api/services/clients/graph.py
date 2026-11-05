@@ -9,7 +9,7 @@ logger = get_logger(__name__)
 
 
 class GraphService(BaseHttpService):
-    def __init__(self, client: httpx.AsyncClient):
+    def __init__(self, client: httpx.AsyncClient) -> None:
         super().__init__(client)
 
     async def generate_chart(

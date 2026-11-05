@@ -10,7 +10,7 @@ from finance_api.repositories.protocols import (
 )
 from finance_api.schemas.pagination import PaginatedResponse
 from finance_api.schemas.subscriptions import SubscriptionCreate, SubscriptionUpdate
-from finance_api.services.payment_resolution import PaymentResolutionService
+from finance_api.services.payment_resolution_protocols import PaymentResolutionServiceProtocol
 from finance_api.services.update_preparation import (
     ExpenseCategoryStep,
     SubscriptionPaymentStep,
@@ -25,9 +25,9 @@ class SubscriptionService:
         self,
         repo: SubscriptionRepositoryProtocol,
         *,
-        payment_resolver: PaymentResolutionService,
+        payment_resolver: PaymentResolutionServiceProtocol,
         category_repo: CategoryRepositoryProtocol,
-    ):
+    ) -> None:
         self.repo = repo
         self.payment_resolver = payment_resolver
         self.category_repo = category_repo
@@ -50,6 +50,7 @@ class SubscriptionService:
 
     @handle_service_errors
     async def create(self, subscription: SubscriptionCreate) -> "Subscription":
+        """Creates a subscription, resolving payment relations in place."""
         logger.info(f"Creating subscription: {subscription.name} - {subscription.category}")
 
         if not await self.category_repo.get_by_key(subscription.category):
@@ -81,6 +82,7 @@ class SubscriptionService:
     async def update(
         self, subscription_id: UUID, update_data: SubscriptionUpdate
     ) -> "Subscription":
+        """Updates a subscription after preparing the payload in place."""
         logger.info(f"Updating subscription: {subscription_id}")
 
         await self._build_update_preparer().prepare(update_data)

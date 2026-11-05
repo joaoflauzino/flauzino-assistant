@@ -28,14 +28,6 @@ class ImportService:
     ) -> None:
         self.batch_repo = deps.batch_repo
         self.tx_repo = deps.tx_repo
-        self.rule_repo = deps.rule_repo
-        self.classification_service = deps.classification_service
-        self.account_repo = deps.account_repo
-        self.credit_card_repo = deps.credit_card_repo
-        self.spent_service = deps.spent_service
-        self.income_service = deps.income_service
-        self.category_repo = deps.category_repo
-        self.income_category_repo = deps.income_category_repo
         self._collaborators = collaborators
 
     @handle_service_errors

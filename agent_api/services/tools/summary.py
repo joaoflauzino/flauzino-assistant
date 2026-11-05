@@ -4,15 +4,14 @@ from langchain_core.tools import BaseTool, tool
 
 from agent_api.core.decorators import handle_tool_errors
 from agent_api.core.logger import get_logger
-from agent_api.services.clients.finance import FinanceService
-from agent_api.services.clients.graph import GraphService
+from agent_api.services.protocols import FinanceServiceProtocol, GraphServiceProtocol
 
 logger = get_logger(__name__)
 
 
 def build_consultar_balanco_mensal(
-    finance_service: FinanceService,
-    graph_service: GraphService,
+    finance_service: FinanceServiceProtocol,
+    graph_service: GraphServiceProtocol,
 ) -> BaseTool:
     """Builds the ``consultar_balanco_mensal`` tool bound to ``finance_service``."""
 

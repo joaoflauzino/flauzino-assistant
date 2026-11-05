@@ -145,12 +145,21 @@ def mock_dependencies():
     )
     service = build_default_import_service(deps, ImportOverrides(ai_client=ai_client))
 
-    return service, acc_id, batch_repo, tx_repo, spent_service, income_service, rule_repo
+    return (
+        service,
+        acc_id,
+        batch_repo,
+        tx_repo,
+        spent_service,
+        income_service,
+        rule_repo,
+        cc_repo,
+    )
 
 
 @pytest.mark.asyncio
 async def test_upload_batch_success(mock_dependencies):
-    service, acc_id, batch_repo, tx_repo, _, _, _ = mock_dependencies
+    service, acc_id, batch_repo, tx_repo, _, _, _, _ = mock_dependencies
 
     res = await service.create_batch_from_upload(
         file_bytes=SAMPLE_CSV,
@@ -169,7 +178,7 @@ async def test_upload_batch_success(mock_dependencies):
 
 @pytest.mark.asyncio
 async def test_upload_duplicate_file_raises_conflict(mock_dependencies):
-    service, acc_id, batch_repo, _, _, _, _ = mock_dependencies
+    service, acc_id, batch_repo, _, _, _, _, _ = mock_dependencies
     batch_repo.get_by_sha256 = AsyncMock(
         return_value=ImportBatch(
             id=uuid4(),
@@ -187,7 +196,7 @@ async def test_upload_duplicate_file_raises_conflict(mock_dependencies):
 
 @pytest.mark.asyncio
 async def test_commit_approved_processes_expense_income_and_transfers(mock_dependencies):
-    service, acc_id, _, tx_repo, spent_service, income_service, _ = mock_dependencies
+    service, acc_id, _, tx_repo, spent_service, income_service, _, _ = mock_dependencies
 
     tx_exp = StagedTransaction(
         id=uuid4(),
@@ -259,7 +268,7 @@ async def test_commit_approved_processes_expense_income_and_transfers(mock_depen
 
 @pytest.mark.asyncio
 async def test_link_transaction_to_existing_spent(mock_dependencies):
-    service, _, _, tx_repo, _, _, _ = mock_dependencies
+    service, _, _, tx_repo, _, _, _, _ = mock_dependencies
     existing_spent_id = uuid4()
     tx = StagedTransaction(
         id=uuid4(),
@@ -289,12 +298,12 @@ async def test_link_transaction_to_existing_spent(mock_dependencies):
 
 @pytest.mark.asyncio
 async def test_upload_credit_card_batch_and_commit(mock_dependencies):
-    service, acc_id, batch_repo, tx_repo, spent_service, _, _ = mock_dependencies
+    service, acc_id, batch_repo, tx_repo, spent_service, _, _, cc_repo = mock_dependencies
 
     card_id = uuid4()
     mock_card = MagicMock(id=card_id, key="c6_card_joao", name="C6 Carbon Black", account_id=acc_id)
-    service.credit_card_repo.get_by_id = AsyncMock(return_value=mock_card)
-    service.credit_card_repo.list = AsyncMock(return_value=([mock_card], 1))
+    cc_repo.get_by_id = AsyncMock(return_value=mock_card)
+    cc_repo.list = AsyncMock(return_value=([mock_card], 1))
 
     card_csv = (
         "Data de Compra;Nome no Cartão;Final do Cartão;Categoria;Descrição;Parcela;Valor (em US$);Cotação (em R$);Valor (em R$)\n"
@@ -350,7 +359,7 @@ async def test_upload_credit_card_batch_and_commit(mock_dependencies):
 
 @pytest.mark.asyncio
 async def test_salary_competence_date_early_month(mock_dependencies):
-    service, acc_id, _, tx_repo, _, _, _ = mock_dependencies
+    service, acc_id, _, tx_repo, _, _, _, _ = mock_dependencies
 
     salary_csv = (
         """Data Lançamento,Data Contábil,Título,Descrição,Entrada(R$),Saída(R$),Saldo do Dia(R$)
@@ -378,7 +387,7 @@ async def test_salary_competence_date_early_month(mock_dependencies):
 
 @pytest.mark.asyncio
 async def test_bulk_action_dispatch_and_unknown_action(mock_dependencies):
-    service, acc_id, _, tx_repo, _, _, rule_repo = mock_dependencies
+    service, acc_id, _, tx_repo, _, _, rule_repo, _ = mock_dependencies
 
     tx_ok = StagedTransaction(
         id=uuid4(),

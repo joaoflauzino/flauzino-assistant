@@ -41,7 +41,7 @@ def extract_suggestions(
 
 
 class AIClassifierClient:
-    def __init__(self, client: AIClassifierHttpClientProtocol | None = None):
+    def __init__(self, client: AIClassifierHttpClientProtocol | None = None) -> None:
         self.client = client or get_http_client()
         self.base_url = settings.AGENT_SERVICE_URL.rstrip("/")
 

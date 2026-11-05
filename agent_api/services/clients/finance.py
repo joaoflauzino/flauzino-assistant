@@ -35,7 +35,7 @@ class FinanceService(BaseHttpService):
     _cached_credit_cards: list[str] | None = None
     _credit_cards_expiry: float = 0.0
 
-    def __init__(self, client: httpx.AsyncClient):
+    def __init__(self, client: httpx.AsyncClient) -> None:
         super().__init__(client)
 
     def _get_headers(self) -> dict[str, str]:

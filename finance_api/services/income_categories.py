@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 
 
 class IncomeCategoryService:
-    def __init__(self, repo: IncomeCategoryRepositoryProtocol):
+    def __init__(self, repo: IncomeCategoryRepositoryProtocol) -> None:
         self.repo = repo
 
     @handle_service_errors

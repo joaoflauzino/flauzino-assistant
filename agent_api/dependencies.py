@@ -11,10 +11,15 @@ from agent_api.core.llm import LLMProfile, get_llm
 from agent_api.repositories.chat_repository import ChatRepository
 from agent_api.repositories.protocols import ChatRepositoryProtocol
 from agent_api.services.agent import AgentService
+from agent_api.services.audio import AudioService, FasterWhisperTranscriber
+from agent_api.services.audio_protocols import AudioServiceProtocol
 from agent_api.services.chat import ChatService
 from agent_api.services.classify import ClassifyService
 from agent_api.services.clients.finance import FinanceService
 from agent_api.services.clients.graph import GraphService
+from agent_api.services.ocr import OCRService, OpenCVImagePreprocessor, TesseractTextRecognizer
+from agent_api.services.ocr_protocols import OCRServiceProtocol
+from agent_api.services.receipts import ReceiptService
 
 DBSessionDep = Annotated[AsyncSession, Depends(get_db)]
 HttpClientDep = Annotated[httpx.AsyncClient, Depends(get_http_client)]
@@ -59,6 +64,30 @@ def get_chat_service(
 
 
 ChatServiceDep = Annotated[ChatService, Depends(get_chat_service)]
+
+
+def get_audio_service() -> AudioServiceProtocol:
+    return AudioService(FasterWhisperTranscriber())
+
+
+AudioServiceDep = Annotated[AudioServiceProtocol, Depends(get_audio_service)]
+
+
+def get_ocr_service() -> OCRServiceProtocol:
+    return OCRService(
+        preprocessor=OpenCVImagePreprocessor(),
+        recognizer=TesseractTextRecognizer(),
+    )
+
+
+OCRServiceDep = Annotated[OCRServiceProtocol, Depends(get_ocr_service)]
+
+
+def get_receipt_service(ocr_service: OCRServiceDep) -> ReceiptService:
+    return ReceiptService(ocr_service=ocr_service)
+
+
+ReceiptServiceDep = Annotated[ReceiptService, Depends(get_receipt_service)]
 
 
 def get_classify_service(

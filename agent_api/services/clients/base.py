@@ -6,5 +6,5 @@ import httpx
 class BaseHttpService:
     """Base service class requiring an explicit HTTP client."""
 
-    def __init__(self, client: httpx.AsyncClient):
+    def __init__(self, client: httpx.AsyncClient) -> None:
         self.client = client

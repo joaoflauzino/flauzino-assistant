@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 
 
 class CategoryService:
-    def __init__(self, repo: CategoryRepositoryProtocol):
+    def __init__(self, repo: CategoryRepositoryProtocol) -> None:
         self.repo = repo
 
     @handle_service_errors

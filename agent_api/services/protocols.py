@@ -36,3 +36,15 @@ class FinanceServiceProtocol(Protocol):
     async def save_income(self, details: IncomeDetails) -> dict: ...
 
     async def save_limit(self, details: LimitDetails) -> dict: ...
+
+
+class GraphServiceProtocol(Protocol):
+    """Structural protocol defining the contract for chart generation."""
+
+    async def generate_chart(
+        self,
+        chart_type: str,
+        balances: list[dict],
+        mode: str = "saldo",
+        title: str | None = None,
+    ) -> str: ...

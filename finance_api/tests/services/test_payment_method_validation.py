@@ -23,6 +23,7 @@ def build_service(
         category_repo=category_repo,
         pm_repo=pm_repo,
         payment_resolver=resolver or FakePaymentResolver(),
+        inv_service=AsyncMock(),
     )
 
 
