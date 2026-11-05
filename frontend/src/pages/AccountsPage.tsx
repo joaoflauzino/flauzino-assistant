@@ -1,3 +1,4 @@
+import { Button } from '../components/Button';
 import { useEffect, useState } from 'react';
 import { Plus, Trash2, Edit2, ChevronLeft, ChevronRight, Wallet, CreditCard } from 'lucide-react';
 import api from '../services/api';
@@ -184,7 +185,7 @@ export const AccountsPage = () => {
     return (
         <div>
             {/* Page Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+            <div className="ui-page-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <div>
                     <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0 }}>Contas e Cartões</h1>
                     <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
@@ -192,51 +193,22 @@ export const AccountsPage = () => {
                     </p>
                 </div>
 
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                    <button
+                <div className="ui-page-actions" style={{ display: 'flex', gap: '1rem' }}>
+                    <Button
                         onClick={() => openCreateCard()}
-                        style={{
-                            backgroundColor: 'var(--bg-tertiary)',
-                            color: 'white',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            height: '42px',
-                            border: '1px solid var(--border-color)',
-                            padding: '0 1.25rem',
-                            borderRadius: '8px',
-                            cursor: 'pointer',
-                            fontWeight: 600,
-                            transition: 'all 0.2s',
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)')}
-                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)')}
+                        style={{ backgroundColor: 'var(--bg-tertiary)', color: 'white', border: '1px solid var(--border-color)' }}
+
                     >
                         <CreditCard size={18} /> Novo Cartão
-                    </button>
+                    </Button>
 
-                    <button
+                    <Button variant="primary"
                         onClick={openCreateAccount}
-                        style={{
-                            backgroundColor: 'var(--accent-color)',
-                            color: 'white',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            height: '42px',
-                            border: 'none',
-                            padding: '0 1.25rem',
-                            borderRadius: '8px',
-                            cursor: 'pointer',
-                            fontWeight: 600,
-                            boxShadow: '0 4px 6px rgba(99, 102, 241, 0.2)',
-                            transition: 'all 0.2s',
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-2px)')}
-                        onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+
+
                     >
                         <Plus size={20} /> Nova Conta
-                    </button>
+                    </Button>
                 </div>
             </div>
 
@@ -299,39 +271,19 @@ export const AccountsPage = () => {
             </div>
 
             {/* Tab Buttons */}
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
-                <button
+            <div className="ui-tab-list" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                <Button
                     onClick={() => setActiveTab('accounts')}
-                    style={{
-                        padding: '0.6rem 1.25rem',
-                        borderRadius: '8px',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontWeight: 600,
-                        fontSize: '0.95rem',
-                        backgroundColor: activeTab === 'accounts' ? 'var(--accent-color)' : 'var(--bg-secondary)',
-                        color: activeTab === 'accounts' ? 'white' : 'var(--text-secondary)',
-                        transition: 'all 0.2s',
-                    }}
+                    style={{ border: 'none', backgroundColor: activeTab === 'accounts' ? 'var(--accent-color)' : 'var(--bg-secondary)', color: activeTab === 'accounts' ? 'white' : 'var(--text-secondary)' }}
                 >
                     Contas Bancárias ({accounts.length})
-                </button>
-                <button
+                </Button>
+                <Button
                     onClick={() => setActiveTab('cards')}
-                    style={{
-                        padding: '0.6rem 1.25rem',
-                        borderRadius: '8px',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontWeight: 600,
-                        fontSize: '0.95rem',
-                        backgroundColor: activeTab === 'cards' ? 'var(--accent-color)' : 'var(--bg-secondary)',
-                        color: activeTab === 'cards' ? 'white' : 'var(--text-secondary)',
-                        transition: 'all 0.2s',
-                    }}
+                    style={{ border: 'none', backgroundColor: activeTab === 'cards' ? 'var(--accent-color)' : 'var(--bg-secondary)', color: activeTab === 'cards' ? 'white' : 'var(--text-secondary)' }}
                 >
                     Cartões de Crédito ({creditCards.length})
-                </button>
+                </Button>
             </div>
 
             {/* Main Table Container */}
@@ -448,58 +400,28 @@ export const AccountsPage = () => {
                                                     </td>
                                                     <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
                                                         <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-                                                            <button
+                                                            <Button
                                                                 onClick={() => openCreateCard(acc.id)}
                                                                 title="Adicionar Cartão"
-                                                                style={{
-                                                                    padding: '0.5rem',
-                                                                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                                                                    border: '1px solid rgba(99, 102, 241, 0.2)',
-                                                                    borderRadius: '8px',
-                                                                    cursor: 'pointer',
-                                                                    transition: 'all 0.2s',
-                                                                    display: 'flex',
-                                                                    alignItems: 'center',
-                                                                    justifyContent: 'center'
-                                                                }}
+                                                                style={{ backgroundColor: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.2)' }}
                                                             >
                                                                 <Plus size={16} color="var(--accent-color)" />
-                                                            </button>
-                                                            <button
+                                                            </Button>
+                                                            <Button
                                                                 onClick={() => openEditAccount(acc)}
                                                                 title="Editar Conta"
-                                                                style={{
-                                                                    padding: '0.5rem',
-                                                                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                                                                    border: '1px solid rgba(245, 158, 11, 0.2)',
-                                                                    borderRadius: '8px',
-                                                                    cursor: 'pointer',
-                                                                    transition: 'all 0.2s',
-                                                                    display: 'flex',
-                                                                    alignItems: 'center',
-                                                                    justifyContent: 'center'
-                                                                }}
+                                                                style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)' }}
                                                             >
                                                                 <Edit2 size={16} color="#f59e0b" />
-                                                            </button>
-                                                            <button
+                                                            </Button>
+                                                            <Button
                                                                 type="button"
                                                                 onClick={() => setAccountToDelete(acc.id)}
                                                                 title="Excluir Conta"
-                                                                style={{
-                                                                    padding: '0.5rem',
-                                                                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                                                                    border: '1px solid rgba(239, 68, 68, 0.2)',
-                                                                    borderRadius: '8px',
-                                                                    cursor: 'pointer',
-                                                                    transition: 'all 0.2s',
-                                                                    display: 'flex',
-                                                                    alignItems: 'center',
-                                                                    justifyContent: 'center'
-                                                                }}
+                                                                style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)' }}
                                                             >
                                                                 <Trash2 size={16} color="#ef4444" />
-                                                            </button>
+                                                            </Button>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -522,44 +444,20 @@ export const AccountsPage = () => {
                                     Mostrando página {page} de {totalPages}
                                 </span>
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    <button
+                                    <Button
                                         disabled={page === 1}
                                         onClick={() => setPage(page - 1)}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '0.25rem',
-                                            padding: '0.5rem 1rem',
-                                            border: '1px solid var(--border-color)',
-                                            borderRadius: '8px',
-                                            background: 'transparent',
-                                            color: 'var(--text-primary)',
-                                            cursor: page === 1 ? 'not-allowed' : 'pointer',
-                                            opacity: page === 1 ? 0.5 : 1,
-                                            fontSize: '0.9rem'
-                                        }}
+                                        style={{ border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)' }}
                                     >
                                         <ChevronLeft size={16} /> Anterior
-                                    </button>
-                                    <button
+                                    </Button>
+                                    <Button
                                         disabled={page === totalPages}
                                         onClick={() => setPage(page + 1)}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '0.25rem',
-                                            padding: '0.5rem 1rem',
-                                            border: '1px solid var(--border-color)',
-                                            borderRadius: '8px',
-                                            background: 'transparent',
-                                            color: 'var(--text-primary)',
-                                            cursor: page === totalPages ? 'not-allowed' : 'pointer',
-                                            opacity: page === totalPages ? 0.5 : 1,
-                                            fontSize: '0.9rem'
-                                        }}
+                                        style={{ border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)' }}
                                     >
                                         Próximo <ChevronRight size={16} />
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
                         )}
@@ -632,41 +530,21 @@ export const AccountsPage = () => {
                                                 </td>
                                                 <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
                                                     <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-                                                        <button
+                                                        <Button
                                                             onClick={() => openEditCard(card)}
                                                             title="Editar Cartão"
-                                                            style={{
-                                                                padding: '0.5rem',
-                                                                backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                                                                border: '1px solid rgba(245, 158, 11, 0.2)',
-                                                                borderRadius: '8px',
-                                                                cursor: 'pointer',
-                                                                transition: 'all 0.2s',
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                justifyContent: 'center'
-                                                            }}
+                                                            style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)' }}
                                                         >
                                                             <Edit2 size={16} color="#f59e0b" />
-                                                        </button>
-                                                        <button
+                                                        </Button>
+                                                        <Button
                                                             type="button"
                                                             onClick={() => setCardToDelete(card.id)}
                                                             title="Excluir Cartão"
-                                                            style={{
-                                                                padding: '0.5rem',
-                                                                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                                                                border: '1px solid rgba(239, 68, 68, 0.2)',
-                                                                borderRadius: '8px',
-                                                                cursor: 'pointer',
-                                                                transition: 'all 0.2s',
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                justifyContent: 'center'
-                                                            }}
+                                                            style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)' }}
                                                         >
                                                             <Trash2 size={16} color="#ef4444" />
-                                                        </button>
+                                                        </Button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -695,16 +573,7 @@ export const AccountsPage = () => {
                             value={accountForm.key}
                             onChange={e => setAccountForm({ ...accountForm, key: e.target.value })}
                             placeholder="ex: itau_joao, nubank_lailla"
-                            style={{
-                                width: '100%',
-                                padding: '0.9rem',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                backgroundColor: 'var(--bg-primary)',
-                                color: 'white',
-                                fontFamily: 'monospace',
-                                fontSize: '1rem'
-                            }}
+                            style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white' }}
                         />
                     </div>
                     <div>
@@ -716,15 +585,7 @@ export const AccountsPage = () => {
                             value={accountForm.name}
                             onChange={e => setAccountForm({ ...accountForm, name: e.target.value })}
                             placeholder="ex: Itaú (João Lucas), Nubank Principal"
-                            style={{
-                                width: '100%',
-                                padding: '0.9rem',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                backgroundColor: 'var(--bg-primary)',
-                                color: 'white',
-                                fontSize: '1rem'
-                            }}
+                            style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white' }}
                         />
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
@@ -737,15 +598,7 @@ export const AccountsPage = () => {
                                 value={accountForm.bank}
                                 onChange={e => setAccountForm({ ...accountForm, bank: e.target.value })}
                                 placeholder="ex: itau, nubank, c6"
-                                style={{
-                                    width: '100%',
-                                    padding: '0.9rem',
-                                    borderRadius: '8px',
-                                    border: '1px solid var(--border-color)',
-                                    backgroundColor: 'var(--bg-primary)',
-                                    color: 'white',
-                                    fontSize: '1rem'
-                                }}
+                                style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white' }}
                             />
                         </div>
                         <div>
@@ -757,15 +610,7 @@ export const AccountsPage = () => {
                                 value={accountForm.owner}
                                 onChange={e => setAccountForm({ ...accountForm, owner: e.target.value })}
                                 placeholder="ex: joao, lailla"
-                                style={{
-                                    width: '100%',
-                                    padding: '0.9rem',
-                                    borderRadius: '8px',
-                                    border: '1px solid var(--border-color)',
-                                    backgroundColor: 'var(--bg-primary)',
-                                    color: 'white',
-                                    fontSize: '1rem'
-                                }}
+                                style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white' }}
                             />
                         </div>
                     </div>
@@ -776,15 +621,7 @@ export const AccountsPage = () => {
                         <select
                             value={accountForm.type}
                             onChange={e => setAccountForm({ ...accountForm, type: e.target.value })}
-                            style={{
-                                width: '100%',
-                                padding: '0.9rem',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                backgroundColor: 'var(--bg-primary)',
-                                color: 'white',
-                                fontSize: '1rem'
-                            }}
+                            style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white' }}
                         >
                             <option value="CHECKING">Conta Corrente (CHECKING)</option>
                             <option value="SAVINGS">Conta Poupança (SAVINGS)</option>
@@ -794,35 +631,19 @@ export const AccountsPage = () => {
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-                        <button
+                        <Button
                             type="button"
                             onClick={() => setIsAccountModalOpen(false)}
-                            style={{
-                                padding: '0.75rem 1.5rem',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                background: 'transparent',
-                                color: 'var(--text-secondary)',
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                            }}
+                            style={{ border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-secondary)' }}
                         >
                             Cancelar
-                        </button>
-                        <button
+                        </Button>
+                        <Button variant="primary"
                             type="submit"
-                            style={{
-                                padding: '0.75rem 1.5rem',
-                                borderRadius: '8px',
-                                border: 'none',
-                                backgroundColor: 'var(--accent-color)',
-                                color: 'white',
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                            }}
+
                         >
                             {editingAccount ? 'Salvar Alterações' : 'Criar Conta'}
-                        </button>
+                        </Button>
                     </div>
                 </form>
             </Modal>
@@ -842,15 +663,7 @@ export const AccountsPage = () => {
                             required
                             value={cardForm.account_id}
                             onChange={e => setCardForm({ ...cardForm, account_id: e.target.value })}
-                            style={{
-                                width: '100%',
-                                padding: '0.9rem',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                backgroundColor: 'var(--bg-primary)',
-                                color: 'white',
-                                fontSize: '1rem'
-                            }}
+                            style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white' }}
                         >
                             <option value="">Selecione uma conta...</option>
                             {accounts.map(acc => (
@@ -869,16 +682,7 @@ export const AccountsPage = () => {
                             value={cardForm.key}
                             onChange={e => setCardForm({ ...cardForm, key: e.target.value })}
                             placeholder="ex: itau_card_joao, nubank_card_lailla"
-                            style={{
-                                width: '100%',
-                                padding: '0.9rem',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                backgroundColor: 'var(--bg-primary)',
-                                color: 'white',
-                                fontFamily: 'monospace',
-                                fontSize: '1rem'
-                            }}
+                            style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white' }}
                         />
                     </div>
                     <div>
@@ -890,15 +694,7 @@ export const AccountsPage = () => {
                             value={cardForm.name}
                             onChange={e => setCardForm({ ...cardForm, name: e.target.value })}
                             placeholder="ex: Itaú Mastercard Black, Nubank Gold"
-                            style={{
-                                width: '100%',
-                                padding: '0.9rem',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                backgroundColor: 'var(--bg-primary)',
-                                color: 'white',
-                                fontSize: '1rem'
-                            }}
+                            style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white' }}
                         />
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
@@ -913,15 +709,7 @@ export const AccountsPage = () => {
                                 required
                                 value={cardForm.closing_day}
                                 onChange={e => setCardForm({ ...cardForm, closing_day: e.target.value })}
-                                style={{
-                                    width: '100%',
-                                    padding: '0.9rem',
-                                    borderRadius: '8px',
-                                    border: '1px solid var(--border-color)',
-                                    backgroundColor: 'var(--bg-primary)',
-                                    color: 'white',
-                                    fontSize: '1rem'
-                                }}
+                                style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white' }}
                             />
                         </div>
                         <div>
@@ -935,15 +723,7 @@ export const AccountsPage = () => {
                                 required
                                 value={cardForm.due_day}
                                 onChange={e => setCardForm({ ...cardForm, due_day: e.target.value })}
-                                style={{
-                                    width: '100%',
-                                    padding: '0.9rem',
-                                    borderRadius: '8px',
-                                    border: '1px solid var(--border-color)',
-                                    backgroundColor: 'var(--bg-primary)',
-                                    color: 'white',
-                                    fontSize: '1rem'
-                                }}
+                                style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white' }}
                             />
                         </div>
                     </div>
@@ -958,48 +738,24 @@ export const AccountsPage = () => {
                             value={cardForm.credit_limit}
                             onChange={e => setCardForm({ ...cardForm, credit_limit: e.target.value })}
                             placeholder="0.00"
-                            style={{
-                                width: '100%',
-                                padding: '0.9rem',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                backgroundColor: 'var(--bg-primary)',
-                                color: 'white',
-                                fontSize: '1rem'
-                            }}
+                            style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white' }}
                         />
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-                        <button
+                        <Button
                             type="button"
                             onClick={() => setIsCardModalOpen(false)}
-                            style={{
-                                padding: '0.75rem 1.5rem',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                background: 'transparent',
-                                color: 'var(--text-secondary)',
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                            }}
+                            style={{ border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-secondary)' }}
                         >
                             Cancelar
-                        </button>
-                        <button
+                        </Button>
+                        <Button variant="primary"
                             type="submit"
-                            style={{
-                                padding: '0.75rem 1.5rem',
-                                borderRadius: '8px',
-                                border: 'none',
-                                backgroundColor: 'var(--accent-color)',
-                                color: 'white',
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                            }}
+
                         >
                             {editingCard ? 'Salvar Alterações' : 'Criar Cartão'}
-                        </button>
+                        </Button>
                     </div>
                 </form>
             </Modal>
@@ -1015,36 +771,20 @@ export const AccountsPage = () => {
                         Tem certeza que deseja excluir esta conta bancária? Todos os cartões de crédito vinculados a ela também serão excluídos automaticamente.
                     </p>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                        <button
+                        <Button
                             type="button"
                             onClick={() => setAccountToDelete(null)}
-                            style={{
-                                padding: '0.75rem 1.5rem',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                background: 'transparent',
-                                color: 'var(--text-secondary)',
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                            }}
+                            style={{ border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-secondary)' }}
                         >
                             Cancelar
-                        </button>
-                        <button
+                        </Button>
+                        <Button variant="danger"
                             type="button"
                             onClick={confirmAccountDelete}
-                            style={{
-                                padding: '0.75rem 1.5rem',
-                                borderRadius: '8px',
-                                border: 'none',
-                                backgroundColor: 'var(--danger)',
-                                color: 'white',
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                            }}
+
                         >
                             Excluir Definitivamente
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </Modal>
@@ -1060,36 +800,20 @@ export const AccountsPage = () => {
                         Tem certeza que deseja excluir este cartão de crédito?
                     </p>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                        <button
+                        <Button
                             type="button"
                             onClick={() => setCardToDelete(null)}
-                            style={{
-                                padding: '0.75rem 1.5rem',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                background: 'transparent',
-                                color: 'var(--text-secondary)',
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                            }}
+                            style={{ border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-secondary)' }}
                         >
                             Cancelar
-                        </button>
-                        <button
+                        </Button>
+                        <Button variant="danger"
                             type="button"
                             onClick={confirmCardDelete}
-                            style={{
-                                padding: '0.75rem 1.5rem',
-                                borderRadius: '8px',
-                                border: 'none',
-                                backgroundColor: 'var(--danger)',
-                                color: 'white',
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                            }}
+
                         >
                             Excluir
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </Modal>

@@ -1,3 +1,4 @@
+import { Button } from '../components/Button';
 import React, { useEffect, useState } from 'react';
 import {
     FileUp,
@@ -365,7 +366,7 @@ export const ImportsPage: React.FC = () => {
                         Suba o extrato do banco, valide e ajuste as categorias antes de oficializar os lançamentos.
                     </p>
                 </div>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                <div className="ui-page-actions" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                     <div style={{
                         padding: '0.5rem 1rem',
                         backgroundColor: 'var(--bg-secondary)',
@@ -384,26 +385,14 @@ export const ImportsPage: React.FC = () => {
                             <strong style={{ color: 'var(--success)' }}>{summary.approved}</strong>
                         </div>
                     </div>
-                    <button
+                    <Button
                         onClick={handleCommitApproved}
                         disabled={isCommitting || summary.approved === 0}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            backgroundColor: summary.approved > 0 ? 'var(--success)' : 'var(--bg-tertiary)',
-                            color: 'white',
-                            border: 'none',
-                            padding: '0.75rem 1.25rem',
-                            borderRadius: '8px',
-                            fontWeight: 600,
-                            cursor: summary.approved > 0 ? 'pointer' : 'not-allowed',
-                            transition: 'all 0.2s',
-                        }}
+                        style={{ backgroundColor: summary.approved > 0 ? 'var(--success)' : 'var(--bg-tertiary)', color: 'white', border: 'none' }}
                     >
                         <CheckCircle2 size={18} />
                         {isCommitting ? 'Efetivando...' : `Importar Aprovadas (${summary.approved})`}
-                    </button>
+                    </Button>
                 </div>
             </div>
 
@@ -427,14 +416,7 @@ export const ImportsPage: React.FC = () => {
                         <select
                             value={uploadTargetKey}
                             onChange={e => setUploadTargetKey(e.target.value)}
-                            style={{
-                                width: '100%',
-                                padding: '0.65rem 0.75rem',
-                                backgroundColor: 'var(--bg-primary)',
-                                color: 'var(--text-primary)',
-                                border: '1px solid var(--border-color)',
-                                borderRadius: '6px',
-                            }}
+                            style={{ width: '100%', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
                             required
                         >
                             <optgroup label="💳 Cartões de Crédito (Fatura)">
@@ -463,36 +445,19 @@ export const ImportsPage: React.FC = () => {
                             type="file"
                             accept=".csv"
                             onChange={e => setUploadFile(e.target.files?.[0] || null)}
-                            style={{
-                                width: '100%',
-                                padding: '0.5rem',
-                                backgroundColor: 'var(--bg-primary)',
-                                color: 'var(--text-primary)',
-                                border: '1px solid var(--border-color)',
-                                borderRadius: '6px',
-                            }}
+                            style={{ width: '100%', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
                             required
                         />
                     </div>
 
-                    <button
+                    <Button variant="primary"
                         type="submit"
                         disabled={isUploading}
-                        style={{
-                            padding: '0.65rem 1.5rem',
-                            backgroundColor: 'var(--accent-color)',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            fontWeight: 600,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                        }}
+
                     >
                         <FileUp size={18} />
                         {isUploading ? 'Processando e classificando...' : 'Enviar Extrato'}
-                    </button>
+                    </Button>
                 </form>
 
                 {/* Banner de resumo do último upload */}
@@ -579,14 +544,7 @@ export const ImportsPage: React.FC = () => {
                         <select
                             value={selectedBatchId}
                             onChange={e => { setSelectedBatchId(e.target.value); setPage(1); }}
-                            style={{
-                                padding: '0.5rem 0.75rem',
-                                backgroundColor: 'var(--bg-primary)',
-                                color: 'var(--text-primary)',
-                                border: '1px solid var(--border-color)',
-                                borderRadius: '6px',
-                                fontSize: '0.9rem',
-                            }}
+                            style={{ color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
                         >
                             <option value="">Todos os lotes de extrato</option>
                             {batches.map(b => (
@@ -598,7 +556,7 @@ export const ImportsPage: React.FC = () => {
                     </div>
 
                     {/* Status tabs */}
-                    <div style={{ display: 'flex', backgroundColor: 'var(--bg-primary)', borderRadius: '6px', padding: '2px', border: '1px solid var(--border-color)' }}>
+                    <div className="ui-tab-list" style={{ display: 'flex', backgroundColor: 'var(--bg-primary)', borderRadius: '6px', padding: '2px', border: '1px solid var(--border-color)' }}>
                         {[
                             { key: 'PENDING', label: 'Pendentes' },
                             { key: 'APPROVED', label: 'Aprovadas' },
@@ -606,21 +564,13 @@ export const ImportsPage: React.FC = () => {
                             { key: 'IGNORED', label: 'Ignoradas' },
                             { key: 'ALL', label: 'Todas' },
                         ].map(st => (
-                            <button
+                            <Button
                                 key={st.key}
                                 onClick={() => { setStatusFilter(st.key); setPage(1); }}
-                                style={{
-                                    padding: '0.4rem 0.8rem',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    fontSize: '0.8rem',
-                                    fontWeight: 500,
-                                    backgroundColor: statusFilter === st.key ? 'var(--accent-color)' : 'transparent',
-                                    color: statusFilter === st.key ? 'white' : 'var(--text-secondary)',
-                                }}
+                                style={{ border: 'none', backgroundColor: statusFilter === st.key ? 'var(--accent-color)' : 'transparent', color: statusFilter === st.key ? 'white' : 'var(--text-secondary)' }}
                             >
                                 {st.label}
-                            </button>
+                            </Button>
                         ))}
                     </div>
 
@@ -628,14 +578,7 @@ export const ImportsPage: React.FC = () => {
                     <select
                         value={kindFilter}
                         onChange={e => { setKindFilter(e.target.value); setPage(1); }}
-                        style={{
-                            padding: '0.5rem 0.75rem',
-                            backgroundColor: 'var(--bg-primary)',
-                            color: 'var(--text-primary)',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: '6px',
-                            fontSize: '0.85rem',
-                        }}
+                        style={{ color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
                     >
                         <option value="">Todos os tipos</option>
                         <option value="EXPENSE">Despesa (EXPENSE)</option>
@@ -646,7 +589,7 @@ export const ImportsPage: React.FC = () => {
                     </select>
                 </div>
 
-                <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
+                <div className="ui-filter-group" style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                         <input
                             type="checkbox"
@@ -666,24 +609,14 @@ export const ImportsPage: React.FC = () => {
                     </label>
 
                     {selectedBatchId && (
-                        <button
+                        <Button
                             onClick={handleReclassify}
                             disabled={isReclassifying}
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.35rem',
-                                padding: '0.4rem 0.75rem',
-                                backgroundColor: 'var(--bg-primary)',
-                                color: 'var(--text-secondary)',
-                                border: '1px solid var(--border-color)',
-                                borderRadius: '6px',
-                                fontSize: '0.8rem',
-                            }}
+                            style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}
                         >
                             <Sparkles size={14} color="var(--accent-color)" />
                             {isReclassifying ? 'Classificando...' : 'Reclassificar com IA'}
-                        </button>
+                        </Button>
                     )}
                 </div>
             </div>
@@ -707,56 +640,28 @@ export const ImportsPage: React.FC = () => {
                             {selectedIds.length} item(ns) selecionado(s)
                         </span>
 
-                        <button
+                        <Button variant="success"
                             onClick={() => handleBulkAction('approve')}
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.35rem',
-                                padding: '0.4rem 0.8rem',
-                                backgroundColor: 'var(--success)',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '6px',
-                                fontSize: '0.85rem',
-                                fontWeight: 600,
-                            }}
+
                         >
                             <Check size={16} />
                             Aprovar selecionados
-                        </button>
+                        </Button>
 
-                        <button
+                        <Button
                             onClick={() => handleBulkAction('ignore')}
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.35rem',
-                                padding: '0.4rem 0.8rem',
-                                backgroundColor: 'var(--bg-tertiary)',
-                                color: 'var(--text-primary)',
-                                border: 'none',
-                                borderRadius: '6px',
-                                fontSize: '0.85rem',
-                            }}
+                            style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: 'none' }}
                         >
                             <X size={16} />
                             Ignorar selecionados
-                        </button>
+                        </Button>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                         <select
                             value={bulkCategory}
                             onChange={e => setBulkCategory(e.target.value)}
-                            style={{
-                                padding: '0.4rem 0.6rem',
-                                backgroundColor: 'var(--bg-primary)',
-                                color: 'var(--text-primary)',
-                                border: '1px solid var(--border-color)',
-                                borderRadius: '6px',
-                                fontSize: '0.85rem',
-                            }}
+                            style={{ color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
                         >
                             <option value="">Selecione categoria em massa...</option>
                             <optgroup label="Despesas">
@@ -770,20 +675,12 @@ export const ImportsPage: React.FC = () => {
                                 ))}
                             </optgroup>
                         </select>
-                        <button
+                        <Button variant="primary"
                             onClick={() => handleBulkAction('set_category')}
-                            style={{
-                                padding: '0.4rem 0.8rem',
-                                backgroundColor: 'var(--accent-color)',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '6px',
-                                fontSize: '0.85rem',
-                                fontWeight: 500,
-                            }}
+
                         >
                             Aplicar Categoria
-                        </button>
+                        </Button>
                     </div>
 
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
@@ -867,15 +764,7 @@ export const ImportsPage: React.FC = () => {
                                                             value={tx.competence_date ? tx.competence_date.substring(0, 10) : tx.occurred_at.substring(0, 10)}
                                                             disabled={tx.status === 'COMMITTED'}
                                                             onChange={e => handleUpdateField(tx.id, { competence_date: e.target.value })}
-                                                            style={{
-                                                                fontSize: '0.75rem',
-                                                                padding: '0.15rem 0.35rem',
-                                                                backgroundColor: 'var(--bg-primary)',
-                                                                color: 'var(--text-primary)',
-                                                                border: '1px solid var(--border-color)',
-                                                                borderRadius: '4px',
-                                                                cursor: tx.status === 'COMMITTED' ? 'not-allowed' : 'pointer',
-                                                            }}
+                                                            style={{ color: 'var(--text-primary)', border: '1px solid var(--border-color)', cursor: tx.status === 'COMMITTED' ? 'not-allowed' : 'pointer' }}
                                                         />
                                                     </div>
                                                 )}
@@ -927,15 +816,7 @@ export const ImportsPage: React.FC = () => {
                                                     value={tx.kind}
                                                     disabled={tx.status === 'COMMITTED'}
                                                     onChange={e => handleUpdateField(tx.id, { kind: e.target.value })}
-                                                    style={{
-                                                        padding: '0.35rem 0.5rem',
-                                                        backgroundColor: 'var(--bg-primary)',
-                                                        color: 'var(--text-primary)',
-                                                        border: '1px solid var(--border-color)',
-                                                        borderRadius: '4px',
-                                                        fontSize: '0.8rem',
-                                                        width: '100%',
-                                                    }}
+                                                    style={{ color: 'var(--text-primary)', border: '1px solid var(--border-color)', width: '100%' }}
                                                 >
                                                     <option value="EXPENSE">Despesa</option>
                                                     <option value="INCOME">Receita</option>
@@ -954,15 +835,7 @@ export const ImportsPage: React.FC = () => {
                                                         value={tx.category || ''}
                                                         disabled={tx.status === 'COMMITTED'}
                                                         onChange={e => handleUpdateField(tx.id, { category: e.target.value })}
-                                                        style={{
-                                                            padding: '0.35rem 0.5rem',
-                                                            backgroundColor: 'var(--bg-primary)',
-                                                            color: tx.category ? 'var(--text-primary)' : 'var(--warning)',
-                                                            border: `1px solid ${tx.category ? 'var(--border-color)' : 'var(--warning)'}`,
-                                                            borderRadius: '4px',
-                                                            fontSize: '0.8rem',
-                                                            width: '100%',
-                                                        }}
+                                                        style={{ color: tx.category ? 'var(--text-primary)' : 'var(--warning)', border: `1px solid ${tx.category ? 'var(--border-color)' : 'var(--warning)'}`, width: '100%' }}
                                                     >
                                                         <option value="">Selecione categoria...</option>
                                                         {tx.kind === 'EXPENSE'
@@ -991,15 +864,7 @@ export const ImportsPage: React.FC = () => {
                                                             setTransactions(prev => prev.map(t => (t.id === tx.id ? { ...t, location: val } : t)));
                                                         }}
                                                         onBlur={e => handleUpdateField(tx.id, { location: e.target.value || null })}
-                                                        style={{
-                                                            padding: '0.35rem 0.5rem',
-                                                            backgroundColor: 'var(--bg-primary)',
-                                                            color: 'var(--text-primary)',
-                                                            border: '1px solid var(--border-color)',
-                                                            borderRadius: '4px',
-                                                            fontSize: '0.8rem',
-                                                            width: '100%',
-                                                        }}
+                                                        style={{ color: 'var(--text-primary)', border: '1px solid var(--border-color)', width: '100%' }}
                                                     />
                                                 ) : (
                                                     <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>-</span>
@@ -1044,32 +909,20 @@ export const ImportsPage: React.FC = () => {
                                                 <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
                                                     {tx.status === 'PENDING' && (
                                                         <>
-                                                            <button
+                                                            <Button
                                                                 onClick={() => handleApprove(tx)}
                                                                 title="Aprovar transação"
-                                                                style={{
-                                                                    padding: '0.35rem 0.5rem',
-                                                                    backgroundColor: 'rgba(34, 197, 94, 0.15)',
-                                                                    border: '1px solid var(--success)',
-                                                                    color: 'var(--success)',
-                                                                    borderRadius: '4px',
-                                                                }}
+                                                                style={{ backgroundColor: 'rgba(34, 197, 94, 0.15)', border: '1px solid var(--success)', color: 'var(--success)' }}
                                                             >
                                                                 <Check size={14} />
-                                                            </button>
-                                                            <button
+                                                            </Button>
+                                                            <Button
                                                                 onClick={() => handleIgnore(tx.id)}
                                                                 title="Ignorar transação"
-                                                                style={{
-                                                                    padding: '0.35rem 0.5rem',
-                                                                    backgroundColor: 'transparent',
-                                                                    border: '1px solid var(--border-color)',
-                                                                    color: 'var(--text-secondary)',
-                                                                    borderRadius: '4px',
-                                                                }}
+                                                                style={{ backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}
                                                             >
                                                                 <X size={14} />
-                                                            </button>
+                                                            </Button>
                                                         </>
                                                     )}
                                                     {tx.status === 'APPROVED' && (
@@ -1090,20 +943,13 @@ export const ImportsPage: React.FC = () => {
                                                         </span>
                                                     )}
                                                     {tx.status === 'IGNORED' && (
-                                                        <button
+                                                        <Button
                                                             onClick={() => handleUpdateField(tx.id, { status: 'PENDING' })}
                                                             title="Restaurar para pendente"
-                                                            style={{
-                                                                padding: '0.25rem 0.5rem',
-                                                                backgroundColor: 'transparent',
-                                                                border: '1px solid var(--border-color)',
-                                                                color: 'var(--text-secondary)',
-                                                                borderRadius: '4px',
-                                                                fontSize: '0.75rem',
-                                                            }}
+                                                            style={{ backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}
                                                         >
                                                             Restaurar
-                                                        </button>
+                                                        </Button>
                                                     )}
                                                     {tx.status === 'LINKED' && (
                                                         <span style={{ fontSize: '0.75rem', color: '#a5b4fc', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
@@ -1136,37 +982,18 @@ export const ImportsPage: React.FC = () => {
                                                             </span>
                                                         </div>
                                                         <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                            <button
+                                                            <Button
                                                                 onClick={() => handleLinkDuplicate(tx.id)}
-                                                                style={{
-                                                                    padding: '0.25rem 0.6rem',
-                                                                    backgroundColor: 'var(--bg-primary)',
-                                                                    border: '1px solid var(--warning)',
-                                                                    color: 'var(--warning)',
-                                                                    borderRadius: '4px',
-                                                                    fontSize: '0.75rem',
-                                                                    cursor: 'pointer',
-                                                                    display: 'flex',
-                                                                    alignItems: 'center',
-                                                                    gap: '0.25rem',
-                                                                }}
+                                                                style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--warning)', color: 'var(--warning)' }}
                                                             >
                                                                 <LinkIcon size={12} /> É o mesmo (vincular)
-                                                            </button>
-                                                            <button
+                                                            </Button>
+                                                            <Button
                                                                 onClick={() => handleApprove(tx)}
-                                                                style={{
-                                                                    padding: '0.25rem 0.6rem',
-                                                                    backgroundColor: 'transparent',
-                                                                    border: '1px solid var(--border-color)',
-                                                                    color: 'var(--text-secondary)',
-                                                                    borderRadius: '4px',
-                                                                    fontSize: '0.75rem',
-                                                                    cursor: 'pointer',
-                                                                }}
+                                                                style={{ backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}
                                                             >
                                                                 Criar mesmo assim
-                                                            </button>
+                                                            </Button>
                                                         </div>
                                                     </div>
                                                 </td>
@@ -1194,36 +1021,20 @@ export const ImportsPage: React.FC = () => {
                         Total de <strong>{totalItems}</strong> transações (Página {page} de {totalPages})
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button
+                        <Button
                             onClick={() => setPage(p => Math.max(1, p - 1))}
                             disabled={page === 1}
-                            style={{
-                                padding: '0.4rem 0.8rem',
-                                backgroundColor: 'var(--bg-secondary)',
-                                border: '1px solid var(--border-color)',
-                                color: page === 1 ? 'var(--border-color)' : 'var(--text-primary)',
-                                borderRadius: '6px',
-                                display: 'flex',
-                                alignItems: 'center',
-                            }}
+                            style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: page === 1 ? 'var(--border-color)' : 'var(--text-primary)' }}
                         >
                             <ChevronLeft size={16} /> Anterior
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                             disabled={page === totalPages}
-                            style={{
-                                padding: '0.4rem 0.8rem',
-                                backgroundColor: 'var(--bg-secondary)',
-                                border: '1px solid var(--border-color)',
-                                color: page === totalPages ? 'var(--border-color)' : 'var(--text-primary)',
-                                borderRadius: '6px',
-                                display: 'flex',
-                                alignItems: 'center',
-                            }}
+                            style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: page === totalPages ? 'var(--border-color)' : 'var(--text-primary)' }}
                         >
                             Próxima <ChevronRight size={16} />
-                        </button>
+                        </Button>
                     </div>
                 </div>
             )}

@@ -1,3 +1,4 @@
+import { Button } from '../components/Button';
 import { useEffect, useState } from 'react';
 import { Plus, Trash2, Edit2, ChevronLeft, ChevronRight, TrendingUp } from 'lucide-react';
 import api from '../services/api';
@@ -180,7 +181,7 @@ export const IncomesPage = () => {
     return (
         <div>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+            <div className="ui-page-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <div>
                     <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                         <TrendingUp size={28} color="var(--success)" />
@@ -190,33 +191,21 @@ export const IncomesPage = () => {
                         Controle seus salários, rendimentos, pix recebidos e outras entradas financeiras
                     </p>
                 </div>
-                <button
+                <Button variant="success"
                     onClick={() => {
                         setEditingIncome(null);
                         setFormData({ description: '', amount: '', category: '', payment_method: '', received_at: monthDates.end, competence_date: '' });
                         setIsModalOpen(true);
                     }}
-                    style={{
-                        backgroundColor: 'var(--success)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '8px',
-                        padding: '0.75rem 1.5rem',
-                        fontWeight: 600,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        cursor: 'pointer',
-                        boxShadow: '0 4px 6px rgba(34, 197, 94, 0.2)'
-                    }}
+
                 >
                     <Plus size={20} />
                     Nova Receita
-                </button>
+                </Button>
             </div>
 
             {/* Filtros de Data */}
-            <form onSubmit={handleFilterSubmit} style={{
+            <form onSubmit={handleFilterSubmit} className="ui-filter-form" style={{
                 display: 'flex',
                 gap: '1rem',
                 alignItems: 'flex-end',
@@ -235,14 +224,7 @@ export const IncomesPage = () => {
                         type="date"
                         value={startDate}
                         onChange={e => setStartDate(e.target.value)}
-                        style={{
-                            padding: '0.5rem 0.8rem',
-                            borderRadius: '6px',
-                            border: '1px solid var(--border-color)',
-                            background: 'var(--bg-tertiary)',
-                            color: 'white',
-                            fontSize: '0.9rem'
-                        }}
+                        style={{ border: '1px solid var(--border-color)', color: 'white' }}
                     />
                 </div>
                 <div>
@@ -253,52 +235,37 @@ export const IncomesPage = () => {
                         type="date"
                         value={endDate}
                         onChange={e => setEndDate(e.target.value)}
-                        style={{
-                            padding: '0.5rem 0.8rem',
-                            borderRadius: '6px',
-                            border: '1px solid var(--border-color)',
-                            background: 'var(--bg-tertiary)',
-                            color: 'white',
-                            fontSize: '0.9rem'
-                        }}
+                        style={{ border: '1px solid var(--border-color)', color: 'white' }}
                     />
                 </div>
-                <button
+                <Button variant="primary"
                     type="submit"
-                    style={{
-                        padding: '0.5rem 1.2rem',
-                        backgroundColor: 'var(--accent-color)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontWeight: 600
-                    }}
+
                 >
                     Filtrar
-                </button>
+                </Button>
                 <div style={{ display: 'flex', gap: '0.35rem' }}>
-                    <button
+                    <Button
                         type="button"
                         onClick={() => handleSetPeriod('current')}
-                        style={{ padding: '0.5rem 0.75rem', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer' }}
+                        style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}
                     >
                         Mês Atual
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         type="button"
                         onClick={() => handleSetPeriod('90days')}
-                        style={{ padding: '0.5rem 0.75rem', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer' }}
+                        style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}
                     >
                         Últimos 90 dias
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         type="button"
                         onClick={() => handleSetPeriod('all')}
-                        style={{ padding: '0.5rem 0.75rem', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer' }}
+                        style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}
                     >
                         Ver Todos
-                    </button>
+                    </Button>
                 </div>
             </form>
 
@@ -363,32 +330,20 @@ export const IncomesPage = () => {
                                     </td>
                                     <td style={{ padding: '1rem', textAlign: 'center' }}>
                                         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                                            <button
+                                            <Button
                                                 onClick={() => handleEdit(income)}
-                                                style={{
-                                                    background: 'transparent',
-                                                    border: 'none',
-                                                    color: 'var(--accent-color)',
-                                                    cursor: 'pointer',
-                                                    padding: '0.25rem'
-                                                }}
+                                                style={{ background: 'transparent', border: 'none', color: 'var(--accent-color)' }}
                                                 title="Editar"
                                             >
                                                 <Edit2 size={16} />
-                                            </button>
-                                            <button
+                                            </Button>
+                                            <Button
                                                 onClick={() => setIncomeToDelete(income.id)}
-                                                style={{
-                                                    background: 'transparent',
-                                                    border: 'none',
-                                                    color: 'var(--danger)',
-                                                    cursor: 'pointer',
-                                                    padding: '0.25rem'
-                                                }}
+                                                style={{ background: 'transparent', border: 'none', color: 'var(--danger)' }}
                                                 title="Excluir"
                                             >
                                                 <Trash2 size={16} />
-                                            </button>
+                                            </Button>
                                         </div>
                                     </td>
                                 </tr>
@@ -408,35 +363,23 @@ export const IncomesPage = () => {
                 }}>
                     <span>Total: {totalItems} receitas</span>
                     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                        <button
+                        <Button
                             disabled={page === 1}
                             onClick={() => setPage(p => Math.max(1, p - 1))}
-                            style={{
-                                background: 'transparent',
-                                border: '1px solid var(--border-color)',
-                                color: page === 1 ? 'var(--text-secondary)' : 'white',
-                                borderRadius: '4px',
-                                padding: '0.3rem',
-                                cursor: page === 1 ? 'not-allowed' : 'pointer'
-                            }}
+                            title="Página anterior"
+                            style={{ background: 'transparent', border: '1px solid var(--border-color)', color: page === 1 ? 'var(--text-secondary)' : 'white' }}
                         >
                             <ChevronLeft size={16} />
-                        </button>
+                        </Button>
                         <span>Página {page} de {totalPages || 1}</span>
-                        <button
+                        <Button
                             disabled={page >= totalPages}
                             onClick={() => setPage(p => p + 1)}
-                            style={{
-                                background: 'transparent',
-                                border: '1px solid var(--border-color)',
-                                color: page >= totalPages ? 'var(--text-secondary)' : 'white',
-                                borderRadius: '4px',
-                                padding: '0.3rem',
-                                cursor: page >= totalPages ? 'not-allowed' : 'pointer'
-                            }}
+                            title="Próxima página"
+                            style={{ background: 'transparent', border: '1px solid var(--border-color)', color: page >= totalPages ? 'var(--text-secondary)' : 'white' }}
                         >
                             <ChevronRight size={16} />
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -459,14 +402,7 @@ export const IncomesPage = () => {
                             placeholder="Ex: Salário Mensal, Pix de Cliente"
                             value={formData.description}
                             onChange={e => setFormData({ ...formData, description: e.target.value })}
-                            style={{
-                                width: '100%',
-                                padding: '0.6rem 0.8rem',
-                                borderRadius: '6px',
-                                border: '1px solid var(--border-color)',
-                                background: 'var(--bg-tertiary)',
-                                color: 'white'
-                            }}
+                            style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white' }}
                         />
                     </div>
                     <div>
@@ -478,14 +414,7 @@ export const IncomesPage = () => {
                             placeholder="0.00"
                             value={formData.amount}
                             onChange={e => setFormData({ ...formData, amount: e.target.value })}
-                            style={{
-                                width: '100%',
-                                padding: '0.6rem 0.8rem',
-                                borderRadius: '6px',
-                                border: '1px solid var(--border-color)',
-                                background: 'var(--bg-tertiary)',
-                                color: 'white'
-                            }}
+                            style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white' }}
                         />
                     </div>
                     <div>
@@ -494,14 +423,7 @@ export const IncomesPage = () => {
                             required
                             value={formData.category}
                             onChange={e => setFormData({ ...formData, category: e.target.value })}
-                            style={{
-                                width: '100%',
-                                padding: '0.6rem 0.8rem',
-                                borderRadius: '6px',
-                                border: '1px solid var(--border-color)',
-                                background: 'var(--bg-tertiary)',
-                                color: 'white'
-                            }}
+                            style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white' }}
                         >
                             <option value="">Selecione uma categoria</option>
                             {categories.map(c => (
@@ -514,14 +436,7 @@ export const IncomesPage = () => {
                         <select
                             value={formData.payment_method}
                             onChange={e => setFormData({ ...formData, payment_method: e.target.value })}
-                            style={{
-                                width: '100%',
-                                padding: '0.6rem 0.8rem',
-                                borderRadius: '6px',
-                                border: '1px solid var(--border-color)',
-                                background: 'var(--bg-tertiary)',
-                                color: 'white'
-                            }}
+                            style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white' }}
                         >
                             <option value="">Não especificado / Outro</option>
                             {accounts.map(a => (
@@ -536,14 +451,7 @@ export const IncomesPage = () => {
                             required
                             value={formData.received_at}
                             onChange={e => setFormData({ ...formData, received_at: e.target.value })}
-                            style={{
-                                width: '100%',
-                                padding: '0.6rem 0.8rem',
-                                borderRadius: '6px',
-                                border: '1px solid var(--border-color)',
-                                background: 'var(--bg-tertiary)',
-                                color: 'white'
-                            }}
+                            style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white' }}
                         />
                     </div>
                     <div>
@@ -555,49 +463,27 @@ export const IncomesPage = () => {
                             value={formData.competence_date}
                             onChange={e => setFormData({ ...formData, competence_date: e.target.value })}
                             placeholder="Vazio = data de recebimento"
-                            style={{
-                                width: '100%',
-                                padding: '0.6rem 0.8rem',
-                                borderRadius: '6px',
-                                border: '1px solid var(--border-color)',
-                                background: 'var(--bg-tertiary)',
-                                color: 'white'
-                            }}
+                            style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white' }}
                         />
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
-                        <button
+                        <Button
                             type="button"
                             onClick={() => {
                                 setIsModalOpen(false);
                                 setEditingIncome(null);
                             }}
-                            style={{
-                                padding: '0.6rem 1.2rem',
-                                borderRadius: '6px',
-                                border: '1px solid var(--border-color)',
-                                background: 'transparent',
-                                color: 'var(--text-secondary)',
-                                cursor: 'pointer'
-                            }}
+
                         >
                             Cancelar
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             type="submit"
-                            style={{
-                                padding: '0.6rem 1.2rem',
-                                borderRadius: '6px',
-                                border: 'none',
-                                background: 'var(--success)',
-                                color: 'white',
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                            }}
+                            style={{ border: 'none', background: 'var(--success)', color: 'white' }}
                         >
                             Salvar
-                        </button>
+                        </Button>
                     </div>
                 </form>
             </Modal>
@@ -613,33 +499,18 @@ export const IncomesPage = () => {
                         Tem certeza que deseja excluir esta receita? Esta ação não pode ser desfeita.
                     </p>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-                        <button
+                        <Button
                             onClick={() => setIncomeToDelete(null)}
-                            style={{
-                                padding: '0.6rem 1.2rem',
-                                borderRadius: '6px',
-                                border: '1px solid var(--border-color)',
-                                background: 'transparent',
-                                color: 'var(--text-secondary)',
-                                cursor: 'pointer'
-                            }}
+
                         >
                             Cancelar
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             onClick={handleDelete}
-                            style={{
-                                padding: '0.6rem 1.2rem',
-                                borderRadius: '6px',
-                                border: 'none',
-                                background: 'var(--danger)',
-                                color: 'white',
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                            }}
+                            style={{ border: 'none', background: 'var(--danger)', color: 'white' }}
                         >
                             Excluir
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </Modal>

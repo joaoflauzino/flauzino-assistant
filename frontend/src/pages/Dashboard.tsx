@@ -1,3 +1,4 @@
+import { Button } from '../components/Button';
 import React, { useEffect, useState } from 'react';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, type TooltipItem } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
@@ -46,7 +47,7 @@ export const Dashboard = () => {
 
     const [referenceMonth, setReferenceMonth] = useState(getCurrentMonth());
     const [mode, setMode] = useState<'CIVIL_MONTH' | 'INVOICES' | 'CUSTOM'>('CIVIL_MONTH');
-    
+
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
 
@@ -194,7 +195,7 @@ export const Dashboard = () => {
 
     const selectAllCategories = () => {
         const allCategories = Array.from(new Set([
-            ...spents.map(s => s.category), 
+            ...spents.map(s => s.category),
             ...limits.map(l => l.category),
             ...subscriptions.map(sub => sub.category)
         ]));
@@ -325,7 +326,7 @@ export const Dashboard = () => {
     if (loading) return <div style={{ color: 'white', fontSize: '1.2rem' }}>Carregando painel...</div>;
 
     const allCategories = Array.from(new Set([
-        ...spents.map(s => s.category), 
+        ...spents.map(s => s.category),
         ...limits.map(l => l.category),
         ...subscriptions.map(sub => sub.category)
     ]));
@@ -636,13 +637,12 @@ export const Dashboard = () => {
         ],
     };
 
-
     return (
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 700 }}>Painel</h1>
 
-                <form onSubmit={handleFilter} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+                <form onSubmit={handleFilter} className="ui-filter-form" style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
                     {mode === 'CUSTOM' ? (
                         <>
                             <div>
@@ -651,16 +651,7 @@ export const Dashboard = () => {
                                     type="date"
                                     value={startDate}
                                     onChange={e => setStartDate(e.target.value)}
-                                    style={{
-                                        padding: '0.6rem 0.8rem',
-                                        borderRadius: '8px',
-                                        border: '1px solid var(--border-color)',
-                                        background: 'var(--bg-tertiary)',
-                                        color: 'white',
-                                        fontSize: '0.9rem',
-                                        transition: 'all 0.2s',
-                                        cursor: 'pointer'
-                                    }}
+                                    style={{ border: '1px solid var(--border-color)', color: 'white', transition: 'all 0.2s', cursor: 'pointer' }}
                                 />
                             </div>
                             <div>
@@ -669,16 +660,7 @@ export const Dashboard = () => {
                                     type="date"
                                     value={endDate}
                                     onChange={e => setEndDate(e.target.value)}
-                                    style={{
-                                        padding: '0.6rem 0.8rem',
-                                        borderRadius: '8px',
-                                        border: '1px solid var(--border-color)',
-                                        background: 'var(--bg-tertiary)',
-                                        color: 'white',
-                                        fontSize: '0.9rem',
-                                        transition: 'all 0.2s',
-                                        cursor: 'pointer'
-                                    }}
+                                    style={{ border: '1px solid var(--border-color)', color: 'white', transition: 'all 0.2s', cursor: 'pointer' }}
                                 />
                             </div>
                         </>
@@ -688,16 +670,7 @@ export const Dashboard = () => {
                             <select
                                 value={referenceMonth}
                                 onChange={e => setReferenceMonth(e.target.value)}
-                                style={{
-                                    padding: '0.6rem 0.8rem',
-                                    borderRadius: '8px',
-                                    border: '1px solid var(--border-color)',
-                                    background: 'var(--bg-tertiary)',
-                                    color: 'white',
-                                    fontSize: '0.9rem',
-                                    transition: 'all 0.2s',
-                                    cursor: 'pointer'
-                                }}
+                                style={{ border: '1px solid var(--border-color)', color: 'white', transition: 'all 0.2s', cursor: 'pointer' }}
                             >
                                 {generateMonthOptions().map(opt => (
                                     <option key={opt.value} value={opt.value}>
@@ -712,38 +685,19 @@ export const Dashboard = () => {
                         <select
                             value={mode}
                             onChange={e => setMode(e.target.value as 'CIVIL_MONTH' | 'INVOICES' | 'CUSTOM')}
-                            style={{
-                                padding: '0.6rem 0.8rem',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                background: 'var(--bg-tertiary)',
-                                color: 'white',
-                                fontSize: '0.9rem',
-                                cursor: 'pointer',
-                                outline: 'none'
-                            }}
+                            style={{ border: '1px solid var(--border-color)', color: 'white', cursor: 'pointer', outline: 'none' }}
                         >
                             <option value="CIVIL_MONTH">Mês Civil (1 a 31)</option>
                             <option value="INVOICES">Ciclo das Faturas</option>
                             <option value="CUSTOM">Período Customizado</option>
                         </select>
                     </div>
-                    <button
+                    <Button variant="primary"
                         type="submit"
-                        style={{
-                            padding: '0.6rem 1.2rem',
-                            backgroundColor: 'var(--accent-color)',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '8px',
-                            cursor: 'pointer',
-                            fontWeight: 600,
-                            fontSize: '0.9rem',
-                            transition: 'all 0.2s'
-                        }}
+
                     >
                         Filtrar
-                    </button>
+                    </Button>
                 </form>
             </div>
 
@@ -867,40 +821,20 @@ export const Dashboard = () => {
                             </div>
                         </div>
                         <div style={{ display: 'flex', gap: '0.6rem' }}>
-                            <button
+                            <Button
                                 type="button"
                                 onClick={selectAllIncomeCategories}
-                                style={{
-                                    padding: '0.4rem 0.9rem',
-                                    borderRadius: '6px',
-                                    border: '1px solid #22c55e',
-                                    background: 'transparent',
-                                    color: '#22c55e',
-                                    fontSize: '0.82rem',
-                                    fontWeight: 500,
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s'
-                                }}
+                                style={{ border: '1px solid #22c55e', background: 'transparent', color: '#22c55e' }}
                             >
                                 Todas
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                                 type="button"
                                 onClick={deselectAllIncomeCategories}
-                                style={{
-                                    padding: '0.4rem 0.9rem',
-                                    borderRadius: '6px',
-                                    border: '1px solid #ef4444',
-                                    background: 'transparent',
-                                    color: '#ef4444',
-                                    fontSize: '0.82rem',
-                                    fontWeight: 500,
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s'
-                                }}
+                                style={{ border: '1px solid #ef4444', background: 'transparent', color: '#ef4444' }}
                             >
                                 Nenhuma
-                            </button>
+                            </Button>
                         </div>
                     </div>
 
@@ -968,54 +902,20 @@ export const Dashboard = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                     <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Selecionar Categorias</h3>
                     <div style={{ display: 'flex', gap: '0.75rem' }}>
-                        <button
+                        <Button
                             onClick={selectAllCategories}
-                            style={{
-                                padding: '0.4rem 1rem',
-                                borderRadius: '6px',
-                                border: '1px solid var(--accent-color)',
-                                background: 'transparent',
-                                color: 'var(--accent-color)',
-                                fontSize: '0.85rem',
-                                fontWeight: 500,
-                                cursor: 'pointer',
-                                transition: 'all 0.2s'
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.background = 'var(--accent-color)';
-                                e.currentTarget.style.color = 'white';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.background = 'transparent';
-                                e.currentTarget.style.color = 'var(--accent-color)';
-                            }}
+                            style={{ border: '1px solid var(--accent-color)', background: 'transparent', color: 'var(--accent-color)' }}
+
                         >
                             Selecionar Todas
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             onClick={deselectAllCategories}
-                            style={{
-                                padding: '0.4rem 1rem',
-                                borderRadius: '6px',
-                                border: '1px solid #ef4444',
-                                background: 'transparent',
-                                color: '#ef4444',
-                                fontSize: '0.85rem',
-                                fontWeight: 500,
-                                cursor: 'pointer',
-                                transition: 'all 0.2s'
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.background = '#ef4444';
-                                e.currentTarget.style.color = 'white';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.background = 'transparent';
-                                e.currentTarget.style.color = '#ef4444';
-                            }}
+                            style={{ border: '1px solid #ef4444', background: 'transparent', color: '#ef4444' }}
+
                         >
                             Desselecionar Todas
-                        </button>
+                        </Button>
                     </div>
                 </div>
 
@@ -1104,38 +1004,20 @@ export const Dashboard = () => {
                                         </div>
                                     </div>
                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        <button
+                                        <Button
                                             type="button"
                                             onClick={selectAllAccounts}
-                                            style={{
-                                                padding: '0.3rem 0.75rem',
-                                                borderRadius: '6px',
-                                                border: '1px solid #10b981',
-                                                background: 'transparent',
-                                                color: '#10b981',
-                                                fontSize: '0.8rem',
-                                                fontWeight: 500,
-                                                cursor: 'pointer',
-                                            }}
+                                            style={{ border: '1px solid #10b981', background: 'transparent', color: '#10b981' }}
                                         >
                                             Todas
-                                        </button>
-                                        <button
+                                        </Button>
+                                        <Button
                                             type="button"
                                             onClick={deselectAllAccounts}
-                                            style={{
-                                                padding: '0.3rem 0.75rem',
-                                                borderRadius: '6px',
-                                                border: '1px solid #ef4444',
-                                                background: 'transparent',
-                                                color: '#ef4444',
-                                                fontSize: '0.8rem',
-                                                fontWeight: 500,
-                                                cursor: 'pointer',
-                                            }}
+                                            style={{ border: '1px solid #ef4444', background: 'transparent', color: '#ef4444' }}
                                         >
                                             Nenhuma
-                                        </button>
+                                        </Button>
                                     </div>
                                 </div>
 
@@ -1208,38 +1090,20 @@ export const Dashboard = () => {
                                         </div>
                                     </div>
                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        <button
+                                        <Button
                                             type="button"
                                             onClick={selectAllCreditCards}
-                                            style={{
-                                                padding: '0.3rem 0.75rem',
-                                                borderRadius: '6px',
-                                                border: '1px solid #3b82f6',
-                                                background: 'transparent',
-                                                color: '#3b82f6',
-                                                fontSize: '0.8rem',
-                                                fontWeight: 500,
-                                                cursor: 'pointer',
-                                            }}
+                                            style={{ border: '1px solid #3b82f6', background: 'transparent', color: '#3b82f6' }}
                                         >
                                             Todos
-                                        </button>
-                                        <button
+                                        </Button>
+                                        <Button
                                             type="button"
                                             onClick={deselectAllCreditCards}
-                                            style={{
-                                                padding: '0.3rem 0.75rem',
-                                                borderRadius: '6px',
-                                                border: '1px solid #ef4444',
-                                                background: 'transparent',
-                                                color: '#ef4444',
-                                                fontSize: '0.8rem',
-                                                fontWeight: 500,
-                                                cursor: 'pointer',
-                                            }}
+                                            style={{ border: '1px solid #ef4444', background: 'transparent', color: '#ef4444' }}
                                         >
                                             Nenhum
-                                        </button>
+                                        </Button>
                                     </div>
                                 </div>
 
