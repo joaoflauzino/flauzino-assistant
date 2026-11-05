@@ -1,3 +1,4 @@
+import { Button } from '../components/Button';
 import { useEffect, useState } from 'react';
 import { Plus, Trash2, Edit2, ChevronLeft, ChevronRight, Wallet } from 'lucide-react';
 import api from '../services/api';
@@ -228,7 +229,7 @@ export const SpentsPage = () => {
             </div>
 
             {/* Top Bar: Dates & Total Spent */}
-            <div style={{
+            <div className="ui-filter-group" style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
@@ -240,21 +241,14 @@ export const SpentsPage = () => {
                 gap: '1rem',
                 flexWrap: 'wrap'
             }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div className="ui-filter-group" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>De:</label>
                         <input
                             type="date"
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
-                            style={{
-                                backgroundColor: 'var(--bg-primary)',
-                                border: '1px solid var(--border-color)',
-                                color: 'white',
-                                padding: '0.4rem 0.6rem',
-                                borderRadius: '6px',
-                                fontSize: '0.85rem'
-                            }}
+                            style={{ border: '1px solid var(--border-color)', color: 'white' }}
                         />
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -263,53 +257,37 @@ export const SpentsPage = () => {
                             type="date"
                             value={endDate}
                             onChange={(e) => setEndDate(e.target.value)}
-                            style={{
-                                backgroundColor: 'var(--bg-primary)',
-                                border: '1px solid var(--border-color)',
-                                color: 'white',
-                                padding: '0.4rem 0.6rem',
-                                borderRadius: '6px',
-                                fontSize: '0.85rem'
-                            }}
+                            style={{ border: '1px solid var(--border-color)', color: 'white' }}
                         />
                     </div>
-                    <button
+                    <Button variant="primary"
                         onClick={() => fetchData(1)}
-                        style={{
-                            backgroundColor: 'var(--accent-color)',
-                            color: 'white',
-                            border: 'none',
-                            padding: '0.45rem 1rem',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            fontSize: '0.85rem',
-                            fontWeight: 600
-                        }}
+
                     >
                         Filtrar
-                    </button>
+                    </Button>
                     <div style={{ display: 'flex', gap: '0.35rem' }}>
-                        <button
+                        <Button
                             type="button"
                             onClick={() => handleSetPeriod('current')}
-                            style={{ padding: '0.4rem 0.6rem', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer' }}
+                            style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}
                         >
                             Mês Atual
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             type="button"
                             onClick={() => handleSetPeriod('90days')}
-                            style={{ padding: '0.4rem 0.6rem', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer' }}
+                            style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}
                         >
                             Últimos 90 dias
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             type="button"
                             onClick={() => handleSetPeriod('all')}
-                            style={{ padding: '0.4rem 0.6rem', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer' }}
+                            style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}
                         >
                             Ver Todos
-                        </button>
+                        </Button>
                     </div>
                 </div>
 
@@ -403,40 +381,24 @@ export const SpentsPage = () => {
                                                 <td style={{ padding: '1.25rem 1.5rem', color: 'var(--text-secondary)' }}>{new Date(s.created_at).toLocaleDateString()}</td>
                                                 <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
                                                     <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-                                                        <button
+                                                        <Button
                                                             type="button"
                                                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); openEdit(s); }}
-                                                            style={{
-                                                                padding: '0.5rem',
-                                                                backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                                                                border: '1px solid rgba(245, 158, 11, 0.2)',
-                                                                borderRadius: '8px',
-                                                                cursor: 'pointer',
-                                                                transition: 'all 0.2s',
-                                                                display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                                            }}
-                                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.2)'}
-                                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.1)'}
+                                                            title="Editar gasto"
+                                                            style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)' }}
+
                                                         >
                                                             <Edit2 size={16} color="#f59e0b" />
-                                                        </button>
-                                                        <button
+                                                        </Button>
+                                                        <Button
                                                             type="button"
                                                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(s.id); }}
-                                                            style={{
-                                                                padding: '0.5rem',
-                                                                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                                                                border: '1px solid rgba(239, 68, 68, 0.2)',
-                                                                borderRadius: '8px',
-                                                                cursor: 'pointer',
-                                                                transition: 'all 0.2s',
-                                                                display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                                            }}
-                                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.2)'}
-                                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)'}
+                                                            title="Excluir gasto"
+                                                            style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)' }}
+
                                                         >
                                                             <Trash2 size={16} color="#ef4444" />
-                                                        </button>
+                                                        </Button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -458,44 +420,20 @@ export const SpentsPage = () => {
                                     Mostrando página {page} de {totalPages}
                                 </span>
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    <button
+                                    <Button
                                         disabled={page === 1}
                                         onClick={() => setPage(page - 1)}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '0.25rem',
-                                            padding: '0.5rem 1rem',
-                                            border: '1px solid var(--border-color)',
-                                            borderRadius: '8px',
-                                            background: 'transparent',
-                                            color: 'var(--text-primary)',
-                                            cursor: page === 1 ? 'not-allowed' : 'pointer',
-                                            opacity: page === 1 ? 0.5 : 1,
-                                            fontSize: '0.9rem'
-                                        }}
+                                        style={{ border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)' }}
                                     >
                                         <ChevronLeft size={16} /> Anterior
-                                    </button>
-                                    <button
+                                    </Button>
+                                    <Button
                                         disabled={page === totalPages}
                                         onClick={() => setPage(page + 1)}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '0.25rem',
-                                            padding: '0.5rem 1rem',
-                                            border: '1px solid var(--border-color)',
-                                            borderRadius: '8px',
-                                            background: 'transparent',
-                                            color: 'var(--text-primary)',
-                                            cursor: page === totalPages ? 'not-allowed' : 'pointer',
-                                            opacity: page === totalPages ? 0.5 : 1,
-                                            fontSize: '0.9rem'
-                                        }}
+                                        style={{ border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)' }}
                                     >
                                         Próximo <ChevronRight size={16} />
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
                         )}
@@ -505,29 +443,13 @@ export const SpentsPage = () => {
 
             {/* Bottom Actions */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem' }}>
-                <button
+                <Button variant="primary"
                     onClick={openCreate}
-                    style={{
-                        backgroundColor: 'var(--accent-color)',
-                        color: 'white',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        height: '48px',
-                        border: 'none',
-                        padding: '0 2rem',
-                        borderRadius: '12px',
-                        cursor: 'pointer',
-                        fontWeight: 600,
-                        fontSize: '1rem',
-                        boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
-                        transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-                    onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+
+
                 >
                     <Plus size={22} /> Novo Gasto
-                </button>
+                </Button>
             </div>
 
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingSpent ? "Editar Gasto" : "Novo Gasto"}>
@@ -539,16 +461,7 @@ export const SpentsPage = () => {
                             className="form-input"
                             value={formData.category}
                             onChange={e => setFormData({ ...formData, category: e.target.value })}
-                            style={{
-                                width: '100%',
-                                padding: '0.9rem',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                backgroundColor: 'var(--bg-primary)',
-                                color: 'white',
-                                fontSize: '1rem',
-                                appearance: 'none'
-                            }}
+                            style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white', appearance: 'none' }}
                         >
                             <option value="" disabled>Selecione uma categoria...</option>
                             {categories.map(c => (
@@ -564,15 +477,7 @@ export const SpentsPage = () => {
                             value={formData.item_bought}
                             onChange={e => setFormData({ ...formData, item_bought: e.target.value })}
                             placeholder="e.g. Almoço"
-                            style={{
-                                width: '100%',
-                                padding: '0.9rem',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                backgroundColor: 'var(--bg-primary)',
-                                color: 'white',
-                                fontSize: '1rem'
-                            }}
+                            style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white' }}
                         />
                     </div>
                     <div>
@@ -585,16 +490,7 @@ export const SpentsPage = () => {
                             value={formData.amount}
                             onChange={e => setFormData({ ...formData, amount: e.target.value })}
                             placeholder="0.00"
-                            style={{
-                                width: '100%',
-                                padding: '0.9rem',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                backgroundColor: 'var(--bg-primary)',
-                                color: 'white',
-                                fontSize: '1rem',
-                                fontWeight: 600
-                            }}
+                            style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white' }}
                         />
                     </div>
                     <div>
@@ -603,16 +499,7 @@ export const SpentsPage = () => {
                             required
                             value={formData.payment_method}
                             onChange={e => setFormData({ ...formData, payment_method: e.target.value })}
-                            style={{
-                                width: '100%',
-                                padding: '0.9rem',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                backgroundColor: 'var(--bg-primary)',
-                                color: 'white',
-                                fontSize: '1rem',
-                                appearance: 'none'
-                            }}
+                            style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white', appearance: 'none' }}
                         >
                             <option value="" disabled>Selecione...</option>
                             {creditCards.length > 0 && (
@@ -638,15 +525,7 @@ export const SpentsPage = () => {
                             value={formData.location}
                             onChange={e => setFormData({ ...formData, location: e.target.value })}
                             placeholder="e.g. Restaurante do Zé"
-                            style={{
-                                width: '100%',
-                                padding: '0.9rem',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                backgroundColor: 'var(--bg-primary)',
-                                color: 'white',
-                                fontSize: '1rem'
-                            }}
+                            style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white' }}
                         />
                     </div>
                     <div>
@@ -656,15 +535,7 @@ export const SpentsPage = () => {
                             required
                             value={formData.created_at}
                             onChange={e => setFormData({ ...formData, created_at: e.target.value })}
-                            style={{
-                                width: '100%',
-                                padding: '0.9rem',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                backgroundColor: 'var(--bg-primary)',
-                                color: 'white',
-                                fontSize: '1rem'
-                            }}
+                            style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white' }}
                         />
                     </div>
 
@@ -699,15 +570,7 @@ export const SpentsPage = () => {
                                         min="1"
                                         value={formData.current_installment}
                                         onChange={e => setFormData({ ...formData, current_installment: parseInt(e.target.value) || 1 })}
-                                        style={{
-                                            width: '100%',
-                                            padding: '0.75rem',
-                                            borderRadius: '6px',
-                                            border: '1px solid var(--border-color)',
-                                            backgroundColor: 'var(--bg-primary)',
-                                            color: 'white',
-                                            fontSize: '0.9rem'
-                                        }}
+                                        style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white' }}
                                     />
                                 </div>
                                 <div>
@@ -717,15 +580,7 @@ export const SpentsPage = () => {
                                         min="2"
                                         value={formData.total_installments}
                                         onChange={e => setFormData({ ...formData, total_installments: parseInt(e.target.value) || 2 })}
-                                        style={{
-                                            width: '100%',
-                                            padding: '0.75rem',
-                                            borderRadius: '6px',
-                                            border: '1px solid var(--border-color)',
-                                            backgroundColor: 'var(--bg-primary)',
-                                            color: 'white',
-                                            fontSize: '0.9rem'
-                                        }}
+                                        style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white' }}
                                     />
                                 </div>
                             </div>
@@ -733,35 +588,19 @@ export const SpentsPage = () => {
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-                        <button
+                        <Button
                             type="button"
                             onClick={() => setIsModalOpen(false)}
-                            style={{
-                                padding: '0.75rem 1.5rem',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                background: 'transparent',
-                                color: 'var(--text-secondary)',
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                            }}
+                            style={{ border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-secondary)' }}
                         >
                             Cancelar
-                        </button>
-                        <button
+                        </Button>
+                        <Button variant="primary"
                             type="submit"
-                            style={{
-                                padding: '0.75rem 1.5rem',
-                                borderRadius: '8px',
-                                border: 'none',
-                                backgroundColor: 'var(--accent-color)',
-                                color: 'white',
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                            }}
+
                         >
                             {editingSpent ? 'Salvar Alterações' : 'Criar Gasto'}
-                        </button>
+                        </Button>
                     </div>
                 </form>
             </Modal>
@@ -772,36 +611,20 @@ export const SpentsPage = () => {
                         Tem certeza que deseja excluir este gasto? Essa ação não pode ser desfeita.
                     </p>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                        <button
+                        <Button
                             type="button"
                             onClick={() => setSpentToDelete(null)}
-                            style={{
-                                padding: '0.75rem 1.5rem',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                background: 'transparent',
-                                color: 'var(--text-secondary)',
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                            }}
+                            style={{ border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-secondary)' }}
                         >
                             Cancelar
-                        </button>
-                        <button
+                        </Button>
+                        <Button variant="danger"
                             type="button"
                             onClick={confirmDelete}
-                            style={{
-                                padding: '0.75rem 1.5rem',
-                                borderRadius: '8px',
-                                border: 'none',
-                                backgroundColor: 'var(--danger)',
-                                color: 'white',
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                            }}
+
                         >
                             Excluir
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </Modal>

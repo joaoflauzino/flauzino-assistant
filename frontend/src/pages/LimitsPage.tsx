@@ -1,3 +1,4 @@
+import { Button } from '../components/Button';
 import { useEffect, useState } from 'react';
 import { Plus, Trash2, Edit2, ChevronLeft, ChevronRight, PiggyBank } from 'lucide-react';
 import api from '../services/api';
@@ -117,28 +118,13 @@ export const LimitsPage = () => {
                     <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>Set budget goals for categories</p>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <button
+                    <Button variant="primary"
                         onClick={openCreate}
-                        style={{
-                            backgroundColor: 'var(--accent-color)',
-                            color: 'white',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            height: '42px',
-                            border: 'none',
-                            padding: '0 1.25rem',
-                            borderRadius: '8px',
-                            cursor: 'pointer',
-                            fontWeight: 600,
-                            boxShadow: '0 4px 6px rgba(99, 102, 241, 0.2)',
-                            transition: 'all 0.2s',
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-                        onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+
+
                     >
                         <Plus size={20} /> Novo Limite
-                    </button>
+                    </Button>
                 </div>
             </div>
 
@@ -230,40 +216,24 @@ export const LimitsPage = () => {
                                             </td>
                                             <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
                                                 <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-                                                    <button
+                                                    <Button
                                                         type="button"
                                                         onClick={(e) => { e.stopPropagation(); openEdit(l); }}
-                                                        style={{
-                                                            padding: '0.5rem',
-                                                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                                                            border: '1px solid rgba(245, 158, 11, 0.2)',
-                                                            borderRadius: '8px',
-                                                            cursor: 'pointer',
-                                                            transition: 'all 0.2s',
-                                                            display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                                        }}
-                                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.2)'}
-                                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.1)'}
+                                                        title="Editar limite"
+                                                        style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)' }}
+
                                                     >
                                                         <Edit2 size={16} color="#f59e0b" />
-                                                    </button>
-                                                    <button
+                                                    </Button>
+                                                    <Button
                                                         type="button"
                                                         onClick={(e) => { e.stopPropagation(); handleDelete(l.id); }}
-                                                        style={{
-                                                            padding: '0.5rem',
-                                                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                                                            border: '1px solid rgba(239, 68, 68, 0.2)',
-                                                            borderRadius: '8px',
-                                                            cursor: 'pointer',
-                                                            transition: 'all 0.2s',
-                                                            display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                                        }}
-                                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.2)'}
-                                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)'}
+                                                        title="Excluir limite"
+                                                        style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)' }}
+
                                                     >
                                                         <Trash2 size={16} color="#ef4444" />
-                                                    </button>
+                                                    </Button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -284,44 +254,20 @@ export const LimitsPage = () => {
                                     Mostrando página {page} de {totalPages}
                                 </span>
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    <button
+                                    <Button
                                         disabled={page === 1}
                                         onClick={() => setPage(page - 1)}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '0.25rem',
-                                            padding: '0.5rem 1rem',
-                                            border: '1px solid var(--border-color)',
-                                            borderRadius: '8px',
-                                            background: 'transparent',
-                                            color: 'var(--text-primary)',
-                                            cursor: page === 1 ? 'not-allowed' : 'pointer',
-                                            opacity: page === 1 ? 0.5 : 1,
-                                            fontSize: '0.9rem'
-                                        }}
+                                        style={{ border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)' }}
                                     >
                                         <ChevronLeft size={16} /> Anterior
-                                    </button>
-                                    <button
+                                    </Button>
+                                    <Button
                                         disabled={page === totalPages}
                                         onClick={() => setPage(page + 1)}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '0.25rem',
-                                            padding: '0.5rem 1rem',
-                                            border: '1px solid var(--border-color)',
-                                            borderRadius: '8px',
-                                            background: 'transparent',
-                                            color: 'var(--text-primary)',
-                                            cursor: page === totalPages ? 'not-allowed' : 'pointer',
-                                            opacity: page === totalPages ? 0.5 : 1,
-                                            fontSize: '0.9rem'
-                                        }}
+                                        style={{ border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)' }}
                                     >
                                         Próximo <ChevronRight size={16} />
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
                         )}
@@ -338,16 +284,7 @@ export const LimitsPage = () => {
                             className="form-input"
                             value={formData.category}
                             onChange={e => setFormData({ ...formData, category: e.target.value })}
-                            style={{
-                                width: '100%',
-                                padding: '0.9rem',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                backgroundColor: 'var(--bg-primary)',
-                                color: 'white',
-                                fontSize: '1rem',
-                                appearance: 'none'
-                            }}
+                            style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white', appearance: 'none' }}
                         >
                             <option value="" disabled>Selecione uma categoria...</option>
                             {formData.category && !categories.some(c => c.key === formData.category) && (
@@ -368,50 +305,24 @@ export const LimitsPage = () => {
                             value={formData.amount}
                             onChange={e => setFormData({ ...formData, amount: e.target.value })}
                             placeholder="0.00"
-                            style={{
-                                width: '100%',
-                                padding: '0.9rem',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                backgroundColor: 'var(--bg-primary)',
-                                color: 'white',
-                                fontSize: '1rem',
-                                fontWeight: 600
-                            }}
+                            style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white' }}
                         />
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-                        <button
+                        <Button
                             type="button"
                             onClick={() => setIsModalOpen(false)}
-                            style={{
-                                padding: '0.75rem 1.5rem',
-                                backgroundColor: 'transparent',
-                                color: 'var(--text-secondary)',
-                                border: '1px solid var(--border-color)',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                fontWeight: 500
-                            }}
+                            style={{ backgroundColor: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}
                         >
                             Cancel
-                        </button>
-                        <button
+                        </Button>
+                        <Button variant="primary"
                             type="submit"
-                            style={{
-                                padding: '0.75rem 1.5rem',
-                                backgroundColor: 'var(--accent-color)',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                fontWeight: 600,
-                                minWidth: '100px'
-                            }}
+                            style={{ minWidth: '100px' }}
                         >
                             {editingLimit ? "Update" : "Create"}
-                        </button>
+                        </Button>
                     </div>
                 </form>
             </Modal>
@@ -422,8 +333,8 @@ export const LimitsPage = () => {
                         Tem certeza que deseja excluir este limite? Essa ação não pode ser desfeita.
                     </p>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                        <button type="button" onClick={() => setItemToDelete(null)} style={{ padding: '0.75rem 1.5rem', backgroundColor: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', fontWeight: 500 }}>Cancelar</button>
-                        <button type="button" onClick={confirmDelete} style={{ padding: '0.75rem 1.5rem', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, minWidth: '100px' }}>Excluir</button>
+                        <Button type="button" onClick={() => setItemToDelete(null)} style={{ backgroundColor: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}>Cancelar</Button>
+                        <Button variant="danger" type="button" onClick={confirmDelete} style={{ minWidth: '100px' }}>Excluir</Button>
                     </div>
                 </div>
             </Modal>

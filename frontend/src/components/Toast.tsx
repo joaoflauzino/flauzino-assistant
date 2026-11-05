@@ -1,3 +1,4 @@
+import { Button } from './Button';
 import { useEffect, useState } from 'react';
 import { X, AlertCircle, CheckCircle2, Info } from 'lucide-react';
 
@@ -104,27 +105,15 @@ export const ToastContainer = () => {
                         <div style={{ flex: 1 }}>
                             {toast.message}
                         </div>
-                        <button
+                        <Button
                             type="button"
                             onClick={() => removeToast(toast.id)}
-                            style={{
-                                flexShrink: 0,
-                                padding: '0.25rem',
-                                background: 'transparent',
-                                border: 'none',
-                                cursor: 'pointer',
-                                color: 'var(--text-secondary)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                borderRadius: '4px',
-                                transition: 'all 0.2s'
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.color = 'white'}
-                            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+                            title="Fechar notificação"
+                            style={{ flexShrink: 0, background: 'transparent', border: 'none', color: 'var(--text-secondary)' }}
+
                         >
                             <X size={16} />
-                        </button>
+                        </Button>
                     </div>
                 );
             })}

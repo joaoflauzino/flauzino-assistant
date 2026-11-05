@@ -1,3 +1,4 @@
+import { Button } from '../components/Button';
 import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, Edit2, CheckCircle, RotateCcw } from 'lucide-react';
 import api from '../services/api';
@@ -165,15 +166,15 @@ export const InvoicesPage = () => {
                     borderRadius: '12px',
                     border: '1px solid var(--border-color)'
                 }}>
-                    <button onClick={prevMonth} style={{ padding: '0.5rem', background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer' }}>
+                    <Button type="button" onClick={prevMonth} title="Mês anterior">
                         <ChevronLeft size={20} />
-                    </button>
+                    </Button>
                     <span style={{ fontWeight: 600, minWidth: '120px', textAlign: 'center', textTransform: 'capitalize' }}>
                         {displayMonth}
                     </span>
-                    <button onClick={nextMonth} style={{ padding: '0.5rem', background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer' }}>
+                    <Button type="button" onClick={nextMonth} title="Próximo mês">
                         <ChevronRight size={20} />
-                    </button>
+                    </Button>
                 </div>
             </div>
 
@@ -239,68 +240,33 @@ export const InvoicesPage = () => {
                                             <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
                                                 <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', alignItems: 'center' }}>
                                                     {isPaid ? (
-                                                        <button
+                                                        <Button
                                                             onClick={() => handleReopenInvoice(inv.payment_method_key)}
                                                             disabled={isReopening}
                                                             title="Desfazer Pagamento (Reabrir Fatura)"
-                                                            style={{
-                                                                padding: '0.5rem 0.75rem',
-                                                                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                                                                border: '1px solid rgba(239, 68, 68, 0.2)',
-                                                                borderRadius: '8px',
-                                                                cursor: isReopening ? 'not-allowed' : 'pointer',
-                                                                color: '#ef4444',
-                                                                fontWeight: 600,
-                                                                fontSize: '0.85rem',
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                gap: '0.35rem',
-                                                                transition: 'all 0.2s',
-                                                                opacity: isReopening ? 0.6 : 1
-                                                            }}
+                                                            style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', opacity: isReopening ? 0.6 : 1 }}
                                                         >
                                                             <RotateCcw size={15} color="#ef4444" />
                                                             {isReopening ? 'Reabrindo...' : 'Desfazer'}
-                                                        </button>
+                                                        </Button>
                                                     ) : (
-                                                        <button
+                                                        <Button
                                                             onClick={() => handlePayInvoice(inv.payment_method_key)}
                                                             disabled={isPaying}
                                                             title="Marcar como Paga"
-                                                            style={{
-                                                                padding: '0.5rem 0.75rem',
-                                                                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                                                                border: '1px solid rgba(16, 185, 129, 0.2)',
-                                                                borderRadius: '8px',
-                                                                cursor: isPaying ? 'not-allowed' : 'pointer',
-                                                                color: '#10b981',
-                                                                fontWeight: 600,
-                                                                fontSize: '0.85rem',
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                gap: '0.35rem',
-                                                                transition: 'all 0.2s',
-                                                                opacity: isPaying ? 0.6 : 1
-                                                            }}
+                                                            style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', color: '#10b981', opacity: isPaying ? 0.6 : 1 }}
                                                         >
                                                             <CheckCircle size={15} color="#10b981" />
                                                             {isPaying ? 'Salvando...' : 'Pagar Fatura'}
-                                                        </button>
+                                                        </Button>
                                                     )}
-                                                    <button
+                                                    <Button
                                                         onClick={() => openEdit(inv)}
                                                         title="Editar Datas e Status da Fatura"
-                                                        style={{
-                                                            padding: '0.5rem',
-                                                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                                                            border: '1px solid rgba(245, 158, 11, 0.2)',
-                                                            borderRadius: '8px',
-                                                            cursor: 'pointer',
-                                                            transition: 'all 0.2s',
-                                                        }}
+                                                        style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)' }}
                                                     >
                                                         <Edit2 size={16} color="#f59e0b" />
-                                                    </button>
+                                                    </Button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -328,14 +294,7 @@ export const InvoicesPage = () => {
                                 required
                                 value={newClosingDate}
                                 onChange={e => setNewClosingDate(e.target.value)}
-                                style={{
-                                    width: '100%',
-                                    padding: '0.9rem',
-                                    borderRadius: '8px',
-                                    border: '1px solid var(--border-color)',
-                                    backgroundColor: 'var(--bg-primary)',
-                                    color: 'white'
-                                }}
+                                style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white' }}
                             />
                         </div>
 
@@ -348,14 +307,7 @@ export const InvoicesPage = () => {
                                 required
                                 value={newDueDate}
                                 onChange={e => setNewDueDate(e.target.value)}
-                                style={{
-                                    width: '100%',
-                                    padding: '0.9rem',
-                                    borderRadius: '8px',
-                                    border: '1px solid var(--border-color)',
-                                    backgroundColor: 'var(--bg-primary)',
-                                    color: 'white'
-                                }}
+                                style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white' }}
                             />
                         </div>
                     </div>
@@ -367,15 +319,7 @@ export const InvoicesPage = () => {
                         <select
                             value={newStatus}
                             onChange={e => setNewStatus(e.target.value)}
-                            style={{
-                                width: '100%',
-                                padding: '0.9rem',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                backgroundColor: 'var(--bg-primary)',
-                                color: 'white',
-                                fontSize: '0.95rem'
-                            }}
+                            style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white' }}
                         >
                             <option value="OPEN">Em Aberto (OPEN)</option>
                             <option value="CLOSED">Fechada (CLOSED)</option>
@@ -384,34 +328,19 @@ export const InvoicesPage = () => {
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-                        <button
+                        <Button
                             type="button"
                             onClick={() => setIsModalOpen(false)}
-                            style={{
-                                padding: '0.75rem 1.5rem',
-                                backgroundColor: 'transparent',
-                                color: 'var(--text-secondary)',
-                                border: '1px solid var(--border-color)',
-                                borderRadius: '8px',
-                                cursor: 'pointer'
-                            }}
+                            style={{ backgroundColor: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}
                         >
                             Cancelar
-                        </button>
-                        <button
+                        </Button>
+                        <Button variant="primary"
                             type="submit"
-                            style={{
-                                padding: '0.75rem 1.5rem',
-                                backgroundColor: 'var(--accent-color)',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                fontWeight: 600
-                            }}
+
                         >
                             Salvar Alterações
-                        </button>
+                        </Button>
                     </div>
                 </form>
             </Modal>

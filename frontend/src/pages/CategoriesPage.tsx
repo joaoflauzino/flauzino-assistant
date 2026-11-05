@@ -1,3 +1,4 @@
+import { Button } from '../components/Button';
 import { useEffect, useState } from 'react';
 import { Plus, Trash2, Edit2, ChevronLeft, ChevronRight, Tags } from 'lucide-react';
 import api from '../services/api';
@@ -94,28 +95,13 @@ export const CategoriesPage = () => {
                     <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>Gerencie suas categorias de gastos</p>
                 </div>
 
-                <button
+                <Button variant="primary"
                     onClick={openCreate}
-                    style={{
-                        backgroundColor: 'var(--accent-color)',
-                        color: 'white',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        height: '42px',
-                        border: 'none',
-                        padding: '0 1.25rem',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        fontWeight: 600,
-                        boxShadow: '0 4px 6px rgba(99, 102, 241, 0.2)',
-                        transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-                    onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+
+
                 >
                     <Plus size={20} /> Nova Categoria
-                </button>
+                </Button>
             </div>
 
             {/* Stats Summary */}
@@ -211,46 +197,24 @@ export const CategoriesPage = () => {
                                                 <td style={{ padding: '1.25rem 1.5rem', fontWeight: 500, fontSize: '1rem' }}>{c.display_name}</td>
                                                 <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
                                                     <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-                                                    <button
+                                                    <Button
                                                         type="button"
                                                         onClick={(e) => { e.stopPropagation(); openEdit(c); }}
                                                         title="Editar"
-                                                        style={{
-                                                            padding: '0.5rem',
-                                                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                                                            border: '1px solid rgba(245, 158, 11, 0.2)',
-                                                            borderRadius: '8px',
-                                                            cursor: 'pointer',
-                                                            transition: 'all 0.2s',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center'
-                                                        }}
-                                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.2)'}
-                                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.1)'}
+                                                        style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)' }}
+
                                                     >
                                                         <Edit2 size={16} color="#f59e0b" />
-                                                    </button>
-                                                    <button
+                                                    </Button>
+                                                    <Button
                                                         type="button"
                                                         onClick={(e) => { e.stopPropagation(); handleDelete(c.id); }}
                                                         title="Excluir"
-                                                        style={{
-                                                            padding: '0.5rem',
-                                                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                                                            border: '1px solid rgba(239, 68, 68, 0.2)',
-                                                            borderRadius: '8px',
-                                                            cursor: 'pointer',
-                                                            transition: 'all 0.2s',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center'
-                                                        }}
-                                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.2)'}
-                                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)'}
+                                                        style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)' }}
+
                                                     >
                                                         <Trash2 size={16} color="#ef4444" />
-                                                    </button>
+                                                    </Button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -272,44 +236,20 @@ export const CategoriesPage = () => {
                                     Mostrando página {page} de {totalPages}
                                 </span>
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    <button
+                                    <Button
                                         disabled={page === 1}
                                         onClick={() => setPage(page - 1)}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '0.25rem',
-                                            padding: '0.5rem 1rem',
-                                            border: '1px solid var(--border-color)',
-                                            borderRadius: '8px',
-                                            background: 'transparent',
-                                            color: 'var(--text-primary)',
-                                            cursor: page === 1 ? 'not-allowed' : 'pointer',
-                                            opacity: page === 1 ? 0.5 : 1,
-                                            fontSize: '0.9rem'
-                                        }}
+                                        style={{ border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)' }}
                                     >
                                         <ChevronLeft size={16} /> Anterior
-                                    </button>
-                                    <button
+                                    </Button>
+                                    <Button
                                         disabled={page === totalPages}
                                         onClick={() => setPage(page + 1)}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '0.25rem',
-                                            padding: '0.5rem 1rem',
-                                            border: '1px solid var(--border-color)',
-                                            borderRadius: '8px',
-                                            background: 'transparent',
-                                            color: 'var(--text-primary)',
-                                            cursor: page === totalPages ? 'not-allowed' : 'pointer',
-                                            opacity: page === totalPages ? 0.5 : 1,
-                                            fontSize: '0.9rem'
-                                        }}
+                                        style={{ border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)' }}
                                     >
                                         Próximo <ChevronRight size={16} />
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
                         )}
@@ -327,16 +267,7 @@ export const CategoriesPage = () => {
                             value={formData.key}
                             onChange={e => setFormData({ ...formData, key: e.target.value })}
                             placeholder="e.g. food_dining"
-                            style={{
-                                width: '100%',
-                                padding: '0.9rem',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                backgroundColor: 'var(--bg-primary)',
-                                color: 'white',
-                                fontFamily: 'monospace',
-                                fontSize: '1rem'
-                            }}
+                            style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white' }}
                         />
                         <small style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '0.5rem', display: 'block' }}>
                             Identificador único usado pelo sistema (ex: food, transport).
@@ -350,49 +281,24 @@ export const CategoriesPage = () => {
                             value={formData.display_name}
                             onChange={e => setFormData({ ...formData, display_name: e.target.value })}
                             placeholder="e.g. Food & Dining"
-                            style={{
-                                width: '100%',
-                                padding: '0.9rem',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border-color)',
-                                backgroundColor: 'var(--bg-primary)',
-                                color: 'white',
-                                fontSize: '1rem'
-                            }}
+                            style={{ width: '100%', border: '1px solid var(--border-color)', color: 'white' }}
                         />
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-                        <button
+                        <Button
                             type="button"
                             onClick={() => setIsModalOpen(false)}
-                            style={{
-                                padding: '0.75rem 1.5rem',
-                                backgroundColor: 'transparent',
-                                color: 'var(--text-secondary)',
-                                border: '1px solid var(--border-color)',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                fontWeight: 500
-                            }}
+                            style={{ backgroundColor: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}
                         >
                             Cancelar
-                        </button>
-                        <button
+                        </Button>
+                        <Button variant="primary"
                             type="submit"
-                            style={{
-                                padding: '0.75rem 1.5rem',
-                                backgroundColor: 'var(--accent-color)',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                fontWeight: 600,
-                                minWidth: '100px'
-                            }}
+                            style={{ minWidth: '100px' }}
                         >
                             {editingCategory ? "Salvar" : "Criar"}
-                        </button>
+                        </Button>
                     </div>
                 </form>
             </Modal>
@@ -403,37 +309,20 @@ export const CategoriesPage = () => {
                         Tem certeza que deseja excluir esta categoria? Gastos vinculados a ela podem ser afetados.
                     </p>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                        <button
+                        <Button
                             type="button"
                             onClick={() => setItemToDelete(null)}
-                            style={{
-                                padding: '0.75rem 1.5rem',
-                                backgroundColor: 'transparent',
-                                color: 'var(--text-secondary)',
-                                border: '1px solid var(--border-color)',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                fontWeight: 500
-                            }}
+                            style={{ backgroundColor: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}
                         >
                             Cancelar
-                        </button>
-                        <button
+                        </Button>
+                        <Button variant="danger"
                             type="button"
                             onClick={confirmDelete}
-                            style={{
-                                padding: '0.75rem 1.5rem',
-                                backgroundColor: '#ef4444',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                fontWeight: 600,
-                                minWidth: '100px'
-                            }}
+                            style={{ minWidth: '100px' }}
                         >
                             Excluir
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </Modal>
