@@ -1,75 +1,52 @@
 from datetime import date
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Response, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Response, status
 
-from finance_api.core.database import get_db
-from finance_api.repositories.invoices import InvoiceRepository
-from finance_api.repositories.payment_methods import PaymentMethodRepository
-from finance_api.repositories.spents import SpentRepository
+from finance_api.core.service_dependencies import SpentServiceDep
 from finance_api.schemas.installments import InstallmentSummary
 from finance_api.schemas.pagination import PaginatedResponse
 from finance_api.schemas.spents import DashboardMode, SpentCreate, SpentResponse, SpentUpdate
-from finance_api.services.invoices import InvoiceService
-from finance_api.services.spents import SpentService
 
 router = APIRouter()
 
 
 @router.post("/", response_model=SpentResponse)
-async def create_spent(spent: SpentCreate, db: AsyncSession = Depends(get_db)) -> SpentResponse:
-    repo = SpentRepository(db)
-    service = SpentService(repo)
+async def create_spent(spent: SpentCreate, service: SpentServiceDep) -> SpentResponse:
     return await service.create(spent)
 
 
 @router.get("/", response_model=PaginatedResponse[SpentResponse])
 async def list_spents(
+    service: SpentServiceDep,
     page: int = 1,
     size: int = 10,
     start_date: date | None = None,
     end_date: date | None = None,
-    db: AsyncSession = Depends(get_db),
 ) -> PaginatedResponse[SpentResponse]:
-    repo = SpentRepository(db)
-    service = SpentService(repo)
     return await service.list(page, size, start_date, end_date)
 
 
 @router.get("/dashboard", response_model=PaginatedResponse[SpentResponse])
 async def get_dashboard(
+    service: SpentServiceDep,
     reference_month: str,
     mode: DashboardMode = DashboardMode.CIVIL_MONTH,
     page: int = 1,
     size: int = 100,
-    db: AsyncSession = Depends(get_db),
 ) -> PaginatedResponse[SpentResponse]:
-    repo = SpentRepository(db)
-    service = SpentService(repo)
-
-    inv_repo = InvoiceRepository(db)
-    pm_repo = PaymentMethodRepository(db)
-    inv_service = InvoiceService(inv_repo, pm_repo)
-
-    return await service.get_dashboard(
-        reference_month, mode.value, page, size, inv_service, pm_repo
-    )
+    return await service.get_dashboard(reference_month, mode.value, page, size)
 
 
 @router.get("/installments-summary", response_model=list[InstallmentSummary])
 async def get_installments_summary(
-    db: AsyncSession = Depends(get_db),
+    service: SpentServiceDep,
 ) -> list[InstallmentSummary]:
-    repo = SpentRepository(db)
-    service = SpentService(repo)
     return await service.get_installments_summary()
 
 
 @router.get("/{spent_id}", response_model=SpentResponse)
-async def get_spent(spent_id: UUID, db: AsyncSession = Depends(get_db)) -> SpentResponse:
-    repo = SpentRepository(db)
-    service = SpentService(repo)
+async def get_spent(spent_id: UUID, service: SpentServiceDep) -> SpentResponse:
     return await service.get_by_id(spent_id)
 
 
@@ -77,16 +54,12 @@ async def get_spent(spent_id: UUID, db: AsyncSession = Depends(get_db)) -> Spent
 async def update_spent(
     spent_id: UUID,
     update_data: SpentUpdate,
-    db: AsyncSession = Depends(get_db),
+    service: SpentServiceDep,
 ) -> SpentResponse:
-    repo = SpentRepository(db)
-    service = SpentService(repo)
     return await service.update(spent_id, update_data)
 
 
 @router.delete("/{spent_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_spent(spent_id: UUID, db: AsyncSession = Depends(get_db)) -> Response:
-    repo = SpentRepository(db)
-    service = SpentService(repo)
+async def delete_spent(spent_id: UUID, service: SpentServiceDep) -> Response:
     await service.delete(spent_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

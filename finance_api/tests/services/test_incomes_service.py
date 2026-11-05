@@ -262,6 +262,7 @@ async def test_update_income_resolves_account_from_payment_method(
         repo=mock_income_repo,
         category_repo=mock_cat_repo,
         pm_repo=mock_pm_repo,
+        spent_repo=AsyncMock(),
         payment_resolver=FakePaymentResolver(
             {
                 "itau_joao": ResolvedPaymentTarget(

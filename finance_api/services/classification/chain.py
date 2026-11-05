@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from decimal import Decimal
 
 from finance_api.core.text import normalize_upper
-from finance_api.repositories.category_rules import CategoryRuleRepositoryProtocol
+from finance_api.repositories.protocols import CategoryRuleRepositoryProtocol
 from finance_api.schemas.classification import (
     BANK_CATEGORY_MAP,
     ClassificationContext,

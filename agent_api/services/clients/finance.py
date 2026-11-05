@@ -13,6 +13,7 @@ from agent_api.schemas.finance import (
     DEFAULT_CREDIT_CARDS,
     DEFAULT_INCOME_CATEGORIES,
     DEFAULT_PAYMENT_METHODS,
+    BalancePayload,
 )
 from agent_api.schemas.income import IncomeDetails
 from agent_api.schemas.limit import LimitDetails
@@ -35,7 +36,7 @@ class FinanceService(BaseHttpService):
     _cached_credit_cards: list[str] | None = None
     _credit_cards_expiry: float = 0.0
 
-    def __init__(self, client: httpx.AsyncClient):
+    def __init__(self, client: httpx.AsyncClient) -> None:
         super().__init__(client)
 
     def _get_headers(self) -> dict[str, str]:
@@ -181,7 +182,7 @@ class FinanceService(BaseHttpService):
         self,
         categories: list[str] | None = None,
         reference_month: str | None = None,
-    ) -> list[dict]:
+    ) -> list[BalancePayload]:
         """Fetch balances from the finance API with optional category and reference_month filtering."""
         url = f"{settings.FINANCE_SERVICE_URL}/limits/balance"
         params = {}

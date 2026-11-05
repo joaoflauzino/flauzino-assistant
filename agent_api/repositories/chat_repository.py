@@ -1,7 +1,7 @@
 import uuid
 from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import Any, Protocol, cast
+from typing import Any, cast
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.engine import CursorResult
@@ -12,29 +12,6 @@ from agent_api.core.logger import get_logger
 from agent_api.models.chat import ChatMessage, ChatSession
 
 logger = get_logger(__name__)
-
-
-class ChatRepositoryProtocol(Protocol):
-    """Domain repository contract for ChatSession and ChatMessage persistence."""
-
-    async def create_session(self) -> ChatSession: ...
-
-    async def get_session(self, session_id: uuid.UUID) -> ChatSession | None: ...
-
-    async def add_message(
-        self,
-        session_id: uuid.UUID,
-        role: str,
-        content: str,
-    ) -> ChatMessage: ...
-
-    async def get_messages(
-        self,
-        session_id: uuid.UUID,
-        limit: int = 10,
-    ) -> Sequence[ChatMessage]: ...
-
-    async def cleanup_stale_sessions(self, max_age_minutes: int = 30) -> int: ...
 
 
 class ChatRepository:

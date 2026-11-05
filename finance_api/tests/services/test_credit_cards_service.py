@@ -1,15 +1,28 @@
 from unittest.mock import AsyncMock
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 
 from finance_api.core.exceptions import EntityConflictError, EntityNotFoundError
 from finance_api.models.accounts import Account
 from finance_api.models.credit_cards import CreditCard
+from finance_api.repositories.protocols import AccountLookupProtocol
 from finance_api.schemas.credit_cards import CreditCardCreate, CreditCardUpdate
 from finance_api.services.credit_cards import CreditCardService
 
 pytestmark = pytest.mark.asyncio
+
+
+class AccountLookupFake:
+    """Structural fake exposing only the account lookup required by the service."""
+
+    def __init__(self, account: Account) -> None:
+        self._account = account
+
+    async def get_by_id(self, account_id: UUID) -> Account | None:
+        if account_id == self._account.id:
+            return self._account
+        return None
 
 
 @pytest.fixture
@@ -41,6 +54,28 @@ async def test_create_credit_card_success(mock_card_repo, mock_account_repo):
 
     result = await service.create(data)
     assert result == mock_card
+
+
+async def test_credit_card_service_accepts_lookup_only_repository() -> None:
+    account_id = uuid4()
+    account = Account(id=account_id, key="itau_joao")
+    account_repository: AccountLookupProtocol = AccountLookupFake(account)
+    card_repository = AsyncMock()
+    card_repository.get_by_key.return_value = None
+    card_repository.create.return_value = CreditCard(id=uuid4(), key="itau_black")
+    service = CreditCardService(card_repository, account_repository)
+
+    result = await service.create(
+        CreditCardCreate(
+            key="itau_black",
+            name="Itaú Black",
+            account_id=account_id,
+            closing_day=2,
+            due_day=10,
+        )
+    )
+
+    assert result.key == "itau_black"
 
 
 async def test_create_credit_card_account_not_found(mock_card_repo, mock_account_repo):
@@ -80,7 +115,7 @@ async def test_create_credit_card_conflict(mock_card_repo, mock_account_repo):
 
 async def test_update_credit_card_success(mock_card_repo):
     card_id = uuid4()
-    service = CreditCardService(mock_card_repo)
+    service = CreditCardService(mock_card_repo, AsyncMock())
     updated_card = CreditCard(id=card_id, key="itau_black", name="Itaú Black")
     mock_card_repo.update.return_value = updated_card
 
@@ -102,7 +137,7 @@ async def test_update_credit_card_account_not_found(mock_card_repo, mock_account
 
 async def test_update_credit_card_key_conflict_with_other_card(mock_card_repo):
     card_id = uuid4()
-    service = CreditCardService(mock_card_repo)
+    service = CreditCardService(mock_card_repo, AsyncMock())
     mock_card_repo.get_by_key.return_value = CreditCard(
         id=uuid4(), key="itau_black", name="Outro cartão"
     )
@@ -115,7 +150,7 @@ async def test_update_credit_card_key_conflict_with_other_card(mock_card_repo):
 
 async def test_update_credit_card_keeps_own_key(mock_card_repo):
     card_id = uuid4()
-    service = CreditCardService(mock_card_repo)
+    service = CreditCardService(mock_card_repo, AsyncMock())
     mock_card_repo.get_by_key.return_value = CreditCard(
         id=card_id, key="itau_black", name="Itaú Black"
     )
@@ -129,7 +164,7 @@ async def test_update_credit_card_keeps_own_key(mock_card_repo):
 
 async def test_update_credit_card_raises_when_repository_returns_none(mock_card_repo):
     mock_card_repo.update.return_value = None
-    service = CreditCardService(mock_card_repo)
+    service = CreditCardService(mock_card_repo, AsyncMock())
 
     with pytest.raises(EntityNotFoundError, match="não encontrado"):
         await service.update(uuid4(), CreditCardUpdate(name="Itaú Black"))

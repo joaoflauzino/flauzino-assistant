@@ -6,9 +6,11 @@ from uuid import UUID
 from finance_api.importers.schemas import ResolvedImportTarget
 from finance_api.models.import_batches import ImportBatch
 from finance_api.models.staged_transactions import StagedTransaction
-from finance_api.repositories.accounts import AccountRepositoryProtocol
-from finance_api.repositories.credit_cards import CreditCardRepositoryProtocol
-from finance_api.repositories.imports import ImportBatchRepositoryProtocol
+from finance_api.repositories.protocols import (
+    AccountRepositoryProtocol,
+    CreditCardRepositoryProtocol,
+    ImportBatchRepositoryProtocol,
+)
 from finance_api.schemas.imports import (
     ImportBatchResponse,
     PossibleDuplicateInfo,

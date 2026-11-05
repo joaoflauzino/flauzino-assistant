@@ -3,7 +3,7 @@ from uuid import UUID
 from finance_api.core.decorators import handle_service_errors
 from finance_api.core.exceptions import EntityNotFoundError, ValidationError
 from finance_api.core.logger import get_logger
-from finance_api.repositories.income_categories import IncomeCategoryRepository
+from finance_api.repositories.protocols import IncomeCategoryRepositoryProtocol
 from finance_api.schemas.income_categories import (
     IncomeCategoryCreate,
     IncomeCategoryResponse,
@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 
 
 class IncomeCategoryService:
-    def __init__(self, repo: IncomeCategoryRepository):
+    def __init__(self, repo: IncomeCategoryRepositoryProtocol) -> None:
         self.repo = repo
 
     @handle_service_errors

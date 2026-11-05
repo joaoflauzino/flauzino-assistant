@@ -5,8 +5,10 @@ from finance_api.core.decorators import handle_service_errors
 from finance_api.core.exceptions import EntityNotFoundError, ValidationError
 from finance_api.core.logger import get_logger
 from finance_api.models.limits import SpendingLimit
-from finance_api.repositories.categories import CategoryRepository
-from finance_api.repositories.limits import SpendingLimitRepository
+from finance_api.repositories.protocols import (
+    CategoryRepositoryProtocol,
+    SpendingLimitRepositoryProtocol,
+)
 from finance_api.schemas.limits import SpendingLimitCreate, SpendingLimitUpdate
 from finance_api.schemas.pagination import PaginatedResponse
 
@@ -16,14 +18,15 @@ logger = get_logger(__name__)
 class SpendingLimitService:
     def __init__(
         self,
-        repo: SpendingLimitRepository,
-        category_repo: CategoryRepository | None = None,
-    ):
+        repo: SpendingLimitRepositoryProtocol,
+        category_repo: CategoryRepositoryProtocol,
+    ) -> None:
         self.repo = repo
-        self.category_repo = category_repo or CategoryRepository(repo.db)
+        self.category_repo = category_repo
 
     @handle_service_errors
     async def create(self, limit_data: SpendingLimitCreate) -> "SpendingLimit":
+        """Creates a spending limit, normalizing the supplied payload in place."""
         logger.info(f"Creating spending limit for category: {limit_data.category}")
 
         # Validate category exists in database and normalize
@@ -49,7 +52,7 @@ class SpendingLimitService:
         )
         skip = (page - 1) * size
         items, total = await self.repo.list(skip, size, start_date, end_date)
-        return PaginatedResponse.create(items, total, page, size)
+        return PaginatedResponse.create(list(items), total, page, size)
 
     @handle_service_errors
     async def get_by_category(self, category: str) -> SpendingLimit | None:
@@ -68,6 +71,7 @@ class SpendingLimitService:
 
     @handle_service_errors
     async def update(self, limit_id: UUID, update_data: SpendingLimitUpdate) -> "SpendingLimit":
+        """Updates a spending limit after normalizing the payload in place."""
         logger.info(f"Updating spending limit: {limit_id}")
         if update_data.category:
             matched_cat = await self.category_repo.get_by_key(update_data.category)

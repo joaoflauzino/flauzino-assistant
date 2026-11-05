@@ -4,11 +4,13 @@ from finance_api.core.decorators import handle_service_errors
 from finance_api.core.exceptions import EntityNotFoundError, ValidationError
 from finance_api.core.logger import get_logger
 from finance_api.models.subscriptions import Subscription
-from finance_api.repositories.categories import CategoryRepository
-from finance_api.repositories.subscriptions import SubscriptionRepository
+from finance_api.repositories.protocols import (
+    CategoryRepositoryProtocol,
+    SubscriptionRepositoryProtocol,
+)
 from finance_api.schemas.pagination import PaginatedResponse
 from finance_api.schemas.subscriptions import SubscriptionCreate, SubscriptionUpdate
-from finance_api.services.payment_resolution import PaymentResolutionService
+from finance_api.services.payment_resolution_protocols import PaymentResolutionServiceProtocol
 from finance_api.services.update_preparation import (
     ExpenseCategoryStep,
     SubscriptionPaymentStep,
@@ -21,11 +23,11 @@ logger = get_logger(__name__)
 class SubscriptionService:
     def __init__(
         self,
-        repo: SubscriptionRepository,
+        repo: SubscriptionRepositoryProtocol,
         *,
-        payment_resolver: PaymentResolutionService,
-        category_repo: CategoryRepository,
-    ):
+        payment_resolver: PaymentResolutionServiceProtocol,
+        category_repo: CategoryRepositoryProtocol,
+    ) -> None:
         self.repo = repo
         self.payment_resolver = payment_resolver
         self.category_repo = category_repo
@@ -48,6 +50,7 @@ class SubscriptionService:
 
     @handle_service_errors
     async def create(self, subscription: SubscriptionCreate) -> "Subscription":
+        """Creates a subscription, resolving payment relations in place."""
         logger.info(f"Creating subscription: {subscription.name} - {subscription.category}")
 
         if not await self.category_repo.get_by_key(subscription.category):
@@ -65,7 +68,7 @@ class SubscriptionService:
         logger.info(f"Listing subscriptions page {page} size {size} active_only {active_only}")
         skip = (page - 1) * size
         items, total = await self.repo.list(skip, size, active_only)
-        return PaginatedResponse.create(items, total, page, size)
+        return PaginatedResponse.create(list(items), total, page, size)
 
     @handle_service_errors
     async def get_by_id(self, subscription_id: UUID) -> "Subscription":
@@ -79,6 +82,7 @@ class SubscriptionService:
     async def update(
         self, subscription_id: UUID, update_data: SubscriptionUpdate
     ) -> "Subscription":
+        """Updates a subscription after preparing the payload in place."""
         logger.info(f"Updating subscription: {subscription_id}")
 
         await self._build_update_preparer().prepare(update_data)

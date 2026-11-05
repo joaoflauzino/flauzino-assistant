@@ -8,27 +8,29 @@ from fastapi.testclient import TestClient
 
 from finance_api.core.dependencies import (
     get_account_repository,
-    get_account_service,
     get_category_repository,
     get_category_rule_repository,
-    get_classification_service,
     get_credit_card_repository,
-    get_credit_card_service,
     get_import_batch_repository,
-    get_import_service,
     get_income_category_repository,
     get_income_repository,
     get_invoice_repository,
-    get_invoice_service,
-    get_parser_factory,
     get_payment_method_repository,
     get_spending_limit_repository,
-    get_spending_limit_service,
     get_spent_repository,
     get_staged_transaction_repository,
-    get_target_resolvers,
 )
 from finance_api.core.exceptions import EntityNotFoundError
+from finance_api.core.service_dependencies import (
+    get_account_service,
+    get_classification_service,
+    get_credit_card_service,
+    get_import_service,
+    get_invoice_service,
+    get_parser_factory,
+    get_spending_limit_service,
+    get_target_resolvers,
+)
 from finance_api.main import app
 from finance_api.models.category_rules import CategoryRule
 from finance_api.schemas.imports import (
@@ -239,9 +241,9 @@ def test_dependency_providers_wiring():
     assert target_resolvers is not None
 
     inv_svc = get_invoice_service(inv_repo, pm_repo)
-    limit_svc = get_spending_limit_service(mock_db)
-    acc_svc = get_account_service(mock_db)
-    cc_svc = get_credit_card_service(mock_db)
+    limit_svc = get_spending_limit_service(repo=limit_repo, category_repo=cat_repo)
+    acc_svc = get_account_service(repo=acc_repo)
+    cc_svc = get_credit_card_service(repo=cc_repo, account_repo=acc_repo)
     clf_svc = get_classification_service(rule_repo)
     imp_svc = get_import_service(
         batch_repo=batch_repo,

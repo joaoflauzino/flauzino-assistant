@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from finance_api.core.logger import get_logger
 from finance_api.models.spents import Spent
+from finance_api.schemas.installments import InstallmentSummaryRow
 from finance_api.schemas.spents import SpentCreate, SpentUpdate
 
 logger = get_logger(__name__)
@@ -105,7 +106,7 @@ class SpentRepository:
             logger.info(f"Retrieved spent: {spent_id}")
         return spent
 
-    async def get_installments_summary(self) -> builtins.list[dict]:
+    async def get_installments_summary(self) -> builtins.list[InstallmentSummaryRow]:
         """Get an aggregated summary of active installments."""
         query = (
             select(

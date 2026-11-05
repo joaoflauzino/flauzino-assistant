@@ -1,12 +1,11 @@
 """Audio Router for processing voice messages and audio files."""
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, File, Form, UploadFile
 
 from agent_api.core.logger import get_logger
-from agent_api.dependencies import get_chat_service
+from agent_api.dependencies import AudioServiceDep, ChatServiceDep
 from agent_api.schemas.dtos import ChatResponse
-from agent_api.services.audio import transcribe_audio, validate_audio_file
-from agent_api.services.chat import ChatService
+from agent_api.services.audio import validate_audio_file
 
 logger = get_logger(__name__)
 
@@ -15,28 +14,25 @@ router = APIRouter(prefix="/audio", tags=["Audio"])
 
 @router.post("/process-audio", response_model=ChatResponse)
 async def process_audio_file(
+    audio_service: AudioServiceDep,
+    service: ChatServiceDep,
     file: UploadFile = File(..., description="Audio file"),
     session_id: str | None = Form(None, description="Chat session ID for context"),
     platform: str | None = Form(None, description="Platform originating the request"),
-    service: ChatService = Depends(get_chat_service),
 ) -> ChatResponse:
     """Process an audio file and start/continue a chat session."""
     logger.info(
         f"Received audio processing request: {file.filename}, session: {session_id}, content_type: {file.content_type}"
     )
 
-    # Validate and extract text from audio
     audio_bytes = await file.read()
     validate_audio_file(file.filename, len(audio_bytes))
 
-    mime_type = file.content_type or "audio/ogg"
-    transcribed_text = await transcribe_audio(audio_bytes, mime_type)
+    transcribed_text = await audio_service.transcribe(audio_bytes)
 
     logger.info(f"Audio transcription successful. Extracted {len(transcribed_text)} characters.")
 
-    # Process through chat service
-    message = transcribed_text
-    response = await service.process_message(message, session_id, platform)
+    response = await service.process_message(transcribed_text, session_id, platform)
 
     logger.info(f"Audio processed successfully. Session: {response.session_id}")
 

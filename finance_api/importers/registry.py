@@ -12,8 +12,10 @@ from finance_api.importers.schemas import (
     ResolvedImportTarget,
     StatementType,
 )
-from finance_api.repositories.accounts import AccountRepositoryProtocol
-from finance_api.repositories.credit_cards import CreditCardRepositoryProtocol
+from finance_api.repositories.protocols import (
+    AccountRepositoryProtocol,
+    CreditCardRepositoryProtocol,
+)
 
 
 # ---------------------------------------------------------------------------

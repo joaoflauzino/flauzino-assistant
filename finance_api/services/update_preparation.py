@@ -17,8 +17,8 @@ from finance_api.services.lookup_protocols import (
     IncomeCategoryLookupProtocol,
     PaymentMethodLookupProtocol,
 )
+from finance_api.services.payment_resolution_protocols import PaymentResolutionServiceProtocol
 from finance_api.services.update_preparation_protocols import (
-    PaymentResolutionServiceProtocol,
     PaymentTargetPayload,
     UpdatePreparationStep,
 )

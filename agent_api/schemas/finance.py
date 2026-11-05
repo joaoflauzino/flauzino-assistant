@@ -1,6 +1,20 @@
 """Schemas, default fallback values and DTOs for the finance client."""
 
+from typing import TypedDict
+
 _CACHE_TTL_SECONDS: float = 300.0  # 5 minutes
+
+
+class BalancePayload(TypedDict):
+    """Balance item returned by finance_api and forwarded to graph_api."""
+
+    category: str
+    category_display_name: str
+    limit: float
+    spent: float
+    available: float
+    percentage_used: float
+
 
 DEFAULT_CATEGORIES: list[str] = [
     "alimentacao",

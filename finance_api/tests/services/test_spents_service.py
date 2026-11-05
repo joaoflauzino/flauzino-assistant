@@ -36,6 +36,7 @@ def service(mock_repo, mock_category_repo, mock_pm_repo):
         category_repo=mock_category_repo,
         pm_repo=mock_pm_repo,
         payment_resolver=FakePaymentResolver(),
+        inv_service=AsyncMock(),
     )
 
 
@@ -103,7 +104,7 @@ async def test_update_normalizes_category_key(service, mock_repo, mock_category_
 async def test_update_resolves_payment_target(service, mock_repo, mock_pm_repo):
     spent_id = uuid4()
     account_id = uuid4()
-    service._payment_resolver = FakePaymentResolver(
+    service.payment_resolver = FakePaymentResolver(
         {
             "pix_joao": ResolvedPaymentTarget(
                 account_id=account_id, credit_card_id=None, payment_type="PIX"

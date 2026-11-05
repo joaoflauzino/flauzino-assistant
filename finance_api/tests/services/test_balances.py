@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from finance_api.core.dependencies import get_balance_service
+from finance_api.core.composition import build_balance_service
 from finance_api.models.limits import SpendingLimit
 from finance_api.models.payment_methods import PaymentMethod
 from finance_api.models.spents import Spent
@@ -188,7 +188,7 @@ async def test_get_balance_full_flow():
 
 def test_get_balance_service_dependency():
     mock_db = MagicMock()
-    service = get_balance_service(mock_db)
+    service = build_balance_service(mock_db)
 
     assert isinstance(service.limit_repo, SpendingLimitRepository)
     assert isinstance(service.spent_repo, SpentRepository)

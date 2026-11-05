@@ -4,35 +4,41 @@ from uuid import uuid4
 import pytest
 
 from finance_api.core.exceptions import ValidationError
-from finance_api.models.accounts import Account
 from finance_api.models.payment_methods import PaymentMethod
 from finance_api.models.spents import Spent
-from finance_api.repositories.spents import SpentRepository
-from finance_api.schemas.spents import SpentCreate
+from finance_api.schemas.payment_resolution import ResolvedPaymentTarget
+from finance_api.schemas.spents import SpentCreate, SpentUpdate
 from finance_api.services.spents import SpentService
+from finance_api.tests.fakes.fake_payment_resolver import FakePaymentResolver
+
+
+def build_service(
+    repo: AsyncMock,
+    category_repo: AsyncMock,
+    pm_repo: AsyncMock,
+    resolver: FakePaymentResolver | None = None,
+) -> SpentService:
+    return SpentService(
+        repo=repo,
+        category_repo=category_repo,
+        pm_repo=pm_repo,
+        payment_resolver=resolver or FakePaymentResolver(),
+        inv_service=AsyncMock(),
+    )
 
 
 @pytest.mark.asyncio
-async def test_spent_creation_validates_payment_method(mocker):
+async def test_spent_creation_validates_payment_method():
     """Test that creating a spent validates payment_method exists."""
-    # Mock repository
-    mock_repo = MagicMock(spec=SpentRepository)
-    mock_repo.db = AsyncMock()
+    mock_repo = AsyncMock()
+    category_repo = AsyncMock()
+    category_repo.get_by_key.return_value = MagicMock(key="test_cat")
 
-    # Create service
-    service = SpentService(mock_repo)
+    pm_repo = AsyncMock()
+    pm_repo.get_by_key.return_value = None
 
-    # Mock CategoryRepository to return a category (category exists)
-    mock_category = MagicMock()
-    mock_category.key = "test_cat"
-    category_repo = mocker.patch("finance_api.services.spents.CategoryRepository")
-    category_repo.return_value.get_by_key = AsyncMock(return_value=mock_category)
+    service = build_service(mock_repo, category_repo, pm_repo)
 
-    # Mock PaymentMethodRepository to return None (payment_method doesn't exist)
-    payment_method_repo = mocker.patch("finance_api.services.spents.PaymentMethodRepository")
-    payment_method_repo.return_value.get_by_key = AsyncMock(return_value=None)
-
-    # Should raise ValidationError
     with pytest.raises(ValidationError, match="Método de pagamento 'nonexistent_pm' não existe"):
         await service.create(
             SpentCreate(
@@ -44,60 +50,35 @@ async def test_spent_creation_validates_payment_method(mocker):
             )
         )
 
+    mock_repo.create.assert_not_awaited()
+
 
 @pytest.mark.asyncio
-async def test_spent_update_validates_payment_method(mocker):
+async def test_spent_update_validates_payment_method():
     """Test that updating a spent validates new payment_method."""
-    from finance_api.schemas.spents import SpentUpdate
+    mock_repo = AsyncMock()
+    category_repo = AsyncMock()
+    category_repo.get_by_key.return_value = MagicMock(key="test_cat")
 
-    mock_repo = MagicMock(spec=SpentRepository)
-    mock_repo.db = AsyncMock()
+    pm_repo = AsyncMock()
+    pm_repo.get_by_key.return_value = None
 
-    service = SpentService(mock_repo)
+    service = build_service(mock_repo, category_repo, pm_repo)
 
-    # Mock CategoryRepository to return a category (category exists)
-    mock_category = MagicMock()
-    mock_category.key = "test_cat"
-    category_repo = mocker.patch("finance_api.services.spents.CategoryRepository")
-    category_repo.return_value.get_by_key = AsyncMock(return_value=mock_category)
-
-    # Mock PaymentMethodRepository to return None (payment_method doesn't exist)
-    payment_method_repo = mocker.patch("finance_api.services.spents.PaymentMethodRepository")
-    payment_method_repo.return_value.get_by_key = AsyncMock(return_value=None)
-
-    # Try to update with invalid payment_method - should raise ValidationError
     with pytest.raises(ValidationError, match="Método de pagamento 'nonexistent_pm' não existe"):
-        await service.update("some-uuid", SpentUpdate(payment_method="nonexistent_pm"))
+        await service.update(uuid4(), SpentUpdate(payment_method="nonexistent_pm"))
+
+    mock_repo.update.assert_not_awaited()
 
 
 @pytest.mark.asyncio
-async def test_spent_creation_preserves_user_payment_type(mocker):
+async def test_spent_creation_preserves_user_payment_type():
     """Test that creating a spent preserves explicitly provided payment_type like PIX."""
-    mock_repo = MagicMock(spec=SpentRepository)
-    mock_repo.db = AsyncMock()
-
     account_id = uuid4()
-    fake_acc = Account(
-        id=account_id,
-        key="nubank_joao",
-        name="Nubank",
-        bank="nubank",
-        owner="joao",
-        type="CHECKING",
-    )
 
-    res_card = MagicMock()
-    res_card.scalar_one_or_none.return_value = None
-    res_acc = MagicMock()
-    res_acc.scalar_one_or_none.return_value = fake_acc
-    mock_repo.db.execute.side_effect = [res_card, res_acc]
-
-    service = SpentService(mock_repo)
-
-    mock_category = MagicMock()
-    mock_category.key = "mercado"
-    category_repo = mocker.patch("finance_api.services.spents.CategoryRepository")
-    category_repo.return_value.get_by_key = AsyncMock(return_value=mock_category)
+    mock_repo = AsyncMock()
+    category_repo = AsyncMock()
+    category_repo.get_by_key.return_value = MagicMock(key="mercado")
 
     pm = PaymentMethod(
         id=account_id,
@@ -105,8 +86,8 @@ async def test_spent_creation_preserves_user_payment_type(mocker):
         display_name="Nubank",
         is_credit_card=False,
     )
-    payment_method_repo = mocker.patch("finance_api.services.spents.PaymentMethodRepository")
-    payment_method_repo.return_value.get_by_key = AsyncMock(return_value=pm)
+    pm_repo = AsyncMock()
+    pm_repo.get_by_key.return_value = pm
 
     spent_obj = Spent(
         id=uuid4(),
@@ -118,7 +99,22 @@ async def test_spent_creation_preserves_user_payment_type(mocker):
         account_id=account_id,
         location="Feira",
     )
-    mock_repo.create = AsyncMock(return_value=spent_obj)
+    mock_repo.create.return_value = spent_obj
+
+    service = build_service(
+        mock_repo,
+        category_repo,
+        pm_repo,
+        resolver=FakePaymentResolver(
+            {
+                "nubank_joao": ResolvedPaymentTarget(
+                    account_id=account_id,
+                    credit_card_id=None,
+                    payment_type="PIX",
+                )
+            }
+        ),
+    )
 
     create_dto = SpentCreate(
         category="mercado",

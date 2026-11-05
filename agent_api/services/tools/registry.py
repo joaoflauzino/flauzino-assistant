@@ -4,8 +4,7 @@ from collections.abc import Callable
 
 from langchain_core.tools import BaseTool
 
-from agent_api.services.clients.finance import FinanceService
-from agent_api.services.clients.graph import GraphService
+from agent_api.services.protocols import FinanceServiceProtocol, GraphServiceProtocol
 from agent_api.services.tools.balance import build_consultar_saldos
 from agent_api.services.tools.graph import build_gerar_grafico
 from agent_api.services.tools.income import build_registrar_receita
@@ -13,7 +12,7 @@ from agent_api.services.tools.limit import build_cadastrar_limite
 from agent_api.services.tools.spending import build_registrar_gasto
 from agent_api.services.tools.summary import build_consultar_balanco_mensal
 
-ToolBuilder = Callable[[FinanceService, GraphService], BaseTool]
+ToolBuilder = Callable[[FinanceServiceProtocol, GraphServiceProtocol], BaseTool]
 
 TOOL_BUILDERS: tuple[ToolBuilder, ...] = (
     build_consultar_saldos,
@@ -26,8 +25,8 @@ TOOL_BUILDERS: tuple[ToolBuilder, ...] = (
 
 
 def create_agent_tools(
-    finance_service: FinanceService,
-    graph_service: GraphService,
+    finance_service: FinanceServiceProtocol,
+    graph_service: GraphServiceProtocol,
 ) -> list[BaseTool]:
     """Factory creating LangChain tools with injected services."""
     return [build(finance_service, graph_service) for build in TOOL_BUILDERS]

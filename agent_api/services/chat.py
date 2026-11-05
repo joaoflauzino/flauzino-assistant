@@ -1,12 +1,10 @@
 import uuid
 from typing import Any
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from agent_api.core.decorators import handle_service_errors
 from agent_api.core.logger import get_logger
 from agent_api.models.chat import ChatMessage as ChatMessageModel
-from agent_api.repositories.chat_repository import ChatRepository, ChatRepositoryProtocol
+from agent_api.repositories.protocols import ChatRepositoryProtocol
 from agent_api.schemas.dtos import ChatMessage, ChatResponse
 from agent_api.services.agent import AgentService
 
@@ -16,15 +14,10 @@ logger = get_logger(__name__)
 class ChatService:
     def __init__(
         self,
-        repository_or_session: ChatRepositoryProtocol | AsyncSession,
+        repository: ChatRepositoryProtocol,
         agent_service: AgentService,
     ) -> None:
-        if hasattr(repository_or_session, "create_session") and hasattr(
-            repository_or_session, "get_messages"
-        ):
-            self.repository: ChatRepositoryProtocol = repository_or_session  # type: ignore[assignment]
-        else:
-            self.repository = ChatRepository(repository_or_session)  # type: ignore[arg-type]
+        self.repository = repository
         self.agent_service = agent_service
 
     @handle_service_errors

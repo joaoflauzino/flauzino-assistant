@@ -6,41 +6,60 @@ import pytest
 from asgi_lifespan import LifespanManager
 from httpx import ASGITransport, AsyncClient
 
-from finance_api.core.database import get_db
+from finance_api.core.service_dependencies import get_spent_service
 from finance_api.main import app
-from finance_api.repositories.spents import SpentRepository
+from finance_api.services.spents import SpentService
 from finance_api.tests.fakes.fake_payment_resolver import FakePaymentResolver
 
 # Mark all tests in this file as async
 pytestmark = pytest.mark.asyncio
 
 
-@pytest.fixture(autouse=True)
-def mock_category_repo(mocker):
-    """Auto-use fixture that mocks CategoryRepository for all tests."""
-    mock_category = MagicMock()
-    mock_category.key = "mercado"
-    category_repo = mocker.patch("finance_api.services.spents.CategoryRepository")
-    category_repo.return_value.get_by_key = AsyncMock(return_value=mock_category)
-    return mock_category
+@pytest.fixture
+def mock_category_repo():
+    """Fixture for a category repository double."""
+    repo = AsyncMock()
+    repo.get_by_key.return_value = MagicMock(key="mercado")
+    return repo
+
+
+@pytest.fixture
+def mock_payment_method_repo():
+    """Fixture for a payment method repository double."""
+    repo = AsyncMock()
+    repo.get_by_key.return_value = MagicMock(key="itau", is_credit_card=False)
+    return repo
+
+
+@pytest.fixture
+def mock_invoice_service():
+    """Fixture for an invoice service double."""
+    return AsyncMock()
+
+
+@pytest.fixture
+def mock_spent_repository():
+    """Fixture for a mocked SpentRepository."""
+    return AsyncMock()
 
 
 @pytest.fixture(autouse=True)
-def mock_payment_method_repo(mocker):
-    """Auto-use fixture that mocks PaymentMethodRepository for all tests."""
-    mock_pm = MagicMock()
-    mock_pm.key = "itau"
-    payment_method_repo = mocker.patch("finance_api.services.spents.PaymentMethodRepository")
-    payment_method_repo.return_value.get_by_key = AsyncMock(return_value=mock_pm)
-    return mock_pm
-
-
-@pytest.fixture(autouse=True)
-def mock_payment_resolver(mocker):
-    """Auto-use fixture that replaces payment resolution with a deterministic fake."""
-    resolver = FakePaymentResolver()
-    mocker.patch("finance_api.services.spents.PaymentResolutionService", return_value=resolver)
-    return resolver
+def spent_service_override(
+    mock_spent_repository,
+    mock_category_repo,
+    mock_payment_method_repo,
+    mock_invoice_service,
+):
+    """Injects a real SpentService backed by repository doubles."""
+    app.dependency_overrides[get_spent_service] = lambda: SpentService(
+        repo=mock_spent_repository,
+        category_repo=mock_category_repo,
+        pm_repo=mock_payment_method_repo,
+        payment_resolver=FakePaymentResolver(),
+        inv_service=mock_invoice_service,
+    )
+    yield
+    app.dependency_overrides.pop(get_spent_service, None)
 
 
 @pytest.fixture
@@ -51,32 +70,10 @@ async def test_client():
             yield client
 
 
-@pytest.fixture
-def mock_spent_repository():
-    """Fixture for a mocked SpentRepository."""
-    repo = MagicMock(spec=SpentRepository)
-    repo.db = AsyncMock()  # Add db attribute for CategoryRepository
-    repo.create = AsyncMock()
-    repo.list = AsyncMock()
-    repo.get_by_id = AsyncMock()
-    repo.update = AsyncMock()
-    repo.delete = AsyncMock()
-    repo.get_installments_summary = AsyncMock()
-    return repo
-
-
-async def test_create_spent_success(test_client, mock_spent_repository, mocker):
+async def test_create_spent_success(test_client, mock_spent_repository):
     """
     Test successful creation of a spent record.
     """
-
-    # Arrange
-    async def override_get_db():
-        yield MagicMock()
-
-    app.dependency_overrides[get_db] = override_get_db
-    mocker.patch("finance_api.routers.spents.SpentRepository", return_value=mock_spent_repository)
-
     payload = {
         "category": "mercado",
         "amount": 150.50,
@@ -96,10 +93,8 @@ async def test_create_spent_success(test_client, mock_spent_repository, mocker):
         total_installments=None,
     )
 
-    # Act
     response = await test_client.post("/spents/", json=payload)
 
-    # Assert
     assert response.status_code == 200
     response_data = response.json()
     assert response_data["id"] == str(fake_id)
@@ -107,22 +102,11 @@ async def test_create_spent_success(test_client, mock_spent_repository, mocker):
     assert response_data["amount"] == payload["amount"]
     mock_spent_repository.create.assert_awaited_once()
 
-    # Cleanup dependency override
-    app.dependency_overrides.clear()
 
-
-async def test_list_spents_success(test_client, mock_spent_repository, mocker):
+async def test_list_spents_success(test_client, mock_spent_repository):
     """
     Test successful listing of spent records.
     """
-
-    # Arrange
-    async def override_get_db():
-        yield MagicMock()
-
-    app.dependency_overrides[get_db] = override_get_db
-    mocker.patch("finance_api.routers.spents.SpentRepository", return_value=mock_spent_repository)
-
     id1 = uuid4()
     id2 = uuid4()
 
@@ -158,11 +142,9 @@ async def test_list_spents_success(test_client, mock_spent_repository, mocker):
     ]
     mock_spent_repository.list.return_value = (mock_return_data, 2)
 
-    # Act
     # Default page=1, size=10 -> skip=0, limit=10
     response = await test_client.get("/spents/")
 
-    # Assert
     assert response.status_code == 200
     response_data = response.json()
     assert len(response_data["items"]) == 2
@@ -175,22 +157,11 @@ async def test_list_spents_success(test_client, mock_spent_repository, mocker):
     # Repository list now has 4 params: skip, limit, start_date, end_date
     mock_spent_repository.list.assert_awaited_once_with(0, 10, None, None)
 
-    # Cleanup
-    app.dependency_overrides.clear()
 
-
-async def test_get_spent_by_id_success(test_client, mock_spent_repository, mocker):
+async def test_get_spent_by_id_success(test_client, mock_spent_repository):
     """Test successful retrieval of a spent record by ID."""
-
-    # Arrange
-    async def override_get_db():
-        yield MagicMock()
-
-    app.dependency_overrides[get_db] = override_get_db
-    mocker.patch("finance_api.routers.spents.SpentRepository", return_value=mock_spent_repository)
-
     fake_id = uuid4()
-    mock_spent = MagicMock(
+    mock_spent_repository.get_by_id.return_value = MagicMock(
         id=fake_id,
         category="mercado",
         amount=100.0,
@@ -204,54 +175,29 @@ async def test_get_spent_by_id_success(test_client, mock_spent_repository, mocke
         current_installment=None,
         total_installments=None,
     )
-    mock_spent_repository.get_by_id.return_value = mock_spent
 
-    # Act
     response = await test_client.get(f"/spents/{fake_id}")
 
-    # Assert
     assert response.status_code == 200
     assert response.json()["id"] == str(fake_id)
     mock_spent_repository.get_by_id.assert_awaited_once_with(fake_id)
 
-    app.dependency_overrides.clear()
 
-
-async def test_get_spent_by_id_not_found(test_client, mock_spent_repository, mocker):
+async def test_get_spent_by_id_not_found(test_client, mock_spent_repository):
     """Test retrieval of non-existent spent record returns 404."""
-
-    # Arrange
-    async def override_get_db():
-        yield MagicMock()
-
-    app.dependency_overrides[get_db] = override_get_db
-    mocker.patch("finance_api.routers.spents.SpentRepository", return_value=mock_spent_repository)
-
     mock_spent_repository.get_by_id.return_value = None
     fake_id = uuid4()
 
-    # Act
     response = await test_client.get(f"/spents/{fake_id}")
 
-    # Assert
     assert response.status_code == 404
     mock_spent_repository.get_by_id.assert_awaited_once_with(fake_id)
 
-    app.dependency_overrides.clear()
 
-
-async def test_update_spent_success(test_client, mock_spent_repository, mocker):
+async def test_update_spent_success(test_client, mock_spent_repository):
     """Test successful update of a spent record."""
-
-    # Arrange
-    async def override_get_db():
-        yield MagicMock()
-
-    app.dependency_overrides[get_db] = override_get_db
-    mocker.patch("finance_api.routers.spents.SpentRepository", return_value=mock_spent_repository)
-
     fake_id = uuid4()
-    updated_mock = MagicMock(
+    mock_spent_repository.update.return_value = MagicMock(
         id=fake_id,
         category="lazer",
         amount=200.0,
@@ -265,56 +211,31 @@ async def test_update_spent_success(test_client, mock_spent_repository, mocker):
         current_installment=None,
         total_installments=None,
     )
-    mock_spent_repository.update.return_value = updated_mock
 
     payload = {"amount": 200.0, "category": "lazer"}
 
-    # Act
     response = await test_client.patch(f"/spents/{fake_id}", json=payload)
 
-    # Assert
     assert response.status_code == 200
     assert response.json()["amount"] == 200.0
     mock_spent_repository.update.assert_awaited_once()
 
-    app.dependency_overrides.clear()
 
-
-async def test_delete_spent_success(test_client, mock_spent_repository, mocker):
+async def test_delete_spent_success(test_client, mock_spent_repository):
     """Test successful deletion of a spent record."""
-
-    # Arrange
-    async def override_get_db():
-        yield MagicMock()
-
-    app.dependency_overrides[get_db] = override_get_db
-    mocker.patch("finance_api.routers.spents.SpentRepository", return_value=mock_spent_repository)
-
     mock_spent_repository.delete.return_value = True
     fake_id = uuid4()
 
-    # Act
     response = await test_client.delete(f"/spents/{fake_id}")
 
-    # Assert
     assert response.status_code == 204
     mock_spent_repository.delete.assert_awaited_once_with(fake_id)
 
-    app.dependency_overrides.clear()
 
-
-async def test_create_spent_repository_error(test_client, mock_spent_repository, mocker):
+async def test_create_spent_repository_error(test_client, mock_spent_repository):
     """
     Test handling of a 500 error when the repository fails.
     """
-
-    # Arrange
-    async def override_get_db():
-        yield MagicMock()
-
-    app.dependency_overrides[get_db] = override_get_db
-    mocker.patch("finance_api.routers.spents.SpentRepository", return_value=mock_spent_repository)
-
     mock_spent_repository.create.side_effect = Exception("Database connection failed")
     payload = {
         "category": "mercado",
@@ -325,33 +246,19 @@ async def test_create_spent_repository_error(test_client, mock_spent_repository,
         "location": "Supermarket",
     }
 
-    # Act
     response = await test_client.post("/spents/", json=payload)
 
-    # Assert
     assert response.status_code == 500
     response_json = response.json()
     assert response_json["message"] == "Internal Server Error"
     assert "Database connection failed" in response_json["detail"]
 
-    # Cleanup
-    app.dependency_overrides.clear()
 
-
-async def test_list_spents_pagination(test_client, mock_spent_repository, mocker):
+async def test_list_spents_pagination(test_client, mock_spent_repository):
     """
     Test listing spent records with pagination.
     """
-
-    # Arrange
-    async def override_get_db():
-        yield MagicMock()
-
-    app.dependency_overrides[get_db] = override_get_db
-    mocker.patch("finance_api.routers.spents.SpentRepository", return_value=mock_spent_repository)
-
     id1 = uuid4()
-    id2 = uuid4()
     mock_spents = [
         MagicMock(
             id=id1,
@@ -367,29 +274,13 @@ async def test_list_spents_pagination(test_client, mock_spent_repository, mocker
             current_installment=None,
             total_installments=None,
         ),
-        MagicMock(
-            id=id2,
-            category="lazer",
-            amount=50.0,
-            item_bought="item2",
-            created_at="2023-01-02T12:00:00",
-            payment_method="c6",
-            payment_owner="lailla",
-            location="B",
-            is_installment=False,
-            installment_id=None,
-            current_installment=None,
-            total_installments=None,
-        ),
     ]
     # Simulate pagination returning only the first item, but total is 2
-    mock_spent_repository.list.return_value = ([mock_spents[0]], 2)
+    mock_spent_repository.list.return_value = (mock_spents, 2)
 
-    # Act
     # Requesting page=1, size=1 -> skip=0, limit=1
     response = await test_client.get("/spents/?page=1&size=1")
 
-    # Assert
     assert response.status_code == 200
     response_data = response.json()
     assert len(response_data["items"]) == 1
@@ -401,22 +292,11 @@ async def test_list_spents_pagination(test_client, mock_spent_repository, mocker
     # Repository list now has 4 params: skip, limit, start_date, end_date
     mock_spent_repository.list.assert_awaited_once_with(0, 1, None, None)
 
-    # Cleanup
-    app.dependency_overrides.clear()
 
-
-async def test_get_installments_summary_success(test_client, mock_spent_repository, mocker):
+async def test_get_installments_summary_success(test_client, mock_spent_repository):
     """
     Test successful fetching of installments summary.
     """
-
-    # Arrange
-    async def override_get_db():
-        yield MagicMock()
-
-    app.dependency_overrides[get_db] = override_get_db
-    mocker.patch("finance_api.routers.spents.SpentRepository", return_value=mock_spent_repository)
-
     fake_id = uuid4()
     mock_spent_repository.get_installments_summary.return_value = [
         {
@@ -429,10 +309,8 @@ async def test_get_installments_summary_success(test_client, mock_spent_reposito
         }
     ]
 
-    # Act
     response = await test_client.get("/spents/installments-summary")
 
-    # Assert
     assert response.status_code == 200
     response_data = response.json()
     assert len(response_data) == 1
@@ -442,29 +320,20 @@ async def test_get_installments_summary_success(test_client, mock_spent_reposito
     assert response_data[0]["passed_installments"] == 2
     mock_spent_repository.get_installments_summary.assert_awaited_once()
 
-    # Cleanup dependency override
-    app.dependency_overrides.clear()
-
 
 async def test_get_dashboard_invoices_mode_with_mixed_payment_methods(
-    test_client, mock_spent_repository, mocker
+    test_client,
+    mock_spent_repository,
+    mock_payment_method_repo,
+    mock_invoice_service,
 ):
-    mock_db = AsyncMock()
-    app.dependency_overrides[get_db] = lambda: mock_db
-    mocker.patch("finance_api.routers.spents.SpentRepository", return_value=mock_spent_repository)
-
     card = MagicMock(key="nubank", is_credit_card=True)
     pix = MagicMock(key="pix_joao", is_credit_card=False)
+    mock_payment_method_repo.list.return_value = ([card, pix], 2)
 
-    mock_pm_repo = MagicMock()
-    mock_pm_repo.list = AsyncMock(return_value=([card, pix], 2))
-    mocker.patch("finance_api.routers.spents.PaymentMethodRepository", return_value=mock_pm_repo)
-
-    mock_inv_service = MagicMock()
-    mock_inv_service.get_billing_period = AsyncMock(
+    mock_invoice_service.get_billing_period = AsyncMock(
         return_value=(date(2026, 8, 26), date(2026, 9, 25))
     )
-    mocker.patch("finance_api.routers.spents.InvoiceService", return_value=mock_inv_service)
 
     spent_card = MagicMock(
         id=uuid4(),
@@ -499,17 +368,14 @@ async def test_get_dashboard_invoices_mode_with_mixed_payment_methods(
         return_value=([spent_card, spent_pix], 2)
     )
 
-    try:
-        response = await test_client.get("/spents/dashboard?reference_month=2026-09&mode=INVOICES")
-        assert response.status_code == 200
-        data = response.json()
-        assert data["total"] == 2
-        assert len(data["items"]) == 2
+    response = await test_client.get("/spents/dashboard?reference_month=2026-09&mode=INVOICES")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 2
+    assert len(data["items"]) == 2
 
-        mock_spent_repository.list_by_multiple_periods.assert_awaited_once()
-        periods_arg = mock_spent_repository.list_by_multiple_periods.call_args[0][0]
-        assert len(periods_arg) == 2
-        assert periods_arg[0] == ("nubank", date(2026, 8, 26), date(2026, 9, 25))
-        assert periods_arg[1] == ("pix_joao", date(2026, 9, 1), date(2026, 9, 30))
-    finally:
-        app.dependency_overrides.clear()
+    mock_spent_repository.list_by_multiple_periods.assert_awaited_once()
+    periods_arg = mock_spent_repository.list_by_multiple_periods.call_args[0][0]
+    assert len(periods_arg) == 2
+    assert periods_arg[0] == ("nubank", date(2026, 8, 26), date(2026, 9, 25))
+    assert periods_arg[1] == ("pix_joao", date(2026, 9, 1), date(2026, 9, 30))

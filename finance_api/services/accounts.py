@@ -5,7 +5,7 @@ from finance_api.core.decorators import handle_service_errors
 from finance_api.core.exceptions import EntityConflictError, EntityNotFoundError
 from finance_api.core.logger import get_logger
 from finance_api.models.accounts import Account
-from finance_api.repositories.accounts import AccountRepositoryProtocol
+from finance_api.repositories.protocols import AccountRepositoryProtocol
 from finance_api.schemas.accounts import AccountCreate, AccountUpdate
 
 logger = get_logger(__name__)

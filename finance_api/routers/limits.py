@@ -1,12 +1,9 @@
 from datetime import date
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Response, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Response, status
 
-from finance_api.core.database import get_db
-from finance_api.core.dependencies import get_balance_service
-from finance_api.repositories.limits import SpendingLimitRepository
+from finance_api.core.service_dependencies import BalanceServiceDep, SpendingLimitServiceDep
 from finance_api.schemas.limits import (
     CategoryBalance,
     SpendingLimitCreate,
@@ -14,63 +11,54 @@ from finance_api.schemas.limits import (
     SpendingLimitUpdate,
 )
 from finance_api.schemas.pagination import PaginatedResponse
-from finance_api.services.balances import BalanceService
-from finance_api.services.limits import SpendingLimitService
 
 router = APIRouter()
 
 
 @router.post("/", response_model=SpendingLimitResponse, status_code=status.HTTP_201_CREATED)
 async def create_limit(
-    limit_data: SpendingLimitCreate, db: AsyncSession = Depends(get_db)
+    limit_data: SpendingLimitCreate,
+    service: SpendingLimitServiceDep,
 ) -> SpendingLimitResponse:
-    repo = SpendingLimitRepository(db)
-    service = SpendingLimitService(repo)
     return await service.create(limit_data)
 
 
 @router.get("/", response_model=PaginatedResponse[SpendingLimitResponse])
 async def list_limits(
+    service: SpendingLimitServiceDep,
     page: int = 1,
     size: int = 10,
     start_date: date | None = None,
     end_date: date | None = None,
-    db: AsyncSession = Depends(get_db),
 ) -> PaginatedResponse[SpendingLimitResponse]:
-    repo = SpendingLimitRepository(db)
-    service = SpendingLimitService(repo)
     return await service.list(page, size, start_date, end_date)
 
 
 @router.get("/balance", response_model=list[CategoryBalance])
 async def get_balance(
+    service: BalanceServiceDep,
     reference_month: str | None = None,
     categories: str | None = None,
-    service: BalanceService = Depends(get_balance_service),
 ) -> list[CategoryBalance]:
     category_list = [c.strip().lower() for c in categories.split(",")] if categories else None
     return await service.get_balance(reference_month=reference_month, categories=category_list)
 
 
 @router.get("/{limit_id}", response_model=SpendingLimitResponse)
-async def get_limit(limit_id: UUID, db: AsyncSession = Depends(get_db)) -> SpendingLimitResponse:
-    repo = SpendingLimitRepository(db)
-    service = SpendingLimitService(repo)
+async def get_limit(limit_id: UUID, service: SpendingLimitServiceDep) -> SpendingLimitResponse:
     return await service.get_by_id(limit_id)
 
 
 @router.patch("/{limit_id}", response_model=SpendingLimitResponse)
 async def update_limit(
-    limit_id: UUID, update_data: SpendingLimitUpdate, db: AsyncSession = Depends(get_db)
+    limit_id: UUID,
+    update_data: SpendingLimitUpdate,
+    service: SpendingLimitServiceDep,
 ) -> SpendingLimitResponse:
-    repo = SpendingLimitRepository(db)
-    service = SpendingLimitService(repo)
     return await service.update(limit_id, update_data)
 
 
 @router.delete("/{limit_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_limit(limit_id: UUID, db: AsyncSession = Depends(get_db)) -> Response:
-    repo = SpendingLimitRepository(db)
-    service = SpendingLimitService(repo)
+async def delete_limit(limit_id: UUID, service: SpendingLimitServiceDep) -> Response:
     await service.delete(limit_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

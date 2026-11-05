@@ -6,22 +6,37 @@ from asgi_lifespan import LifespanManager
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.exc import IntegrityError
 
-from finance_api.core.database import get_db
+from finance_api.core.service_dependencies import get_spending_limit_service
 from finance_api.main import app
-from finance_api.repositories.limits import SpendingLimitRepository
+from finance_api.services.limits import SpendingLimitService
 
 # Mark all tests in this file as async
 pytestmark = pytest.mark.asyncio
 
 
+@pytest.fixture
+def mock_category_repo():
+    """Fixture for a category repository double used by the limit service."""
+    repo = AsyncMock()
+    repo.get_by_key.return_value = MagicMock(key="mercado")
+    return repo
+
+
+@pytest.fixture
+def mock_limit_repository():
+    """Fixture for a mocked SpendingLimitRepository."""
+    return AsyncMock()
+
+
 @pytest.fixture(autouse=True)
-def mock_category_repo(mocker):
-    """Auto-use fixture that mocks CategoryRepository for all tests."""
-    mock_category = MagicMock()
-    mock_category.key = "mercado"
-    category_repo = mocker.patch("finance_api.services.limits.CategoryRepository")
-    category_repo.return_value.get_by_key = AsyncMock(return_value=mock_category)
-    return mock_category
+def limit_service_override(mock_limit_repository, mock_category_repo):
+    """Injects a real SpendingLimitService backed by repository doubles."""
+    app.dependency_overrides[get_spending_limit_service] = lambda: SpendingLimitService(
+        repo=mock_limit_repository,
+        category_repo=mock_category_repo,
+    )
+    yield
+    app.dependency_overrides.pop(get_spending_limit_service, None)
 
 
 @pytest.fixture
@@ -32,35 +47,10 @@ async def test_client():
             yield client
 
 
-@pytest.fixture
-def mock_limit_repository():
-    """Fixture for a mocked SpendingLimitRepository."""
-    repo = MagicMock(spec=SpendingLimitRepository)
-    repo.db = AsyncMock()  # Add db attribute for CategoryRepository
-    repo.create = AsyncMock()
-    repo.list = AsyncMock()
-    repo.get_by_category = AsyncMock()
-    repo.get_by_id = AsyncMock()
-    repo.update = AsyncMock()
-    repo.delete = AsyncMock()
-    return repo
-
-
-async def test_create_limit_success(test_client, mock_limit_repository, mocker):
+async def test_create_limit_success(test_client, mock_limit_repository):
     """
     Test successful creation of a spending limit.
     """
-
-    # Arrange
-    async def override_get_db():
-        yield MagicMock()
-
-    app.dependency_overrides[get_db] = override_get_db
-    mocker.patch(
-        "finance_api.routers.limits.SpendingLimitRepository",
-        return_value=mock_limit_repository,
-    )
-
     payload = {
         "category": "mercado",
         "amount": 2000.00,
@@ -68,10 +58,8 @@ async def test_create_limit_success(test_client, mock_limit_repository, mocker):
     fake_id = uuid4()
     mock_limit_repository.create.return_value = MagicMock(id=fake_id, **payload)
 
-    # Act
     response = await test_client.post("/limits/", json=payload)
 
-    # Assert
     assert response.status_code == 201
     response_data = response.json()
     assert response_data["id"] == str(fake_id)
@@ -79,25 +67,11 @@ async def test_create_limit_success(test_client, mock_limit_repository, mocker):
     assert response_data["amount"] == payload["amount"]
     mock_limit_repository.create.assert_awaited_once()
 
-    # Cleanup
-    app.dependency_overrides.clear()
 
-
-async def test_list_limits_success(test_client, mock_limit_repository, mocker):
+async def test_list_limits_success(test_client, mock_limit_repository):
     """
-    Test successful listing of spending limits.
+    Test successful listing of spending limit records.
     """
-
-    # Arrange
-    async def override_get_db():
-        yield MagicMock()
-
-    app.dependency_overrides[get_db] = override_get_db
-    mocker.patch(
-        "finance_api.routers.limits.SpendingLimitRepository",
-        return_value=mock_limit_repository,
-    )
-
     id1 = uuid4()
     id2 = uuid4()
     mock_return_data = [
@@ -106,11 +80,9 @@ async def test_list_limits_success(test_client, mock_limit_repository, mocker):
     ]
     mock_limit_repository.list.return_value = (mock_return_data, 2)
 
-    # Act
     # Default page=1, size=10 -> skip=0, limit=10
     response = await test_client.get("/limits/")
 
-    # Assert
     assert response.status_code == 200
     response_data = response.json()
     assert len(response_data["items"]) == 2
@@ -123,135 +95,63 @@ async def test_list_limits_success(test_client, mock_limit_repository, mocker):
     # Repository list now has 4 params: skip, limit, start_date, end_date
     mock_limit_repository.list.assert_awaited_once_with(0, 10, None, None)
 
-    # Cleanup
-    app.dependency_overrides.clear()
 
-
-async def test_get_limit_by_id_success(test_client, mock_limit_repository, mocker):
+async def test_get_limit_by_id_success(test_client, mock_limit_repository):
     """Test successful retrieval of a spending limit by ID."""
-
-    # Arrange
-    async def override_get_db():
-        yield MagicMock()
-
-    app.dependency_overrides[get_db] = override_get_db
-    mocker.patch(
-        "finance_api.routers.limits.SpendingLimitRepository",
-        return_value=mock_limit_repository,
+    fake_id = uuid4()
+    mock_limit_repository.get_by_id.return_value = MagicMock(
+        id=fake_id, category="mercado", amount=2000.00
     )
 
-    fake_id = uuid4()
-    mock_limit = MagicMock(id=fake_id, category="mercado", amount=2000.00)
-    mock_limit_repository.get_by_id.return_value = mock_limit
-
-    # Act
     response = await test_client.get(f"/limits/{fake_id}")
 
-    # Assert
     assert response.status_code == 200
     assert response.json()["id"] == str(fake_id)
     mock_limit_repository.get_by_id.assert_awaited_once_with(fake_id)
 
-    app.dependency_overrides.clear()
 
-
-async def test_get_limit_by_id_not_found(test_client, mock_limit_repository, mocker):
+async def test_get_limit_by_id_not_found(test_client, mock_limit_repository):
     """Test retrieval of non-existent spending limit returns 404."""
-
-    # Arrange
-    async def override_get_db():
-        yield MagicMock()
-
-    app.dependency_overrides[get_db] = override_get_db
-    mocker.patch(
-        "finance_api.routers.limits.SpendingLimitRepository",
-        return_value=mock_limit_repository,
-    )
-
     mock_limit_repository.get_by_id.return_value = None
     fake_id = uuid4()
 
-    # Act
     response = await test_client.get(f"/limits/{fake_id}")
 
-    # Assert
     assert response.status_code == 404
     mock_limit_repository.get_by_id.assert_awaited_once_with(fake_id)
 
-    app.dependency_overrides.clear()
 
-
-async def test_update_limit_success(test_client, mock_limit_repository, mocker):
+async def test_update_limit_success(test_client, mock_limit_repository):
     """Test successful update of a spending limit."""
-
-    # Arrange
-    async def override_get_db():
-        yield MagicMock()
-
-    app.dependency_overrides[get_db] = override_get_db
-    mocker.patch(
-        "finance_api.routers.limits.SpendingLimitRepository",
-        return_value=mock_limit_repository,
-    )
-
     fake_id = uuid4()
-    updated_mock = MagicMock(id=fake_id, category="mercado", amount=3000.00)
-    mock_limit_repository.update.return_value = updated_mock
+    mock_limit_repository.update.return_value = MagicMock(
+        id=fake_id, category="mercado", amount=3000.00
+    )
 
     payload = {"amount": 3000.00}
 
-    # Act
     response = await test_client.patch(f"/limits/{fake_id}", json=payload)
 
-    # Assert
     assert response.status_code == 200
     assert response.json()["amount"] == 3000.00
     mock_limit_repository.update.assert_awaited_once()
 
-    app.dependency_overrides.clear()
 
-
-async def test_delete_limit_success(test_client, mock_limit_repository, mocker):
+async def test_delete_limit_success(test_client, mock_limit_repository):
     """Test successful deletion of a spending limit."""
-
-    # Arrange
-    async def override_get_db():
-        yield MagicMock()
-
-    app.dependency_overrides[get_db] = override_get_db
-    mocker.patch(
-        "finance_api.routers.limits.SpendingLimitRepository",
-        return_value=mock_limit_repository,
-    )
-
     mock_limit_repository.delete.return_value = True
     fake_id = uuid4()
 
-    # Act
     response = await test_client.delete(f"/limits/{fake_id}")
 
-    # Assert
     assert response.status_code == 204
     mock_limit_repository.delete.assert_awaited_once_with(fake_id)
 
-    app.dependency_overrides.clear()
 
-
-async def test_create_limit_conflict(test_client, mock_limit_repository, mocker):
+async def test_create_limit_conflict(test_client, mock_limit_repository):
     """
     Test creation of a spending limit with duplicate category returns 409.
     """
-
-    # Arrange
-    async def override_get_db():
-        yield MagicMock()
-
-    app.dependency_overrides[get_db] = override_get_db
-    mocker.patch(
-        "finance_api.routers.limits.SpendingLimitRepository",
-        return_value=mock_limit_repository,
-    )
-
     # Simulate IntegrityError which happens when unique constraint is violated
     mock_limit_repository.create.side_effect = IntegrityError("mock", {}, Exception("mock"))
     payload = {
@@ -259,35 +159,19 @@ async def test_create_limit_conflict(test_client, mock_limit_repository, mocker)
         "amount": 2000.00,
     }
 
-    # Act
     response = await test_client.post("/limits/", json=payload)
 
-    # Assert
     assert response.status_code == 409
     assert response.json() == {
         "message": "Conflict",
         "detail": "Resource already exists.",
     }
 
-    # Cleanup
-    app.dependency_overrides.clear()
 
-
-async def test_list_limits_pagination(test_client, mock_limit_repository, mocker):
+async def test_list_limits_pagination(test_client, mock_limit_repository):
     """
     Test listing spending limits with pagination.
     """
-
-    # Arrange
-    async def override_get_db():
-        yield MagicMock()
-
-    app.dependency_overrides[get_db] = override_get_db
-    mocker.patch(
-        "finance_api.routers.limits.SpendingLimitRepository",
-        return_value=mock_limit_repository,
-    )
-
     mock_limits = [
         MagicMock(id=uuid4(), category="mercado", amount=2000.00),
         MagicMock(id=uuid4(), category="lazer", amount=500.00),
@@ -295,11 +179,9 @@ async def test_list_limits_pagination(test_client, mock_limit_repository, mocker
     # Simulate pagination returning only the first item, but total is 2
     mock_limit_repository.list.return_value = ([mock_limits[0]], 2)
 
-    # Act
     # Requesting page=1, size=1 -> skip=0, limit=1
     response = await test_client.get("/limits/?page=1&size=1")
 
-    # Assert
     assert response.status_code == 200
     response_data = response.json()
     assert len(response_data["items"]) == 1
@@ -310,6 +192,3 @@ async def test_list_limits_pagination(test_client, mock_limit_repository, mocker
     assert response_data["pages"] == 2
     # Repository list now has 4 params: skip, limit, start_date, end_date
     mock_limit_repository.list.assert_awaited_once_with(0, 1, None, None)
-
-    # Cleanup
-    app.dependency_overrides.clear()

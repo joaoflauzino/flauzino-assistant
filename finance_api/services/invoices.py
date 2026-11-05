@@ -9,8 +9,10 @@ from finance_api.core.exceptions import EntityNotFoundError, ValidationError
 from finance_api.core.logger import get_logger
 from finance_api.models.invoices import Invoice, InvoiceStatus
 from finance_api.models.payment_methods import PaymentMethod
-from finance_api.repositories.invoices import InvoiceRepository
-from finance_api.repositories.payment_methods import PaymentMethodRepository
+from finance_api.repositories.protocols import (
+    InvoiceRepositoryProtocol,
+    PaymentMethodRepositoryProtocol,
+)
 from finance_api.schemas.invoices import InvoiceCreate, InvoiceResponse, InvoiceUpdate
 
 logger = get_logger(__name__)
@@ -21,7 +23,11 @@ get_due_reference_month = resolve_due_reference_month
 
 
 class InvoiceService:
-    def __init__(self, repo: InvoiceRepository, pm_repo: PaymentMethodRepository):
+    def __init__(
+        self,
+        repo: InvoiceRepositoryProtocol,
+        pm_repo: PaymentMethodRepositoryProtocol,
+    ) -> None:
         self.repo = repo
         self.pm_repo = pm_repo
 
@@ -50,7 +56,7 @@ class InvoiceService:
         If not found, computes using payment_method's closing_day and due_day.
         """
         if not payment_method.is_credit_card:
-            raise ValueError(f"Payment method {payment_method.key} is not a credit card.")
+            raise ValidationError(f"Payment method {payment_method.key} is not a credit card.")
 
         invoice = await self.repo.get_by_payment_method_and_month(
             payment_method.key, reference_month

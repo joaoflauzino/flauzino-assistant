@@ -1,7 +1,7 @@
 """Bulk action strategies applied to staged import rows (approve, ignore, reopen, set category)."""
 
 from finance_api.models.staged_transactions import StagedTransaction
-from finance_api.repositories.category_rules import CategoryRuleRepositoryProtocol
+from finance_api.repositories.protocols import CategoryRuleRepositoryProtocol
 from finance_api.schemas.enums import BulkActionType, StepOutcomeStatus, TransactionKind
 from finance_api.schemas.imports import BulkActionRequest, StepOutcome
 from finance_api.services.imports.protocols import BulkActionStrategy

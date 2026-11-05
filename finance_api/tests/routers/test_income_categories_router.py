@@ -24,7 +24,6 @@ async def test_client():
 @pytest.fixture
 def mock_income_cat_repo(mocker):
     repo = MagicMock()
-    repo.db = AsyncMock()
     repo.create = AsyncMock()
     repo.list = AsyncMock()
     repo.get_by_id = AsyncMock()

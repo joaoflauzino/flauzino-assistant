@@ -5,8 +5,10 @@ from finance_api.core.decorators import handle_service_errors
 from finance_api.core.exceptions import EntityConflictError, EntityNotFoundError
 from finance_api.core.logger import get_logger
 from finance_api.models.credit_cards import CreditCard
-from finance_api.repositories.accounts import AccountRepository
-from finance_api.repositories.credit_cards import CreditCardRepository
+from finance_api.repositories.protocols import (
+    AccountLookupProtocol,
+    CreditCardRepositoryProtocol,
+)
 from finance_api.schemas.credit_cards import CreditCardCreate, CreditCardUpdate
 
 logger = get_logger(__name__)
@@ -15,9 +17,9 @@ logger = get_logger(__name__)
 class CreditCardService:
     def __init__(
         self,
-        repository: CreditCardRepository,
-        account_repository: AccountRepository | None = None,
-    ):
+        repository: CreditCardRepositoryProtocol,
+        account_repository: AccountLookupProtocol,
+    ) -> None:
         self.repository = repository
         self.account_repository = account_repository
 
@@ -47,12 +49,11 @@ class CreditCardService:
     @handle_service_errors
     async def create(self, card_data: CreditCardCreate) -> CreditCard:
         logger.info(f"Creating credit card: {card_data.key}")
-        if self.account_repository:
-            account = await self.account_repository.get_by_id(card_data.account_id)
-            if not account:
-                raise EntityNotFoundError(
-                    f"Conta vinculada com ID {card_data.account_id} não encontrada"
-                )
+        account = await self.account_repository.get_by_id(card_data.account_id)
+        if not account:
+            raise EntityNotFoundError(
+                f"Conta vinculada com ID {card_data.account_id} não encontrada"
+            )
 
         existing = await self.repository.get_by_key(card_data.key)
         if existing:
@@ -72,7 +73,7 @@ class CreditCardService:
         return card
 
     async def _validate_linked_account(self, account_id: UUID | None) -> None:
-        if not account_id or not self.account_repository:
+        if not account_id:
             return
 
         account = await self.account_repository.get_by_id(account_id)

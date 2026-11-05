@@ -1,12 +1,10 @@
 """Chain of Responsibility steps that resolve a payment method key."""
 
-from dataclasses import dataclass
-from typing import Protocol
-
 from finance_api.core.logger import get_logger
-from finance_api.repositories.accounts import AccountRepositoryProtocol
-from finance_api.repositories.credit_cards import CreditCardRepositoryProtocol
-from finance_api.schemas.payment_resolution import ResolvedPaymentTarget
+from finance_api.schemas.payment_resolution import (
+    PaymentResolutionContext,
+    ResolvedPaymentTarget,
+)
 
 logger = get_logger(__name__)
 
@@ -19,20 +17,6 @@ def resolve_account_payment_type(requested_payment_type: str | None) -> str:
     if requested_payment_type in VALID_ACCOUNT_PAYMENT_TYPES:
         return requested_payment_type
     return DEFAULT_ACCOUNT_PAYMENT_TYPE
-
-
-@dataclass(frozen=True, slots=True)
-class PaymentResolutionContext:
-    """Inputs shared by every payment resolution step."""
-
-    clean_key: str
-    requested_payment_type: str | None
-    card_repo: CreditCardRepositoryProtocol | None
-    account_repo: AccountRepositoryProtocol | None
-
-
-class PaymentResolutionStep(Protocol):
-    async def resolve(self, ctx: PaymentResolutionContext) -> ResolvedPaymentTarget | None: ...
 
 
 class CreditCardPaymentStep:

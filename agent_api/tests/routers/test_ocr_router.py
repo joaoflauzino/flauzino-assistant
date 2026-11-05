@@ -8,10 +8,11 @@ from asgi_lifespan import LifespanManager
 from httpx import ASGITransport, AsyncClient
 
 from agent_api.core.exceptions import OCRProcessingError
-from agent_api.dependencies import get_chat_service
+from agent_api.dependencies import get_chat_service, get_ocr_service
 from agent_api.main import app
 from agent_api.schemas.dtos import ChatMessage, ChatResponse
 from agent_api.services.chat import ChatService
+from agent_api.services.ocr import OCRService
 
 pytestmark = pytest.mark.asyncio
 
@@ -32,12 +33,12 @@ def sample_image_file():
 
 
 @pytest.fixture
-def mock_ocr_service(mocker):
-    """Mock OCR extract_text function."""
-    mock_extract = mocker.patch("agent_api.routers.ocr.extract_text", new_callable=AsyncMock)
-    mock_holder = mocker.MagicMock()
-    mock_holder.extract_text = mock_extract
-    return mock_holder
+def mock_ocr_service():
+    """Mock the OCR adapter used by the receipt use case."""
+    instance = AsyncMock(spec=OCRService)
+    app.dependency_overrides[get_ocr_service] = lambda: instance
+    yield instance
+    app.dependency_overrides.pop(get_ocr_service, None)
 
 
 @pytest.fixture

@@ -1,36 +1,37 @@
 from unittest.mock import AsyncMock, MagicMock
+from uuid import uuid4
 
 import pytest
 
 from finance_api.core.exceptions import ValidationError
-from finance_api.repositories.spents import SpentRepository
-from finance_api.schemas.spents import SpentCreate
+from finance_api.schemas.spents import SpentCreate, SpentUpdate
 from finance_api.services.spents import SpentService
 from finance_api.tests.fakes.fake_payment_resolver import FakePaymentResolver
 
 
-@pytest.fixture(autouse=True)
-def mock_payment_resolver(mocker):
-    resolver = FakePaymentResolver()
-    mocker.patch("finance_api.services.spents.PaymentResolutionService", return_value=resolver)
-    return resolver
+def build_service(
+    repo: AsyncMock,
+    category_repo: AsyncMock,
+    pm_repo: AsyncMock | None = None,
+) -> SpentService:
+    return SpentService(
+        repo=repo,
+        category_repo=category_repo,
+        pm_repo=pm_repo or AsyncMock(),
+        payment_resolver=FakePaymentResolver(),
+        inv_service=AsyncMock(),
+    )
 
 
 @pytest.mark.asyncio
-async def test_spent_creation_validates_category(mocker):
+async def test_spent_creation_validates_category():
     """Test that creating a spent validates category exists."""
-    # Mock repository
-    mock_repo = MagicMock(spec=SpentRepository)
-    mock_repo.db = AsyncMock()
+    mock_repo = AsyncMock()
+    category_repo = AsyncMock()
+    category_repo.get_by_key.return_value = None
 
-    # Create service
-    service = SpentService(mock_repo)
+    service = build_service(mock_repo, category_repo)
 
-    # Mock CategoryRepository to return None (category doesn't exist)
-    category_repo = mocker.patch("finance_api.services.spents.CategoryRepository")
-    category_repo.return_value.get_by_key = AsyncMock(return_value=None)
-
-    # Should raise ValidationError
     with pytest.raises(ValidationError, match="não existe"):
         await service.create(
             SpentCreate(
@@ -42,35 +43,26 @@ async def test_spent_creation_validates_category(mocker):
             )
         )
 
+    mock_repo.create.assert_not_awaited()
+
 
 @pytest.mark.asyncio
-async def test_spent_creation_with_valid_category(mocker):
+async def test_spent_creation_with_valid_category():
     """Test that creating a spent succeeds with valid category."""
-    # Mock repository
-    mock_repo = MagicMock(spec=SpentRepository)
-    mock_repo.db = AsyncMock()
+    mock_repo = AsyncMock()
+    category_repo = AsyncMock()
+    category_repo.get_by_key.return_value = MagicMock(key="test_cat")
 
-    # Create service
-    service = SpentService(mock_repo)
+    pm_repo = AsyncMock()
+    pm_repo.get_by_key.return_value = MagicMock(key="itau", is_credit_card=False)
 
-    # Mock CategoryRepository to return a category (category exists)
-    mock_category = MagicMock()
-    mock_category.key = "test_cat"
-    category_repo = mocker.patch("finance_api.services.spents.CategoryRepository")
-    category_repo.return_value.get_by_key = AsyncMock(return_value=mock_category)
-
-    # Mock create
     mock_created_spent = MagicMock()
     mock_created_spent.category = "test_cat"
     mock_created_spent.amount = 100.0
-    mock_repo.create = AsyncMock(return_value=mock_created_spent)
+    mock_repo.create.return_value = mock_created_spent
 
-    # Mock PaymentMethodRepository to return a payment method
-    mock_pm = MagicMock()
-    payment_method_repo = mocker.patch("finance_api.services.spents.PaymentMethodRepository")
-    payment_method_repo.return_value.get_by_key = AsyncMock(return_value=mock_pm)
+    service = build_service(mock_repo, category_repo, pm_repo)
 
-    # Create spent - should succeed
     spent = await service.create(
         SpentCreate(
             category="test_cat",
@@ -86,19 +78,15 @@ async def test_spent_creation_with_valid_category(mocker):
 
 
 @pytest.mark.asyncio
-async def test_spent_update_validates_category(mocker):
+async def test_spent_update_validates_category():
     """Test that updating a spent validates new category."""
-    from finance_api.schemas.spents import SpentUpdate
+    mock_repo = AsyncMock()
+    category_repo = AsyncMock()
+    category_repo.get_by_key.return_value = None
 
-    mock_repo = MagicMock(spec=SpentRepository)
-    mock_repo.db = AsyncMock()
+    service = build_service(mock_repo, category_repo)
 
-    service = SpentService(mock_repo)
-
-    # Mock CategoryRepository to return None (category doesn't exist)
-    category_repo = mocker.patch("finance_api.services.spents.CategoryRepository")
-    category_repo.return_value.get_by_key = AsyncMock(return_value=None)
-
-    # Try to update with invalid category - should raise ValidationError
     with pytest.raises(ValidationError, match="não existe"):
-        await service.update("some-uuid", SpentUpdate(category="nonexistent"))
+        await service.update(uuid4(), SpentUpdate(category="nonexistent"))
+
+    mock_repo.update.assert_not_awaited()

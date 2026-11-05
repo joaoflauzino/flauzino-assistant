@@ -6,9 +6,11 @@ from uuid import UUID
 from finance_api.core.logger import get_logger
 from finance_api.models.accounts import Account
 from finance_api.models.staged_transactions import StagedTransaction
-from finance_api.repositories.accounts import AccountRepositoryProtocol
-from finance_api.repositories.credit_cards import CreditCardRepositoryProtocol
-from finance_api.repositories.staged_transactions import StagedTransactionRepository
+from finance_api.repositories.protocols import (
+    AccountRepositoryProtocol,
+    CreditCardRepositoryProtocol,
+    StagedTransactionRepositoryProtocol,
+)
 from finance_api.schemas.enums import CommitOutcomeStatus
 from finance_api.schemas.imports import (
     CommitContext,
@@ -86,7 +88,7 @@ class ImportCommitService:
 
     def __init__(
         self,
-        tx_repo: StagedTransactionRepository,
+        tx_repo: StagedTransactionRepositoryProtocol,
         context_resolver: CommitContextResolver,
         commit_strategies: dict[str, TransactionCommitStrategy],
     ) -> None:
