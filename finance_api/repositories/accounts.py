@@ -1,5 +1,4 @@
 from collections.abc import Sequence
-from typing import Protocol
 from uuid import UUID
 
 from sqlalchemy import select
@@ -8,29 +7,10 @@ from sqlalchemy.orm import selectinload
 
 from finance_api.core.logger import get_logger
 from finance_api.models.accounts import Account
-from finance_api.repositories.base import RepositoryProtocol, SQLAlchemyRepository
+from finance_api.repositories.base import SQLAlchemyRepository
 from finance_api.schemas.accounts import AccountCreate, AccountUpdate
 
 logger = get_logger(__name__)
-
-
-class AccountRepositoryProtocol(RepositoryProtocol[Account, UUID], Protocol):
-    """Domain repository contract for Account persistence."""
-
-    async def get_by_key(self, key: str) -> Account | None: ...
-
-    async def list(
-        self,
-        page: int = 1,
-        size: int = 100,
-        owner: str | None = None,
-    ) -> tuple[Sequence[Account], int]: ...
-
-    async def create(self, account_data: AccountCreate) -> Account: ...
-
-    async def update(self, account_id: UUID, update_data: AccountUpdate) -> Account | None: ...
-
-    async def delete(self, account_id: UUID) -> bool: ...
 
 
 class AccountRepository(SQLAlchemyRepository[Account, UUID]):

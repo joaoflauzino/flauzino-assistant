@@ -5,8 +5,10 @@ from finance_api.core.decorators import handle_service_errors
 from finance_api.core.exceptions import EntityConflictError, EntityNotFoundError
 from finance_api.core.logger import get_logger
 from finance_api.models.credit_cards import CreditCard
-from finance_api.repositories.accounts import AccountRepository
-from finance_api.repositories.credit_cards import CreditCardRepository
+from finance_api.repositories.protocols import (
+    AccountRepositoryProtocol,
+    CreditCardRepositoryProtocol,
+)
 from finance_api.schemas.credit_cards import CreditCardCreate, CreditCardUpdate
 
 logger = get_logger(__name__)
@@ -15,8 +17,8 @@ logger = get_logger(__name__)
 class CreditCardService:
     def __init__(
         self,
-        repository: CreditCardRepository,
-        account_repository: AccountRepository | None = None,
+        repository: CreditCardRepositoryProtocol,
+        account_repository: AccountRepositoryProtocol | None = None,
     ):
         self.repository = repository
         self.account_repository = account_repository

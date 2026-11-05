@@ -5,21 +5,20 @@ import httpx
 from mcp.server.fastmcp import Image
 from pydantic import Field
 
-from finance_api.core.database import AsyncSessionLocal
-from finance_api.core.dependencies import (
-    get_account_service,
-    get_balance_service,
-    get_credit_card_service,
-    get_income_category_service,
-    get_income_service,
-    get_spent_service,
+from finance_api.core.composition import (
+    build_account_service,
+    build_balance_service,
+    build_category_service,
+    build_credit_card_service,
+    build_income_category_service,
+    build_income_service,
+    build_spent_service,
 )
+from finance_api.core.database import AsyncSessionLocal
 from finance_api.core.logger import get_logger
 from finance_api.mcp.server import mcp
-from finance_api.repositories.categories import CategoryRepository
 from finance_api.schemas.incomes import IncomeCreate
 from finance_api.schemas.spents import SpentCreate
-from finance_api.services.categories import CategoryService
 from finance_api.settings import settings
 
 logger = get_logger(__name__)
@@ -42,7 +41,7 @@ async def get_category_balance(
 ) -> list[dict]:
     """Consulta os saldos disponíveis, limites e gastos de cada categoria."""
     async with AsyncSessionLocal() as db:
-        balance_service = get_balance_service(db)
+        balance_service = build_balance_service(db)
         balances = await balance_service.get_balance(reference_month=reference_month)
 
         result = [b.model_dump() for b in balances]
@@ -74,7 +73,7 @@ async def create_spent(
 ) -> dict:
     """Registra um novo gasto no sistema de finanças."""
     async with AsyncSessionLocal() as db:
-        service = get_spent_service(db)
+        service = build_spent_service(db)
 
         spent_create = SpentCreate(
             category=category,
@@ -91,8 +90,7 @@ async def create_spent(
 async def list_categories() -> list[dict]:
     """Lista todas as categorias de gastos cadastradas no sistema."""
     async with AsyncSessionLocal() as db:
-        repo = CategoryRepository(db)
-        service = CategoryService(repo)
+        service = build_category_service(db)
         items, _ = await service.list(page=1, size=100)
         return [item.model_dump(mode="json") for item in items]
 
@@ -117,7 +115,7 @@ async def create_income(
 ) -> dict:
     """Registra uma nova entrada/receita financeira no sistema."""
     async with AsyncSessionLocal() as db:
-        service = get_income_service(db)
+        service = build_income_service(db)
         income_create = IncomeCreate(
             description=description,
             amount=amount,
@@ -132,7 +130,7 @@ async def create_income(
 async def list_income_categories() -> list[dict]:
     """Lista todas as categorias de receitas cadastradas no sistema."""
     async with AsyncSessionLocal() as db:
-        service = get_income_category_service(db)
+        service = build_income_category_service(db)
         items, _ = await service.list(page=1, size=100)
         return [item.model_dump(mode="json") for item in items]
 
@@ -148,7 +146,7 @@ async def get_monthly_cashflow(
 ) -> dict:
     """Consulta o balanço mensal consolidado de receitas vs despesas, saldo líquido e taxa de economia."""
     async with AsyncSessionLocal() as db:
-        service = get_income_service(db)
+        service = build_income_service(db)
         summary = await service.get_monthly_summary(reference_month=reference_month)
         return summary.model_dump(mode="json")
 
@@ -162,7 +160,7 @@ async def list_accounts(
 ) -> list[dict]:
     """Lista todas as contas financeiras cadastradas com seus respectivos cartões vinculados."""
     async with AsyncSessionLocal() as db:
-        service = get_account_service(db)
+        service = build_account_service(db)
         items, _ = await service.list(page=1, size=100, owner=owner)
         return [
             {
@@ -192,7 +190,7 @@ async def list_accounts(
 async def list_credit_cards() -> list[dict]:
     """Lista todos os cartões de crédito cadastrados no sistema com detalhes de fechamento e vencimento."""
     async with AsyncSessionLocal() as db:
-        service = get_credit_card_service(db)
+        service = build_credit_card_service(db)
         items, _ = await service.list(page=1, size=100)
         return [
             {

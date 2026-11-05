@@ -5,14 +5,14 @@ from finance_api.core.decorators import handle_service_errors
 from finance_api.core.exceptions import EntityConflictError, EntityNotFoundError
 from finance_api.core.logger import get_logger
 from finance_api.models.payment_methods import PaymentMethod
-from finance_api.repositories.payment_methods import PaymentMethodRepository
+from finance_api.repositories.protocols import PaymentMethodRepositoryProtocol
 from finance_api.schemas.payment_methods import PaymentMethodCreate, PaymentMethodUpdate
 
 logger = get_logger(__name__)
 
 
 class PaymentMethodService:
-    def __init__(self, repository: PaymentMethodRepository):
+    def __init__(self, repository: PaymentMethodRepositoryProtocol):
         self.repository = repository
 
     @handle_service_errors

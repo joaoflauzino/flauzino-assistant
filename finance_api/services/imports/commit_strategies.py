@@ -5,7 +5,7 @@ from decimal import Decimal
 from uuid import UUID
 
 from finance_api.models.staged_transactions import StagedTransaction
-from finance_api.repositories.staged_transactions import StagedTransactionRepository
+from finance_api.repositories.protocols import StagedTransactionRepositoryProtocol
 from finance_api.schemas.enums import CommitOutcomeStatus, TransactionKind
 from finance_api.schemas.imports import CommitContext, CommitStepOutcome
 from finance_api.schemas.incomes import IncomeCreate
@@ -104,7 +104,7 @@ class ExpenseDuplicateDetector:
 
     async def detect(
         self,
-        tx_repo: StagedTransactionRepository,
+        tx_repo: StagedTransactionRepositoryProtocol,
         account_id: UUID | None,
         credit_card_id: UUID | None,
         amount: Decimal,
@@ -124,7 +124,7 @@ class IncomeDuplicateDetector:
 
     async def detect(
         self,
-        tx_repo: StagedTransactionRepository,
+        tx_repo: StagedTransactionRepositoryProtocol,
         account_id: UUID | None,
         credit_card_id: UUID | None,
         amount: Decimal,

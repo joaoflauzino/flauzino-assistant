@@ -7,10 +7,10 @@ from asgi_lifespan import LifespanManager
 from httpx import ASGITransport, AsyncClient
 
 from finance_api.core.database import get_db
+from finance_api.core.service_dependencies import get_invoice_service
 from finance_api.main import app
 from finance_api.models.credit_cards import CreditCard
 from finance_api.models.invoices import InvoiceStatus
-from finance_api.routers.invoices import get_invoice_service
 
 pytestmark = pytest.mark.asyncio
 

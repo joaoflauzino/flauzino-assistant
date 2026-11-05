@@ -1,5 +1,4 @@
 from collections.abc import Sequence
-from typing import Protocol
 from uuid import UUID
 
 from sqlalchemy import select
@@ -8,29 +7,10 @@ from sqlalchemy.orm import selectinload
 
 from finance_api.core.logger import get_logger
 from finance_api.models.credit_cards import CreditCard
-from finance_api.repositories.base import RepositoryProtocol, SQLAlchemyRepository
+from finance_api.repositories.base import SQLAlchemyRepository
 from finance_api.schemas.credit_cards import CreditCardCreate, CreditCardUpdate
 
 logger = get_logger(__name__)
-
-
-class CreditCardRepositoryProtocol(RepositoryProtocol[CreditCard, UUID], Protocol):
-    """Domain repository contract for CreditCard persistence."""
-
-    async def get_by_key(self, key: str) -> CreditCard | None: ...
-
-    async def list(
-        self,
-        page: int = 1,
-        size: int = 100,
-        account_id: UUID | None = None,
-    ) -> tuple[Sequence[CreditCard], int]: ...
-
-    async def create(self, card_data: CreditCardCreate) -> CreditCard: ...
-
-    async def update(self, card_id: UUID, update_data: CreditCardUpdate) -> CreditCard | None: ...
-
-    async def delete(self, card_id: UUID) -> bool: ...
 
 
 class CreditCardRepository(SQLAlchemyRepository[CreditCard, UUID]):

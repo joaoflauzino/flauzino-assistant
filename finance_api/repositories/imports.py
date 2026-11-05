@@ -1,4 +1,3 @@
-from typing import Protocol
 from uuid import UUID
 
 from sqlalchemy import desc, func, select
@@ -6,28 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from finance_api.models.import_batches import ImportBatch
 from finance_api.models.staged_transactions import StagedTransaction
-from finance_api.repositories.base import RepositoryProtocol, SQLAlchemyRepository
-
-
-class ImportBatchRepositoryProtocol(RepositoryProtocol[ImportBatch, UUID], Protocol):
-    """Domain repository contract for ImportBatch persistence."""
-
-    async def create(self, batch: ImportBatch) -> ImportBatch: ...
-
-    async def update_batch_stats(
-        self,
-        batch: ImportBatch,
-        possible_duplicates: int,
-        ai_used: bool,
-    ) -> ImportBatch: ...
-
-    async def get_by_sha256(self, sha256_hash: str) -> ImportBatch | None: ...
-
-    async def list_all(self, limit: int = 50, offset: int = 0) -> list[ImportBatch]: ...
-
-    async def get_counts_by_status(self, batch_id: UUID) -> dict[str, int]: ...
-
-    async def get_global_summary(self) -> dict[str, int]: ...
+from finance_api.repositories.base import SQLAlchemyRepository
 
 
 class ImportBatchRepository(SQLAlchemyRepository[ImportBatch, UUID]):

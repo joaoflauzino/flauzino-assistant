@@ -5,8 +5,10 @@ from decimal import Decimal
 from typing import Any
 
 from finance_api.models.staged_transactions import StagedTransaction
-from finance_api.repositories.categories import CategoryRepository
-from finance_api.repositories.income_categories import IncomeCategoryRepository
+from finance_api.repositories.protocols import (
+    CategoryRepositoryProtocol,
+    IncomeCategoryRepositoryProtocol,
+)
 from finance_api.services.classification.ai_classifier import AIClassifierClient
 
 DEFAULT_CONFIDENCE = Decimal("0.750")
@@ -18,8 +20,8 @@ class BatchEnrichmentService:
 
     def __init__(
         self,
-        category_repo: CategoryRepository,
-        income_category_repo: IncomeCategoryRepository,
+        category_repo: CategoryRepositoryProtocol,
+        income_category_repo: IncomeCategoryRepositoryProtocol,
         ai_client: AIClassifierClient,
     ) -> None:
         self._category_repo = category_repo

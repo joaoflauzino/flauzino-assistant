@@ -4,8 +4,10 @@ from finance_api.core.decorators import handle_service_errors
 from finance_api.core.exceptions import EntityNotFoundError, ValidationError
 from finance_api.core.logger import get_logger
 from finance_api.models.subscriptions import Subscription
-from finance_api.repositories.categories import CategoryRepository
-from finance_api.repositories.subscriptions import SubscriptionRepository
+from finance_api.repositories.protocols import (
+    CategoryRepositoryProtocol,
+    SubscriptionRepositoryProtocol,
+)
 from finance_api.schemas.pagination import PaginatedResponse
 from finance_api.schemas.subscriptions import SubscriptionCreate, SubscriptionUpdate
 from finance_api.services.payment_resolution import PaymentResolutionService
@@ -21,10 +23,10 @@ logger = get_logger(__name__)
 class SubscriptionService:
     def __init__(
         self,
-        repo: SubscriptionRepository,
+        repo: SubscriptionRepositoryProtocol,
         *,
         payment_resolver: PaymentResolutionService,
-        category_repo: CategoryRepository,
+        category_repo: CategoryRepositoryProtocol,
     ):
         self.repo = repo
         self.payment_resolver = payment_resolver
@@ -65,7 +67,7 @@ class SubscriptionService:
         logger.info(f"Listing subscriptions page {page} size {size} active_only {active_only}")
         skip = (page - 1) * size
         items, total = await self.repo.list(skip, size, active_only)
-        return PaginatedResponse.create(items, total, page, size)
+        return PaginatedResponse.create(list(items), total, page, size)
 
     @handle_service_errors
     async def get_by_id(self, subscription_id: UUID) -> "Subscription":

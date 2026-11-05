@@ -5,8 +5,10 @@ from decimal import Decimal
 from uuid import UUID
 
 from finance_api.models.staged_transactions import StagedTransaction
-from finance_api.repositories.category_rules import CategoryRuleRepositoryProtocol
-from finance_api.repositories.staged_transactions import StagedTransactionRepository
+from finance_api.repositories.protocols import (
+    CategoryRuleRepositoryProtocol,
+    StagedTransactionRepositoryProtocol,
+)
 from finance_api.schemas.imports import ReclassifyResult
 from finance_api.services.imports.enrichment import BatchEnrichmentService
 
@@ -19,7 +21,7 @@ class ImportReclassifyService:
 
     def __init__(
         self,
-        tx_repo: StagedTransactionRepository,
+        tx_repo: StagedTransactionRepositoryProtocol,
         rule_repo: CategoryRuleRepositoryProtocol,
         enrichment_service: BatchEnrichmentService,
     ) -> None:

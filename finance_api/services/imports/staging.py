@@ -5,7 +5,7 @@ from uuid import UUID
 
 from finance_api.importers.schemas import ParsedTransaction, ResolvedImportTarget
 from finance_api.models.staged_transactions import StagedTransaction
-from finance_api.repositories.staged_transactions import StagedTransactionRepository
+from finance_api.repositories.protocols import StagedTransactionRepositoryProtocol
 from finance_api.schemas.classification import ClassificationResult
 from finance_api.schemas.enums import TransactionKind
 from finance_api.services.classification.service import ClassificationService
@@ -45,7 +45,7 @@ class StagingBuilder:
 
     def __init__(
         self,
-        tx_repo: StagedTransactionRepository,
+        tx_repo: StagedTransactionRepositoryProtocol,
         classification_service: ClassificationService,
         duplicate_detectors: dict[str, DuplicateDetectorStrategy],
     ) -> None:

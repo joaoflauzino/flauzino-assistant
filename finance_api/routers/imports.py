@@ -3,8 +3,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, File, Form, Query, UploadFile, status
 
-from finance_api.core.dependencies import ClassificationServiceDep, ImportServiceDep
 from finance_api.core.exceptions import ValidationError
+from finance_api.core.service_dependencies import ClassificationServiceDep, ImportServiceDep
 from finance_api.models.category_rules import CategoryRule
 from finance_api.schemas.imports import (
     BulkActionRequest,

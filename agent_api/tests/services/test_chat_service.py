@@ -11,7 +11,8 @@ from agent_api.dependencies import (
     get_classify_service,
 )
 from agent_api.models.chat import ChatMessage, ChatSession
-from agent_api.repositories.chat_repository import ChatRepositoryProtocol
+from agent_api.repositories.chat_repository import ChatRepository
+from agent_api.repositories.protocols import ChatRepositoryProtocol
 from agent_api.schemas.assistant import AssistantResponse
 from agent_api.services.agent import AgentService
 from agent_api.services.chat import ChatService
@@ -32,11 +33,24 @@ def chat_service(mock_repo, mock_agent_service):
     return ChatService(mock_repo, mock_agent_service)
 
 
-@pytest.mark.asyncio
-async def test_chat_service_accepts_legacy_async_session(mock_agent_service):
-    mock_session = AsyncMock(spec=AsyncSession)
-    service = ChatService(mock_session, mock_agent_service)
-    assert hasattr(service.repository, "create_session")
+def test_chat_service_uses_injected_repository(mock_repo, mock_agent_service):
+    """The service must consume the injected contract directly, without wrapping it."""
+    service = ChatService(mock_repo, mock_agent_service)
+    assert service.repository is mock_repo
+
+
+def test_chat_repository_satisfies_protocol_surface():
+    """The concrete repository exposes every operation declared by the contract."""
+    repository = ChatRepository(AsyncMock(spec=AsyncSession))
+
+    for method_name in (
+        "create_session",
+        "get_session",
+        "add_message",
+        "get_messages",
+        "cleanup_stale_sessions",
+    ):
+        assert callable(getattr(repository, method_name))
 
 
 def test_agent_dependencies_wiring():

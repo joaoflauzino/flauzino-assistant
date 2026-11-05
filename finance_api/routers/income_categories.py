@@ -2,7 +2,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
 
-from finance_api.core.dependencies import get_income_category_service
+from finance_api.core.service_dependencies import get_income_category_service
 from finance_api.schemas.income_categories import (
     IncomeCategoryCreate,
     IncomeCategoryResponse,

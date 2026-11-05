@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import Any, Protocol, cast
+from typing import Any, cast
 from uuid import UUID
 
 from sqlalchemy import delete, desc, select, update
@@ -9,27 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from finance_api.core.text import normalize_upper
 from finance_api.models.category_rules import CategoryRule
-
-
-class CategoryRuleRepositoryProtocol(Protocol):
-    """Domain repository contract for CategoryRule persistence."""
-
-    async def list_all(self) -> Sequence[CategoryRule]: ...
-
-    async def find_matching_rule(self, merchant: str, direction: str) -> CategoryRule | None: ...
-
-    async def increment_hits(self, rule_id: UUID) -> None: ...
-
-    async def upsert_rule(
-        self,
-        pattern: str,
-        direction: str,
-        kind: str,
-        category: str | None,
-        source: str = "LEARNED",
-    ) -> CategoryRule: ...
-
-    async def delete_by_id(self, rule_id: UUID) -> bool: ...
 
 
 class CategoryRuleRepository:

@@ -7,22 +7,24 @@ from finance_api.core.exceptions import EntityNotFoundError, ValidationError
 from finance_api.core.logger import get_logger
 from finance_api.models.income_categories import IncomeCategory
 from finance_api.models.payment_methods import PaymentMethod
-from finance_api.repositories.income_categories import IncomeCategoryRepository
-from finance_api.repositories.incomes import IncomeRepository
-from finance_api.repositories.payment_methods import PaymentMethodRepository
-from finance_api.repositories.spents import SpentRepository
+from finance_api.repositories.protocols import (
+    IncomeCategoryRepositoryProtocol,
+    IncomeRepositoryProtocol,
+    PaymentMethodRepositoryProtocol,
+    SpentRepositoryProtocol,
+)
 from finance_api.schemas.incomes import (
     IncomeCreate,
     IncomeResponse,
     IncomeUpdate,
     MonthlyBalanceSummary,
 )
-from finance_api.services.payment_resolution import PaymentResolutionService
 from finance_api.services.update_preparation import (
     IncomeCategoryStep,
     IncomePaymentStep,
     UpdateDataPreparer,
 )
+from finance_api.services.update_preparation_protocols import PaymentResolutionServiceProtocol
 from finance_api.services.utils import build_monthly_summary
 
 logger = get_logger(__name__)
@@ -33,41 +35,17 @@ MONTHLY_SUMMARY_SPENT_LIMIT = 10_000
 class IncomeService:
     def __init__(
         self,
-        repo: IncomeRepository,
-        category_repo: IncomeCategoryRepository | None = None,
-        pm_repo: PaymentMethodRepository | None = None,
-        spent_repo: SpentRepository | None = None,
-        payment_resolver: PaymentResolutionService | None = None,
-    ):
+        repo: IncomeRepositoryProtocol,
+        category_repo: IncomeCategoryRepositoryProtocol,
+        pm_repo: PaymentMethodRepositoryProtocol,
+        spent_repo: SpentRepositoryProtocol,
+        payment_resolver: PaymentResolutionServiceProtocol,
+    ) -> None:
         self.repo = repo
-        self._category_repo = category_repo
-        self._pm_repo = pm_repo
-        self._spent_repo = spent_repo
-        self._payment_resolver = payment_resolver
-
-    @property
-    def category_repo(self) -> IncomeCategoryRepository:
-        if self._category_repo is not None:
-            return self._category_repo
-        return IncomeCategoryRepository(self.repo.db)
-
-    @property
-    def pm_repo(self) -> PaymentMethodRepository:
-        if self._pm_repo is not None:
-            return self._pm_repo
-        return PaymentMethodRepository(self.repo.db)
-
-    @property
-    def spent_repo(self) -> SpentRepository:
-        if self._spent_repo is not None:
-            return self._spent_repo
-        return SpentRepository(self.repo.db)
-
-    @property
-    def payment_resolver(self) -> PaymentResolutionService:
-        if self._payment_resolver is not None:
-            return self._payment_resolver
-        return PaymentResolutionService(db=getattr(self.repo, "db", None))
+        self.category_repo = category_repo
+        self.pm_repo = pm_repo
+        self.spent_repo = spent_repo
+        self.payment_resolver = payment_resolver
 
     async def _validate_category(self, category_key: str) -> IncomeCategory:
         category = await self.category_repo.get_by_key(category_key)

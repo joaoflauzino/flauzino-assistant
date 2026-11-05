@@ -3,7 +3,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
 
-from finance_api.core.dependencies import get_income_service
+from finance_api.core.service_dependencies import get_income_service
 from finance_api.schemas.incomes import (
     IncomeCreate,
     IncomeResponse,

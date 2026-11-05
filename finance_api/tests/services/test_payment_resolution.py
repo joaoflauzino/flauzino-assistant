@@ -5,8 +5,10 @@ import pytest
 
 from finance_api.models.accounts import Account
 from finance_api.models.credit_cards import CreditCard
-from finance_api.repositories.accounts import AccountRepositoryProtocol
-from finance_api.repositories.credit_cards import CreditCardRepositoryProtocol
+from finance_api.repositories.protocols import (
+    AccountRepositoryProtocol,
+    CreditCardRepositoryProtocol,
+)
 from finance_api.services.payment_resolution import PaymentResolutionService
 
 

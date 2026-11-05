@@ -10,10 +10,12 @@ from finance_api.core.logger import get_logger
 from finance_api.models.limits import SpendingLimit
 from finance_api.models.payment_methods import PaymentMethod
 from finance_api.models.spents import Spent
-from finance_api.repositories.categories import CategoryRepository
-from finance_api.repositories.limits import SpendingLimitRepository
-from finance_api.repositories.payment_methods import PaymentMethodRepository
-from finance_api.repositories.spents import SpentRepository
+from finance_api.repositories.protocols import (
+    CategoryRepositoryProtocol,
+    PaymentMethodRepositoryProtocol,
+    SpendingLimitRepositoryProtocol,
+    SpentRepositoryProtocol,
+)
 from finance_api.schemas.limits import CategoryBalance
 from finance_api.services.invoices import InvoiceService
 from finance_api.services.utils import build_category_balance
@@ -24,10 +26,10 @@ logger = get_logger(__name__)
 class BalanceService:
     def __init__(
         self,
-        limit_repo: SpendingLimitRepository,
-        spent_repo: SpentRepository,
-        category_repo: CategoryRepository,
-        pm_repo: PaymentMethodRepository,
+        limit_repo: SpendingLimitRepositoryProtocol,
+        spent_repo: SpentRepositoryProtocol,
+        category_repo: CategoryRepositoryProtocol,
+        pm_repo: PaymentMethodRepositoryProtocol,
         inv_service: InvoiceService,
     ):
         self.limit_repo = limit_repo

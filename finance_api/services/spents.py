@@ -12,10 +12,11 @@ from finance_api.core.logger import get_logger
 from finance_api.models.categories import Category
 from finance_api.models.payment_methods import PaymentMethod
 from finance_api.models.spents import Spent
-from finance_api.repositories.categories import CategoryRepository
-from finance_api.repositories.invoices import InvoiceRepository
-from finance_api.repositories.payment_methods import PaymentMethodRepository
-from finance_api.repositories.spents import SpentRepository
+from finance_api.repositories.protocols import (
+    CategoryRepositoryProtocol,
+    PaymentMethodRepositoryProtocol,
+    SpentRepositoryProtocol,
+)
 from finance_api.schemas.installments import InstallmentSummary
 from finance_api.schemas.pagination import PaginatedResponse
 from finance_api.schemas.spents import SpentCreate, SpentUpdate
@@ -25,12 +26,12 @@ from finance_api.services.dashboard_strategies import (
     InvoicesDashboardStrategy,
 )
 from finance_api.services.invoices import InvoiceService
-from finance_api.services.payment_resolution import PaymentResolutionService
 from finance_api.services.update_preparation import (
     ExpenseCategoryStep,
     SpentPaymentStep,
     UpdateDataPreparer,
 )
+from finance_api.services.update_preparation_protocols import PaymentResolutionServiceProtocol
 
 logger = get_logger(__name__)
 
@@ -38,47 +39,17 @@ logger = get_logger(__name__)
 class SpentService:
     def __init__(
         self,
-        repo: SpentRepository,
-        category_repo: CategoryRepository | None = None,
-        pm_repo: PaymentMethodRepository | None = None,
+        repo: SpentRepositoryProtocol,
+        category_repo: CategoryRepositoryProtocol,
+        pm_repo: PaymentMethodRepositoryProtocol,
+        payment_resolver: PaymentResolutionServiceProtocol,
         inv_service: InvoiceService | None = None,
-        payment_resolver: PaymentResolutionService | None = None,
-    ):
+    ) -> None:
         self.repo = repo
-        self._category_repo = category_repo
-        self._pm_repo = pm_repo
-        self._inv_service = inv_service
-        self._payment_resolver = payment_resolver
-
-    @property
-    def category_repo(self) -> CategoryRepository:
-        """Returns the injected category repo or instantiates one from CategoryRepository(self.repo.db)."""
-        if self._category_repo is not None:
-            return self._category_repo
-        return CategoryRepository(self.repo.db)
-
-    @property
-    def pm_repo(self) -> PaymentMethodRepository:
-        """Returns the injected payment method repo or instantiates one from PaymentMethodRepository(self.repo.db)."""
-        if self._pm_repo is not None:
-            return self._pm_repo
-        return PaymentMethodRepository(self.repo.db)
-
-    @property
-    def inv_service(self) -> InvoiceService | None:
-        """Returns the injected invoice service or instantiates one."""
-        if self._inv_service is not None:
-            return self._inv_service
-        if hasattr(self.repo, "db") and self.repo.db is not None:
-            return InvoiceService(InvoiceRepository(self.repo.db), self.pm_repo)
-        return None
-
-    @property
-    def payment_resolver(self) -> PaymentResolutionService:
-        """Returns the injected payment resolver or instantiates one."""
-        if self._payment_resolver is not None:
-            return self._payment_resolver
-        return PaymentResolutionService(db=getattr(self.repo, "db", None))
+        self.category_repo = category_repo
+        self.pm_repo = pm_repo
+        self.payment_resolver = payment_resolver
+        self.inv_service = inv_service
 
     async def _validate_category(self, category_key: str) -> Category:
         category = await self.category_repo.get_by_key(category_key)
@@ -124,7 +95,7 @@ class SpentService:
         self,
         reference_month: str,
         inv_service: InvoiceService | None = None,
-        pm_repo: PaymentMethodRepository | None = None,
+        pm_repo: PaymentMethodRepositoryProtocol | None = None,
     ) -> list[tuple[str, date, date]]:
         """Resolves invoice billing periods for all payment methods."""
         active_inv = inv_service or self.inv_service
@@ -177,7 +148,7 @@ class SpentService:
         logger.info(f"Listing spents page {page} size {size} start {start_date} end {end_date}")
         skip = (page - 1) * size
         items, total = await self.repo.list(skip, size, start_date, end_date)
-        return PaginatedResponse.create(items, total, page, size)
+        return PaginatedResponse.create(list(items), total, page, size)
 
     @handle_service_errors
     async def get_dashboard(
@@ -187,7 +158,7 @@ class SpentService:
         page: int,
         size: int,
         inv_service: InvoiceService | None = None,
-        pm_repo: PaymentMethodRepository | None = None,
+        pm_repo: PaymentMethodRepositoryProtocol | None = None,
     ) -> PaginatedResponse["Spent"]:
         logger.info(f"Dashboard mode {mode} for {reference_month}")
         skip = (page - 1) * size

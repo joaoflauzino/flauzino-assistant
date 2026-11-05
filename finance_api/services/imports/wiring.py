@@ -5,13 +5,15 @@ from dataclasses import dataclass
 from finance_api.importers.protocols import ImportTargetResolver
 from finance_api.importers.registry import StatementParserFactory
 from finance_api.importers.schemas import StatementType
-from finance_api.repositories.accounts import AccountRepositoryProtocol
-from finance_api.repositories.categories import CategoryRepository
-from finance_api.repositories.category_rules import CategoryRuleRepositoryProtocol
-from finance_api.repositories.credit_cards import CreditCardRepositoryProtocol
-from finance_api.repositories.imports import ImportBatchRepositoryProtocol
-from finance_api.repositories.income_categories import IncomeCategoryRepository
-from finance_api.repositories.staged_transactions import StagedTransactionRepository
+from finance_api.repositories.protocols import (
+    AccountRepositoryProtocol,
+    CategoryRepositoryProtocol,
+    CategoryRuleRepositoryProtocol,
+    CreditCardRepositoryProtocol,
+    ImportBatchRepositoryProtocol,
+    IncomeCategoryRepositoryProtocol,
+    StagedTransactionRepositoryProtocol,
+)
 from finance_api.services.classification.ai_classifier import AIClassifierClient
 from finance_api.services.classification.service import ClassificationService
 from finance_api.services.imports.bulk import ImportBulkService
@@ -34,15 +36,15 @@ class ImportServiceDeps:
     """Repositories and services every import use case needs."""
 
     batch_repo: ImportBatchRepositoryProtocol
-    tx_repo: StagedTransactionRepository
+    tx_repo: StagedTransactionRepositoryProtocol
     rule_repo: CategoryRuleRepositoryProtocol
     classification_service: ClassificationService
     account_repo: AccountRepositoryProtocol
     credit_card_repo: CreditCardRepositoryProtocol
     spent_service: SpentService
     income_service: IncomeService
-    category_repo: CategoryRepository
-    income_category_repo: IncomeCategoryRepository
+    category_repo: CategoryRepositoryProtocol
+    income_category_repo: IncomeCategoryRepositoryProtocol
 
 
 @dataclass(frozen=True, slots=True)

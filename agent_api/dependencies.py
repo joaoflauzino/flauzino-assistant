@@ -8,7 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from agent_api.core.database import get_db
 from agent_api.core.http_client import get_http_client
 from agent_api.core.llm import LLMProfile, get_llm
-from agent_api.repositories.chat_repository import ChatRepository, ChatRepositoryProtocol
+from agent_api.repositories.chat_repository import ChatRepository
+from agent_api.repositories.protocols import ChatRepositoryProtocol
 from agent_api.services.agent import AgentService
 from agent_api.services.chat import ChatService
 from agent_api.services.classify import ClassifyService

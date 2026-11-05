@@ -4,8 +4,10 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from finance_api.core.logger import get_logger
-from finance_api.repositories.accounts import AccountRepositoryProtocol
-from finance_api.repositories.credit_cards import CreditCardRepositoryProtocol
+from finance_api.repositories.protocols import (
+    AccountRepositoryProtocol,
+    CreditCardRepositoryProtocol,
+)
 from finance_api.schemas.payment_resolution import ResolvedPaymentTarget
 
 logger = get_logger(__name__)

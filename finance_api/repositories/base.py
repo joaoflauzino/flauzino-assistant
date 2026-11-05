@@ -1,13 +1,5 @@
-from typing import Protocol
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-
-class RepositoryProtocol[T, ID](Protocol):
-    """Structural contract for any entity repository (PEP 695 Generic Protocol)."""
-
-    async def get_by_id(self, entity_id: ID) -> T | None: ...
 
 
 class SQLAlchemyRepository[T, ID]:

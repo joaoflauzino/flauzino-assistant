@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from finance_api.models.staged_transactions import StagedTransaction
-from finance_api.repositories.category_rules import CategoryRuleRepositoryProtocol
+from finance_api.repositories.protocols import CategoryRuleRepositoryProtocol
 from finance_api.schemas.enums import BulkActionType, StepOutcomeStatus
 from finance_api.schemas.imports import BulkActionRequest
 from finance_api.services.imports.bulk_strategies import (

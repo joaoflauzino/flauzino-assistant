@@ -2,9 +2,8 @@
 
 from collections.abc import Sequence
 
-from finance_api.repositories.accounts import AccountRepository, AccountRepositoryProtocol
-from finance_api.repositories.credit_cards import (
-    CreditCardRepository,
+from finance_api.repositories.protocols import (
+    AccountRepositoryProtocol,
     CreditCardRepositoryProtocol,
 )
 from finance_api.schemas.payment_resolution import ResolvedPaymentTarget
@@ -26,10 +25,9 @@ class PaymentResolutionService:
         self,
         card_repo: CreditCardRepositoryProtocol | None = None,
         account_repo: AccountRepositoryProtocol | None = None,
-        db=None,
     ) -> None:
-        self._card_repo = card_repo or (CreditCardRepository(db) if db is not None else None)
-        self._account_repo = account_repo or (AccountRepository(db) if db is not None else None)
+        self._card_repo = card_repo
+        self._account_repo = account_repo
         self._steps: Sequence[PaymentResolutionStep] = (
             CreditCardPaymentStep(),
             AccountPaymentStep(),

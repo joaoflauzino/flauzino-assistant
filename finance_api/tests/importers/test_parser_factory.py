@@ -16,8 +16,10 @@ from finance_api.importers.registry import (
 from finance_api.importers.schemas import ParserKey, StatementType
 from finance_api.models.accounts import Account
 from finance_api.models.credit_cards import CreditCard
-from finance_api.repositories.accounts import AccountRepositoryProtocol
-from finance_api.repositories.credit_cards import CreditCardRepositoryProtocol
+from finance_api.repositories.protocols import (
+    AccountRepositoryProtocol,
+    CreditCardRepositoryProtocol,
+)
 
 SAMPLE_CHECKING_CSV = b"""\xef\xbb\xbfEXTRATO DE CONTA CORRENTE C6 BANK\r
 \r

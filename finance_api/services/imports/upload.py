@@ -12,8 +12,10 @@ from finance_api.importers.schemas import (
     StatementType,
 )
 from finance_api.models.import_batches import ImportBatch
-from finance_api.repositories.imports import ImportBatchRepositoryProtocol
-from finance_api.repositories.staged_transactions import StagedTransactionRepository
+from finance_api.repositories.protocols import (
+    ImportBatchRepositoryProtocol,
+    StagedTransactionRepositoryProtocol,
+)
 from finance_api.schemas.imports import ImportBatchResponse
 from finance_api.services.imports.enrichment import BatchEnrichmentService
 from finance_api.services.imports.fingerprint import ImportFingerprintService
@@ -29,7 +31,7 @@ class ImportUploadService:
     def __init__(
         self,
         batch_repo: ImportBatchRepositoryProtocol,
-        tx_repo: StagedTransactionRepository,
+        tx_repo: StagedTransactionRepositoryProtocol,
         parser_factory: StatementParserFactory,
         target_resolvers: dict[StatementType, ImportTargetResolver],
         fingerprints: ImportFingerprintService,

@@ -6,8 +6,8 @@ import pytest
 from asgi_lifespan import LifespanManager
 from httpx import ASGITransport, AsyncClient
 
+from finance_api.core.service_dependencies import get_account_service
 from finance_api.main import app
-from finance_api.routers.accounts import get_account_service
 from finance_api.schemas.accounts import AccountResponse
 
 pytestmark = pytest.mark.asyncio

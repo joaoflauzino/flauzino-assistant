@@ -7,10 +7,12 @@ from uuid import UUID
 
 from finance_api.core.exceptions import EntityNotFoundError, ValidationError
 from finance_api.models.staged_transactions import StagedTransaction
-from finance_api.repositories.categories import CategoryRepository
-from finance_api.repositories.category_rules import CategoryRuleRepositoryProtocol
-from finance_api.repositories.income_categories import IncomeCategoryRepository
-from finance_api.repositories.staged_transactions import StagedTransactionRepository
+from finance_api.repositories.protocols import (
+    CategoryRepositoryProtocol,
+    CategoryRuleRepositoryProtocol,
+    IncomeCategoryRepositoryProtocol,
+    StagedTransactionRepositoryProtocol,
+)
 from finance_api.schemas.imports import StagedTransactionResponse, StagedTransactionUpdate
 from finance_api.services.imports.presenter import ImportBatchPresenter
 
@@ -31,10 +33,10 @@ class StagedTransactionEditor:
 
     def __init__(
         self,
-        tx_repo: StagedTransactionRepository,
+        tx_repo: StagedTransactionRepositoryProtocol,
         rule_repo: CategoryRuleRepositoryProtocol,
-        category_repo: CategoryRepository,
-        income_category_repo: IncomeCategoryRepository,
+        category_repo: CategoryRepositoryProtocol,
+        income_category_repo: IncomeCategoryRepositoryProtocol,
         presenter: ImportBatchPresenter,
     ) -> None:
         self._tx_repo = tx_repo

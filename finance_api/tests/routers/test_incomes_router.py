@@ -28,7 +28,6 @@ async def test_client():
 @pytest.fixture
 def mock_income_repo(mocker):
     repo = MagicMock()
-    repo.db = AsyncMock()
     repo.create = AsyncMock()
     repo.list = AsyncMock()
     repo.list_by_period = AsyncMock()
@@ -43,7 +42,6 @@ def mock_income_repo(mocker):
 @pytest.fixture
 def mock_income_cat_repo(mocker):
     repo = MagicMock()
-    repo.db = AsyncMock()
     repo.get_by_key = AsyncMock()
     mocker.patch(
         "finance_api.core.dependencies.IncomeCategoryRepository",
@@ -55,7 +53,6 @@ def mock_income_cat_repo(mocker):
 @pytest.fixture
 def mock_pm_repo(mocker):
     repo = MagicMock()
-    repo.db = AsyncMock()
     repo.get_by_key = AsyncMock()
     mocker.patch(
         "finance_api.core.dependencies.PaymentMethodRepository",
@@ -67,7 +64,6 @@ def mock_pm_repo(mocker):
 @pytest.fixture
 def mock_spent_repo(mocker):
     repo = MagicMock()
-    repo.db = AsyncMock()
     repo.list = AsyncMock()
     mocker.patch("finance_api.core.dependencies.SpentRepository", return_value=repo)
     return repo
@@ -76,7 +72,7 @@ def mock_spent_repo(mocker):
 @pytest.fixture(autouse=True)
 def mock_payment_resolver(mocker):
     resolver = FakePaymentResolver()
-    mocker.patch("finance_api.services.incomes.PaymentResolutionService", return_value=resolver)
+    mocker.patch("finance_api.core.dependencies.PaymentResolutionService", return_value=resolver)
     return resolver
 
 

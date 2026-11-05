@@ -6,8 +6,8 @@ import pytest
 from asgi_lifespan import LifespanManager
 from httpx import ASGITransport, AsyncClient
 
+from finance_api.core.service_dependencies import get_credit_card_service
 from finance_api.main import app
-from finance_api.routers.credit_cards import get_credit_card_service
 from finance_api.schemas.credit_cards import CreditCardResponse
 
 pytestmark = pytest.mark.asyncio
