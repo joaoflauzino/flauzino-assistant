@@ -4,6 +4,7 @@ from langchain_core.tools import BaseTool, tool
 
 from agent_api.core.decorators import handle_tool_errors
 from agent_api.core.logger import get_logger
+from agent_api.schemas.finance import BalancePayload
 from agent_api.services.protocols import FinanceServiceProtocol, GraphServiceProtocol
 
 logger = get_logger(__name__)
@@ -20,7 +21,7 @@ def build_consultar_saldos(
     async def consultar_saldos(
         categorias: list[str] | None = None,
         mes_referencia: str | None = None,
-    ) -> str | list[dict]:
+    ) -> str | list[BalancePayload]:
         """Consulta os saldos e limites de gastos da família.
 
         Args:

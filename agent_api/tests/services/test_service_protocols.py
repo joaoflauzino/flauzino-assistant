@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from agent_api.schemas.finance import BalancePayload
 from agent_api.services.agent import AgentService
 from agent_api.services.clients.finance import FinanceService
 from agent_api.services.clients.graph import GraphService
@@ -17,15 +18,24 @@ class StructuralFinanceFake:
         self,
         categories: list[str] | None = None,
         reference_month: str | None = None,
-    ) -> list[dict]:
-        return [{"category": "mercado", "available": 500.0}]
+    ) -> list[BalancePayload]:
+        return [
+            {
+                "category": "mercado",
+                "category_display_name": "Mercado",
+                "limit": 1000.0,
+                "spent": 500.0,
+                "available": 500.0,
+                "percentage_used": 50.0,
+            }
+        ]
 
 
 class StructuralGraphFake:
     async def generate_chart(
         self,
         chart_type: str,
-        balances: list[dict],
+        balances: list[BalancePayload],
         mode: str = "saldo",
         title: str | None = None,
     ) -> str:

@@ -13,6 +13,7 @@ from agent_api.schemas.finance import (
     DEFAULT_CREDIT_CARDS,
     DEFAULT_INCOME_CATEGORIES,
     DEFAULT_PAYMENT_METHODS,
+    BalancePayload,
 )
 from agent_api.schemas.income import IncomeDetails
 from agent_api.schemas.limit import LimitDetails
@@ -181,7 +182,7 @@ class FinanceService(BaseHttpService):
         self,
         categories: list[str] | None = None,
         reference_month: str | None = None,
-    ) -> list[dict]:
+    ) -> list[BalancePayload]:
         """Fetch balances from the finance API with optional category and reference_month filtering."""
         url = f"{settings.FINANCE_SERVICE_URL}/limits/balance"
         params = {}

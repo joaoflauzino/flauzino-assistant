@@ -31,6 +31,7 @@ from finance_api.schemas.categories import CategoryCreate, CategoryUpdate
 from finance_api.schemas.credit_cards import CreditCardCreate, CreditCardUpdate
 from finance_api.schemas.income_categories import IncomeCategoryCreate, IncomeCategoryUpdate
 from finance_api.schemas.incomes import IncomeCreate, IncomeUpdate
+from finance_api.schemas.installments import InstallmentSummaryRow
 from finance_api.schemas.invoices import InvoiceCreate, InvoiceUpdate
 from finance_api.schemas.limits import SpendingLimitCreate, SpendingLimitUpdate
 from finance_api.schemas.payment_methods import PaymentMethodCreate, PaymentMethodUpdate
@@ -42,6 +43,12 @@ class RepositoryProtocol[T, ID](Protocol):
     """Structural contract for any entity repository (PEP 695 Generic Protocol)."""
 
     async def get_by_id(self, entity_id: ID) -> T | None: ...
+
+
+class AccountLookupProtocol(Protocol):
+    """Narrow account lookup contract for services that only validate links."""
+
+    async def get_by_id(self, account_id: UUID) -> Account | None: ...
 
 
 class AccountRepositoryProtocol(RepositoryProtocol[Account, UUID], Protocol):
@@ -169,7 +176,7 @@ class SpentRepositoryProtocol(RepositoryProtocol[Spent, UUID], Protocol):
     ) -> tuple[Sequence[Spent], int]: ...
     async def create(self, spent: SpentCreate) -> Spent: ...
     async def create_many(self, spents: builtins.list[Spent]) -> Sequence[Spent]: ...
-    async def get_installments_summary(self) -> Sequence[dict]: ...
+    async def get_installments_summary(self) -> Sequence[InstallmentSummaryRow]: ...
     async def update(self, spent_id: UUID, update_data: SpentUpdate) -> Spent | None: ...
     async def delete(self, spent_id: UUID) -> bool: ...
 

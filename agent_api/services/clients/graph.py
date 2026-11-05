@@ -2,6 +2,7 @@ import httpx
 
 from agent_api.core.exceptions import GraphServiceError
 from agent_api.core.logger import get_logger
+from agent_api.schemas.finance import BalancePayload
 from agent_api.services.clients.base import BaseHttpService
 from agent_api.settings import settings
 
@@ -15,7 +16,7 @@ class GraphService(BaseHttpService):
     async def generate_chart(
         self,
         chart_type: str,
-        balances: list[dict],
+        balances: list[BalancePayload],
         mode: str = "saldo",
         title: str | None = None,
     ) -> str:

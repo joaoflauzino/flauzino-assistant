@@ -3,6 +3,7 @@
 from typing import Protocol
 
 from agent_api.schemas.assistant import AssistantResponse
+from agent_api.schemas.finance import BalancePayload
 from agent_api.schemas.income import IncomeDetails
 from agent_api.schemas.limit import LimitDetails
 from agent_api.schemas.spending import SpendingDetails
@@ -25,7 +26,7 @@ class FinanceServiceProtocol(Protocol):
         self,
         categories: list[str] | None = None,
         reference_month: str | None = None,
-    ) -> list[dict]: ...
+    ) -> list[BalancePayload]: ...
 
     async def get_monthly_summary(self, reference_month: str | None = None) -> dict: ...
 
@@ -44,7 +45,7 @@ class GraphServiceProtocol(Protocol):
     async def generate_chart(
         self,
         chart_type: str,
-        balances: list[dict],
+        balances: list[BalancePayload],
         mode: str = "saldo",
         title: str | None = None,
     ) -> str: ...

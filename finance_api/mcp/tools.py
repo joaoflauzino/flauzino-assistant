@@ -17,6 +17,7 @@ from finance_api.core.composition import (
 from finance_api.core.database import AsyncSessionLocal
 from finance_api.core.logger import get_logger
 from finance_api.mcp.server import mcp
+from finance_api.schemas.finance_tools import AccountToolPayload, CreditCardToolPayload
 from finance_api.schemas.incomes import IncomeCreate
 from finance_api.schemas.spents import SpentCreate
 from finance_api.settings import settings
@@ -157,7 +158,7 @@ async def list_accounts(
         str | None,
         Field(description="Filtro opcional por proprietário da conta (ex: 'joao', 'lailla')."),
     ] = None,
-) -> list[dict]:
+) -> list[AccountToolPayload]:
     """Lista todas as contas financeiras cadastradas com seus respectivos cartões vinculados."""
     async with AsyncSessionLocal() as db:
         service = build_account_service(db)
@@ -187,7 +188,7 @@ async def list_accounts(
 
 
 @mcp.tool()
-async def list_credit_cards() -> list[dict]:
+async def list_credit_cards() -> list[CreditCardToolPayload]:
     """Lista todos os cartões de crédito cadastrados no sistema com detalhes de fechamento e vencimento."""
     async with AsyncSessionLocal() as db:
         service = build_credit_card_service(db)
