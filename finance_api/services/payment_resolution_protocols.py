@@ -1,27 +1,11 @@
-"""Structural contracts for payment relation resolution.
+"""Structural contracts for payment relation resolution."""
 
-The context dataclass lives here because it is the input contract shared by the
-resolution steps; the concrete steps live in ``payment_resolution_steps``.
-"""
-
-from dataclasses import dataclass
 from typing import Protocol
 
-from finance_api.repositories.protocols import (
-    AccountRepositoryProtocol,
-    CreditCardRepositoryProtocol,
+from finance_api.schemas.payment_resolution import (
+    PaymentResolutionContext,
+    ResolvedPaymentTarget,
 )
-from finance_api.schemas.payment_resolution import ResolvedPaymentTarget
-
-
-@dataclass(frozen=True, slots=True)
-class PaymentResolutionContext:
-    """Inputs shared by every payment resolution step."""
-
-    clean_key: str
-    requested_payment_type: str | None
-    card_repo: CreditCardRepositoryProtocol | None
-    account_repo: AccountRepositoryProtocol | None
 
 
 class PaymentResolutionStep(Protocol):

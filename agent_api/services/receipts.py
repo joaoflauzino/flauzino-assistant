@@ -4,17 +4,8 @@ Keeping the prompt here keeps the router as a thin HTTP boundary while
 preserving the existing endpoint contracts.
 """
 
-from dataclasses import dataclass
-
+from agent_api.schemas.receipts import ReceiptAnalysis
 from agent_api.services.ocr_protocols import OCRServiceProtocol
-
-
-@dataclass(frozen=True, slots=True)
-class ReceiptAnalysis:
-    """Text and confidence obtained from a receipt image."""
-
-    text: str
-    confidence: float
 
 
 def build_receipt_prompt(extracted_text: str) -> str:

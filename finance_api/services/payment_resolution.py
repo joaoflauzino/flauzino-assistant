@@ -6,11 +6,11 @@ from finance_api.repositories.protocols import (
     AccountRepositoryProtocol,
     CreditCardRepositoryProtocol,
 )
-from finance_api.schemas.payment_resolution import ResolvedPaymentTarget
-from finance_api.services.payment_resolution_protocols import (
+from finance_api.schemas.payment_resolution import (
     PaymentResolutionContext,
-    PaymentResolutionStep,
+    ResolvedPaymentTarget,
 )
+from finance_api.services.payment_resolution_protocols import PaymentResolutionStep
 from finance_api.services.payment_resolution_steps import (
     AccountPaymentStep,
     CreditCardPaymentStep,

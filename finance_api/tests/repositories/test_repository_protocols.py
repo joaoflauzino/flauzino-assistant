@@ -13,8 +13,10 @@ from uuid import UUID, uuid4
 import pytest
 
 from finance_api.core.composition import (
+    build_account_service,
     build_balance_service,
     build_category_service,
+    build_credit_card_service,
     build_income_service,
     build_payment_method_service,
     build_spent_service,
@@ -90,6 +92,13 @@ def test_service_builders_inject_concrete_repositories() -> None:
 
     assert isinstance(build_category_service(db).repo, CategoryRepository)
     assert isinstance(build_payment_method_service(db).repository, PaymentMethodRepository)
+
+    account_service = build_account_service(db)
+    assert isinstance(account_service.repository, AccountRepository)
+
+    credit_card_service = build_credit_card_service(db)
+    assert isinstance(credit_card_service.repository, CreditCardRepository)
+    assert isinstance(credit_card_service.account_repository, AccountRepository)
 
 
 class InMemoryCategoryRepository:

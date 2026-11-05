@@ -1,8 +1,10 @@
 """Chain of Responsibility steps that resolve a payment method key."""
 
 from finance_api.core.logger import get_logger
-from finance_api.schemas.payment_resolution import ResolvedPaymentTarget
-from finance_api.services.payment_resolution_protocols import PaymentResolutionContext
+from finance_api.schemas.payment_resolution import (
+    PaymentResolutionContext,
+    ResolvedPaymentTarget,
+)
 
 logger = get_logger(__name__)
 

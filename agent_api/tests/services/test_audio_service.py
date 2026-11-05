@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from agent_api.core.exceptions import AudioProcessingError, InvalidAudioError
+from agent_api.dependencies import get_audio_service
 from agent_api.services.audio import (
     MAX_AUDIO_SIZE_BYTES,
     AudioService,
@@ -103,3 +104,23 @@ def test_faster_whisper_transcriber_uses_injected_model_factory():
     assert result == "texto"
     factory.assert_called_once_with()
     model.transcribe.assert_called_once()
+
+
+def test_faster_whisper_transcriber_tolerates_cleanup_failure():
+    model = MagicMock()
+    segment = MagicMock(text="texto")
+    model.transcribe.return_value = ([segment], MagicMock(language="pt"))
+    transcriber = FasterWhisperTranscriber(model_factory=MagicMock(return_value=model))
+
+    with patch("os.path.exists", return_value=True):
+        with patch("os.remove", side_effect=OSError("locked")):
+            result = transcriber.transcribe(b"audio")
+
+    assert result == "texto"
+
+
+def test_get_audio_service_builds_default_composition():
+    service = get_audio_service()
+
+    assert isinstance(service, AudioService)
+    assert isinstance(service._transcriber, FasterWhisperTranscriber)

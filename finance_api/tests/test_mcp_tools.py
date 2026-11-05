@@ -1,5 +1,6 @@
 import base64
 from unittest.mock import AsyncMock, MagicMock
+from uuid import uuid4
 
 import pytest
 from mcp.server.fastmcp import Image
@@ -11,7 +12,9 @@ from finance_api.mcp.tools import (
     get_balance_chart,
     get_category_balance,
     get_monthly_cashflow,
+    list_accounts,
     list_categories,
+    list_credit_cards,
     list_income_categories,
 )
 from finance_api.schemas.categories import CategoryResponse
@@ -240,3 +243,100 @@ async def test_get_balance_chart_tool(mocker):
     result = await get_balance_chart()
     assert isinstance(result, Image)
     assert result.data == b"fake_png_data"
+
+
+@pytest.mark.asyncio
+async def test_list_accounts_tool(mocker):
+    mock_db = AsyncMock()
+    mock_session_local = MagicMock()
+    mock_session_local.return_value.__aenter__.return_value = mock_db
+    mocker.patch("finance_api.mcp.tools.AsyncSessionLocal", mock_session_local)
+
+    account_id = uuid4()
+    card_id = uuid4()
+    card = MagicMock(
+        id=card_id,
+        key="itau_card",
+        closing_day=2,
+        due_day=10,
+        credit_limit=10000.0,
+    )
+    card.name = "Itaú Black"
+    account = MagicMock(
+        id=account_id,
+        key="itau_joao",
+        bank="itau",
+        owner="joao",
+        type="CHECKING",
+        credit_cards=[card],
+    )
+    account.name = "Itaú João"
+    service = MagicMock()
+    service.list = AsyncMock(return_value=([account], 1))
+    mocker.patch("finance_api.mcp.tools.build_account_service", return_value=service)
+
+    result = await list_accounts(owner="joao")
+
+    assert result == [
+        {
+            "id": str(account_id),
+            "key": "itau_joao",
+            "name": "Itaú João",
+            "bank": "itau",
+            "owner": "joao",
+            "type": "CHECKING",
+            "credit_cards": [
+                {
+                    "id": str(card_id),
+                    "key": "itau_card",
+                    "name": "Itaú Black",
+                    "closing_day": 2,
+                    "due_day": 10,
+                    "credit_limit": 10000.0,
+                }
+            ],
+        }
+    ]
+    service.list.assert_awaited_once_with(page=1, size=100, owner="joao")
+
+
+@pytest.mark.asyncio
+async def test_list_credit_cards_tool(mocker):
+    mock_db = AsyncMock()
+    mock_session_local = MagicMock()
+    mock_session_local.return_value.__aenter__.return_value = mock_db
+    mocker.patch("finance_api.mcp.tools.AsyncSessionLocal", mock_session_local)
+
+    account_id = uuid4()
+    card_id = uuid4()
+    account = MagicMock()
+    account.name = "Itaú João"
+    card = MagicMock(
+        id=card_id,
+        key="itau_card",
+        account_id=account_id,
+        account=account,
+        closing_day=2,
+        due_day=10,
+        credit_limit=10000.0,
+    )
+    card.name = "Itaú Black"
+    service = MagicMock()
+    service.list = AsyncMock(return_value=([card], 1))
+    mocker.patch("finance_api.mcp.tools.build_credit_card_service", return_value=service)
+
+    result = await list_credit_cards()
+
+    assert result == [
+        {
+            "id": str(card_id),
+            "key": "itau_card",
+            "name": "Itaú Black",
+            "account_id": str(account_id),
+            "account_name": "Itaú João",
+            "closing_day": 2,
+            "due_day": 10,
+            "credit_limit": 10000.0,
+        }
+    ]
+    service.list.assert_awaited_once_with(page=1, size=100)

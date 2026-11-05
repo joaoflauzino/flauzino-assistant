@@ -200,3 +200,21 @@ async def test_update_subscription_raises_when_repository_returns_none(
 
     with pytest.raises(EntityNotFoundError, match="não encontrada"):
         await service.update(subscription_id, SubscriptionUpdate(amount=10.0))
+
+
+async def test_list_subscriptions_uses_pagination(mock_repo, category_repo, payment_resolver):
+    subscription_id = uuid4()
+    mock_repo.list.return_value = ([make_subscription(subscription_id)], 1)
+    service = SubscriptionService(
+        repo=mock_repo,
+        payment_resolver=payment_resolver,
+        category_repo=category_repo,
+    )
+
+    result = await service.list(page=2, size=5, active_only=True)
+
+    assert result.total == 1
+    assert result.items[0].id == subscription_id
+    assert result.page == 2
+    assert result.size == 5
+    mock_repo.list.assert_awaited_once_with(5, 5, True)
