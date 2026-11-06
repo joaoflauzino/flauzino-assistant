@@ -24,6 +24,9 @@ jobs:
           echo "MODEL_NAME=${{ secrets.MODEL_NAME }}" >> .env
           echo "RCLONE_REMOTE=${{ secrets.RCLONE_REMOTE || 'gdrive:flauzino-backups' }}" >> .env
           echo "TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}" >> .env
+          echo "BACKUP_DIR=$HOME/backups/flauzino-assistant" >> .env
+          mkdir -p "$HOME/backups/flauzino-assistant/postgres" "$HOME/backups/flauzino-assistant/logs"
+          chmod 750 "$HOME/backups/flauzino-assistant" "$HOME/backups/flauzino-assistant/postgres" "$HOME/backups/flauzino-assistant/logs"
 
       - name: Pre-deploy Backup
         run: |
