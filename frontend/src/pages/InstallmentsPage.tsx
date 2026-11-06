@@ -13,6 +13,7 @@ import {
 import { Bar } from 'react-chartjs-2';
 import api from '../services/api';
 import type { InstallmentSummary, Category, PaginatedResponse } from '../types';
+import { getInstallmentAmounts, isInstallmentInProgress } from '../utils/installments';
 
 ChartJS.register(
   CategoryScale,
@@ -55,7 +56,7 @@ export const InstallmentsPage = () => {
     }, {} as Record<string, string>);
 
     // Group summaries by category
-    const groupedSummaries = summaries.reduce((acc, summary) => {
+    const groupedSummaries = summaries.filter(isInstallmentInProgress).reduce((acc, summary) => {
         const categoryKey = summary.category || 'outros';
         const displayCategory = categoryMap[categoryKey] || categoryKey;
         if (!acc[displayCategory]) acc[displayCategory] = [];
@@ -89,19 +90,20 @@ export const InstallmentsPage = () => {
             ) : (
                 <div className="space-y-8">
                     {Object.entries(groupedSummaries).map(([category, items]) => {
+                        const amounts = items.map(getInstallmentAmounts);
                         const chartData = {
                             labels: items.map(i => i.item_bought),
                             datasets: [
                                 {
-                                    label: 'Parcelas Pagas',
-                                    data: items.map(i => i.passed_installments),
-                                    backgroundColor: 'rgba(34, 197, 94, 0.85)', // Green-500
+                                    label: 'Já pago',
+                                    data: amounts.map(item => item.paidAmount),
+                                    backgroundColor: 'rgba(34, 197, 94, 0.85)',
                                     borderRadius: 4,
                                 },
                                 {
-                                    label: 'Parcelas Restantes',
-                                    data: items.map(i => Math.max(0, i.total_installments - i.passed_installments)),
-                                    backgroundColor: 'rgba(226, 232, 240, 0.8)', // Slate-200
+                                    label: 'A pagar',
+                                    data: amounts.map(item => item.remainingAmount),
+                                    backgroundColor: 'rgba(226, 232, 240, 0.8)',
                                     borderRadius: 4,
                                 }
                             ]
@@ -115,7 +117,8 @@ export const InstallmentsPage = () => {
                                 x: {
                                     stacked: true,
                                     ticks: {
-                                        stepSize: 1
+                                        callback: (value: string | number) =>
+                                            `R$ ${Number(value).toLocaleString('pt-BR')}`,
                                     },
                                     grid: {
                                         color: 'rgba(0, 0, 0, 0.05)'
@@ -137,7 +140,12 @@ export const InstallmentsPage = () => {
                                         afterLabel: function(context: TooltipItem<'bar'>) {
                                             const itemIndex = context.dataIndex;
                                             const item = items[itemIndex];
-                                            return `Valor da parcela: R$ ${item.amount.toFixed(2)}`;
+                                            const amount = amounts[itemIndex];
+                                            return [
+                                                `Total da compra: R$ ${amount.totalAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                                                `Valor da parcela: R$ ${item.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                                                `Progresso: ${item.passed_installments}/${item.total_installments} parcelas`,
+                                            ];
                                         }
                                     }
                                 }
@@ -157,6 +165,9 @@ export const InstallmentsPage = () => {
                                 </div>
                                 {isExpanded && (
                                     <div className="p-6">
+                                        <p className="mb-4 text-sm text-gray-500">
+                                            Barras em reais: valor já pago e saldo restante. Passe o cursor sobre uma barra para ver o total da compra.
+                                        </p>
                                         <div style={{ height: `${Math.max(200, items.length * 60)}px` }}>
                                             <Bar data={chartData} options={chartOptions} />
                                         </div>

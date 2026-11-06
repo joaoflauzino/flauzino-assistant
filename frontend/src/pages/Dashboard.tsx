@@ -4,7 +4,8 @@ import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Toolti
 import { Bar } from 'react-chartjs-2';
 import { CheckSquare, Square, TrendingUp, TrendingDown, Scale, Percent, Landmark, CreditCard as CreditCardIcon } from 'lucide-react';
 import api from '../services/api';
-import type { Spent, SpendingLimit, Account, CreditCard, Subscription, MonthlyBalanceSummary, IncomeCategory } from '../types';
+import type { Spent, SpendingLimit, Account, CreditCard, Subscription, MonthlyBalanceSummary, IncomeCategory, InstallmentSummary } from '../types';
+import { getInstallmentAmounts } from '../utils/installments';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
@@ -43,6 +44,9 @@ export const Dashboard = () => {
     const [limits, setLimits] = useState<SpendingLimit[]>([]);
     const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
     const [monthlySummary, setMonthlySummary] = useState<MonthlyBalanceSummary | null>(null);
+    const [installmentSummaries, setInstallmentSummaries] = useState<InstallmentSummary[]>([]);
+    const [installmentsLoading, setInstallmentsLoading] = useState(true);
+    const [installmentsLoadFailed, setInstallmentsLoadFailed] = useState(false);
     const [loading, setLoading] = useState(true);
 
     const [referenceMonth, setReferenceMonth] = useState(getCurrentMonth());
@@ -171,6 +175,22 @@ export const Dashboard = () => {
     useEffect(() => {
         fetchCategories();
         fetchAccountsAndCards();
+    }, []);
+
+    useEffect(() => {
+        const fetchInstallmentSummaries = async () => {
+            try {
+                const response = await api.get<InstallmentSummary[]>('/spents/installments-summary');
+                setInstallmentSummaries(response.data);
+            } catch (error) {
+                console.error('Error fetching dashboard installment summaries', error);
+                setInstallmentsLoadFailed(true);
+            } finally {
+                setInstallmentsLoading(false);
+            }
+        };
+
+        fetchInstallmentSummaries();
     }, []);
 
     useEffect(() => {
@@ -635,6 +655,77 @@ export const Dashboard = () => {
                 barThickness: 20,
             },
         ],
+    };
+
+    const installmentAmounts = installmentSummaries.map(getInstallmentAmounts);
+    const installmentChartData = {
+        labels: installmentSummaries.map(item => item.item_bought),
+        datasets: [
+            {
+                label: 'Já pago',
+                data: installmentAmounts.map(item => item.paidAmount),
+                backgroundColor: 'rgba(34, 197, 94, 0.85)',
+                borderRadius: 4,
+            },
+            {
+                label: 'A pagar',
+                data: installmentAmounts.map(item => item.remainingAmount),
+                backgroundColor: 'rgba(226, 232, 240, 0.8)',
+                borderRadius: 4,
+            },
+        ],
+    };
+
+    const installmentChartOptions = {
+        indexAxis: 'y' as const,
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom' as const,
+                labels: { color: '#e5e7eb', padding: 15 },
+            },
+            tooltip: {
+                backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                titleColor: '#f3f4f6',
+                bodyColor: '#e5e7eb',
+                borderColor: '#374151',
+                borderWidth: 1,
+                padding: 12,
+                callbacks: {
+                    label: function (context: TooltipItem<'bar'>) {
+                        return `${context.dataset.label}: R$ ${Number(context.raw).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    },
+                    afterLabel: function (context: TooltipItem<'bar'>) {
+                        const index = context.dataIndex;
+                        const installment = installmentSummaries[index];
+                        const amounts = installmentAmounts[index];
+                        return [
+                            `Total da compra: R$ ${amounts.totalAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                            `Valor da parcela: R$ ${installment.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                            `Progresso: ${installment.passed_installments}/${installment.total_installments} parcelas`,
+                        ];
+                    },
+                },
+            },
+        },
+        scales: {
+            x: {
+                stacked: true,
+                grid: { color: 'rgba(75, 85, 99, 0.2)' },
+                ticks: {
+                    color: '#9ca3af',
+                    callback: function (value: string | number) {
+                        return `R$ ${Number(value).toLocaleString('pt-BR')}`;
+                    },
+                },
+            },
+            y: {
+                stacked: true,
+                grid: { display: false },
+                ticks: { color: '#e5e7eb', font: { size: 12 } },
+            },
+        },
     };
 
     return (
@@ -1253,8 +1344,40 @@ export const Dashboard = () => {
                             </div>
                         </div>
                     </div>
+
                 </>
             )}
+
+            <div style={{
+                backgroundColor: 'var(--bg-secondary)',
+                padding: '1.5rem',
+                borderRadius: '12px',
+                border: '1px solid rgba(34, 197, 94, 0.15)',
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                marginTop: '1.5rem',
+            }}>
+                <h3 style={{ margin: '0 0 0.4rem', fontSize: '1.1rem', fontWeight: 600 }}>Parcelamentos</h3>
+                <p style={{ margin: '0 0 1rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                    Visão geral do valor total, já pago e a pagar, incluindo compras quitadas. Não depende do mês selecionado.
+                </p>
+                {installmentsLoading ? (
+                    <div style={{ minHeight: '180px', display: 'grid', placeItems: 'center', color: 'var(--text-secondary)' }}>
+                        Carregando parcelamentos...
+                    </div>
+                ) : installmentsLoadFailed ? (
+                    <div style={{ minHeight: '180px', display: 'grid', placeItems: 'center', color: 'var(--text-secondary)' }}>
+                        Não foi possível carregar os parcelamentos.
+                    </div>
+                ) : installmentSummaries.length === 0 ? (
+                    <div style={{ minHeight: '180px', display: 'grid', placeItems: 'center', color: 'var(--text-secondary)' }}>
+                        Nenhum parcelamento registrado.
+                    </div>
+                ) : (
+                    <div style={{ height: `${Math.max(220, installmentSummaries.length * 42)}px`, maxHeight: '600px' }}>
+                        <Bar data={installmentChartData} options={installmentChartOptions} />
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

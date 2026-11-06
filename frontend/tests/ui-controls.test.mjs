@@ -7,16 +7,23 @@ import { createServer } from 'vite';
 let vite;
 let Button;
 let Modal;
+let getInstallmentAmounts;
+let isInstallmentInProgress;
+let Dashboard;
+let InstallmentsPage;
 
 before(async () => {
     vite = await createServer({
         configFile: new URL('../vite.config.ts', import.meta.url).pathname,
-        server: { middlewareMode: true },
+        server: { middlewareMode: true, hmr: false },
         appType: 'custom',
     });
 
     ({ Button } = await vite.ssrLoadModule('/src/components/Button.tsx'));
     ({ Modal } = await vite.ssrLoadModule('/src/components/Modal.tsx'));
+    ({ getInstallmentAmounts, isInstallmentInProgress } = await vite.ssrLoadModule('/src/utils/installments.ts'));
+    ({ Dashboard } = await vite.ssrLoadModule('/src/pages/Dashboard.tsx'));
+    ({ InstallmentsPage } = await vite.ssrLoadModule('/src/pages/InstallmentsPage.tsx'));
 });
 
 after(async () => {
@@ -71,4 +78,73 @@ test('Modal renders shared responsive structure only while open', () => {
     assert.match(openMarkup, /class="modal-dialog"/);
     assert.match(openMarkup, /aria-label="Fechar"/);
     assert.match(openMarkup, /Conteúdo/);
+});
+
+test('installment amounts split total purchase into paid and remaining values', () => {
+    const installment = {
+        installment_id: 'installment-1',
+        category: 'tecnologia',
+        item_bought: 'Monitor',
+        amount: 100,
+        total_installments: 10,
+        passed_installments: 2,
+    };
+
+    assert.deepEqual(getInstallmentAmounts(installment), {
+        totalAmount: 1000,
+        paidAmount: 200,
+        remainingAmount: 800,
+        isCompleted: false,
+    });
+    assert.equal(isInstallmentInProgress(installment), true);
+});
+
+test('caps paid value at the total for completed or over-counted installments', () => {
+    const installment = {
+        installment_id: 'installment-2',
+        category: 'casa',
+        item_bought: 'Cadeira',
+        amount: 75.5,
+        total_installments: 4,
+        passed_installments: 8,
+    };
+
+    assert.deepEqual(getInstallmentAmounts(installment), {
+        totalAmount: 302,
+        paidAmount: 302,
+        remainingAmount: 0,
+        isCompleted: true,
+    });
+    assert.equal(isInstallmentInProgress(installment), false);
+});
+
+test('excludes invalid zero-installment summaries from the in-progress list', () => {
+    const installment = {
+        installment_id: 'installment-3',
+        category: 'casa',
+        item_bought: 'Mesa',
+        amount: 120,
+        total_installments: 0,
+        passed_installments: 0,
+    };
+
+    assert.deepEqual(getInstallmentAmounts(installment), {
+        totalAmount: 0,
+        paidAmount: 0,
+        remainingAmount: 0,
+        isCompleted: false,
+    });
+    assert.equal(isInstallmentInProgress(installment), false);
+});
+
+test('dashboard renders without crashing in its initial loading state', () => {
+    const markup = renderToStaticMarkup(React.createElement(Dashboard));
+
+    assert.match(markup, /Carregando painel/);
+});
+
+test('installments page renders its loading state without crashing', () => {
+    const markup = renderToStaticMarkup(React.createElement(InstallmentsPage));
+
+    assert.match(markup, /animate-spin/);
 });
